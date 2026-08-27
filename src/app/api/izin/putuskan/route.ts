@@ -28,8 +28,10 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = "/guru/izin";
-  url.search = "";
+  // 1.23 — bisa dipanggil dari /guru/izin ATAU inline dari /guru/absensi (Isi Absensi), jadi balik
+  // ke halaman asalnya (lewat referer) bukan hardcode /guru/izin, biar guru gak kepental halaman.
+  const referer = req.headers.get("referer");
+  const url = referer ? new URL(referer) : req.nextUrl.clone();
+  if (!referer) url.pathname = "/guru/izin";
   return NextResponse.redirect(url, { status: 303 });
 }

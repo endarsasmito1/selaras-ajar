@@ -9,10 +9,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { pengerjaanId, soalId, jawabanPG, jawabanTeks } = body as {
+  const { pengerjaanId, soalId, jawabanPG, jawabanPGMulti, jawabanTeks } = body as {
     pengerjaanId: string;
     soalId: string;
     jawabanPG?: number;
+    jawabanPGMulti?: number[];
     jawabanTeks?: string;
   };
 
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
     where: { pengerjaanId_soalId: { pengerjaanId, soalId } },
     data: {
       ...(jawabanPG !== undefined ? { jawabanPG } : {}),
+      ...(jawabanPGMulti !== undefined ? { jawabanPGMulti: JSON.stringify(jawabanPGMulti) } : {}),
       ...(jawabanTeks !== undefined ? { jawabanTeks } : {}),
     },
   });

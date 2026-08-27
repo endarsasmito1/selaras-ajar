@@ -22,7 +22,13 @@ export default async function PerformaSayaPage() {
       pageTitle="Performa Saya"
       pageSubtitle="Progress belajarmu sejauh ini"
     >
-      <PerformaSiswaView performa={performa} ringkas />
+      <PerformaSiswaView
+        performa={performa}
+        ringkas
+        hrefKehadiran="/murid/kehadiran"
+        hrefTugas="/murid/tugas"
+        hrefUjianList="/murid/ujian"
+      />
     </AppShell>
   );
 }

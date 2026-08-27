@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { autoGradeDanHitungTotal } from "@/lib/ujian-helpers";
+import { autoGradeDanHitungTotal, semuaJawabanManualSudahDinilai } from "@/lib/ujian-helpers";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -27,6 +27,16 @@ export async function POST(req: NextRequest) {
       data: { status: auto ? "AUTO_SUBMIT" : "SELESAI", waktuSelesai: new Date() },
     });
     await autoGradeDanHitungTotal(pengerjaanId);
+
+    // U-26: kalau tak ada esai yang butuh nilai manual, nilai langsung final — tak perlu
+    // menunggu guru klik "Selesai dikoreksi".
+    const { selesai } = await semuaJawabanManualSudahDinilai(pengerjaanId);
+    if (selesai) {
+      await prisma.ujianPengerjaan.update({
+        where: { id: pengerjaanId },
+        data: { koreksiDikonfirmasi: true, dikonfirmasiPada: new Date() },
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });

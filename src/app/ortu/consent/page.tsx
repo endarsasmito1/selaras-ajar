@@ -45,7 +45,7 @@ export default async function ConsentPage() {
 
         <form action="/api/consent" method="POST" className="mt-5">
           <label className="flex items-start gap-3 text-sm mb-4">
-            <input type="checkbox" name="disetujui" defaultChecked={consent?.disetujui ?? false} className="mt-1" />
+            <input type="checkbox" name="disetujui" defaultChecked={consent?.disetujui ?? false} className="mt-1 w-4 h-4 accent-[color:var(--primary)]" />
             <span>
               Saya memberikan persetujuan eksplisit atas pemrosesan data anak saya sebagaimana dijelaskan di atas, terpisah dari syarat &amp; ketentuan umum penggunaan aplikasi.
             </span>

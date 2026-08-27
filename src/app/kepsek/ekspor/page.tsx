@@ -1,22 +1,27 @@
 import { getSession } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
-import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
+import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 
-export default async function EksporImporPage() {
+export default async function EksporImporPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
+  const sp = await searchParams;
 
   return (
     <AppShell
-      groups={NAV_KEPSEK}
+      groups={groupsForPeran(session.peran)}
       activeHref="/kepsek/ekspor"
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle="Ekspor & Impor Data"
-      pageSubtitle="Format cocok Dapodik/e-Rapor — bukan integrasi API langsung (tak ada API resmi pihak ketiga)"
+      pageSubtitle="Format cocok Dapodik/e-Rapor"
     >
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -25,6 +30,11 @@ export default async function EksporImporPage() {
             <LinkButton href="/api/ekspor/siswa" variant="ghost">⬇ Ekspor Data Siswa (CSV)</LinkButton>
             <LinkButton href="/api/ekspor/nilai" variant="ghost">⬇ Ekspor Nilai / e-Rapor (CSV)</LinkButton>
           </div>
+        </Card>
+
+        <Card>
+          <CardHead title="Backup data mandiri (K-9)" subtitle="Seluruh data sekolah, kapan saja, tanpa bergantung ke vendor" />
+          <LinkButton href="/api/ekspor/backup" variant="ghost">⬇ Unduh Backup Lengkap (JSON)</LinkButton>
         </Card>
 
         <Card>
@@ -40,6 +50,8 @@ export default async function EksporImporPage() {
       <Callout>
         ℹ️ Setelah diunggah, kamu akan lihat <b>preview</b> dulu (baris valid vs bermasalah) sebelum data benar-benar masuk. Impor ulang file yang sama tidak akan menduplikat — dicocokkan lewat NISN.
       </Callout>
+
+      {sp.error && <div className="mt-4"><Callout tone="warn">{sp.error}</Callout></div>}
     </AppShell>
   );
 }

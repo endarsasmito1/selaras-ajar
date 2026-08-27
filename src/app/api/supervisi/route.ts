@@ -12,6 +12,11 @@ export async function POST(req: NextRequest) {
   const guruId = String(formData.get("guruId"));
   const catatan = String(formData.get("catatan"));
 
+  const guru = await prisma.pengguna.findFirst({ where: { id: guruId, sekolahId: session.sekolahId, peran: "GURU" } });
+  if (!guru) {
+    return NextResponse.json({ error: "Tidak ditemukan" }, { status: 404 });
+  }
+
   await prisma.catatanSupervisi.create({
     data: { guruId, kepsekId: session.userId, catatan },
   });

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const batchId = String(formData.get("batchId"));
   const batch = ambilBatch(batchId);
-  if (!batch) {
+  if (!batch || batch.jenis !== "siswa") {
     return NextResponse.json({ error: "Batch impor tidak ditemukan / sudah kedaluwarsa" }, { status: 404 });
   }
 

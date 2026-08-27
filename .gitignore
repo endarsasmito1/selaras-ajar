@@ -45,4 +45,12 @@ next-env.d.ts
 # database (SQLite runtime data — regenerate via `npm run db:seed`)
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 prisma/dev.db*
+public/uploads/
+
+# playwright
+/test-results/
+/playwright-report/
+/tests/e2e/.auth/

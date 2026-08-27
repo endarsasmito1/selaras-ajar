@@ -12,3 +12,7 @@ const adapter = new PrismaBetterSqlite3({
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+// WAL mengizinkan reader konkuren tanpa saling kunci (default SQLite "DELETE" journal mode
+// menyerialkan akses baca di bawah beban paralel). Idempotent — no-op kalau file dev.db sudah WAL.
+prisma.$executeRawUnsafe("PRAGMA journal_mode = WAL;").catch(() => {});

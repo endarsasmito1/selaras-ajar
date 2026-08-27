@@ -2,15 +2,19 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { sanitizeSoalHtml } from "@/lib/sanitize-html";
 
 export type SoalTampil = {
   soalId: string;
-  jenis: "PILIHAN_GANDA" | "JAWABAN_SINGKAT" | "ESAI";
+  jenis: "PILIHAN_GANDA" | "PILIHAN_GANDA_KOMPLEKS" | "PILIHAN_GANDA_MINUS" | "JAWABAN_SINGKAT" | "ESAI";
   pertanyaan: string;
   poin: number;
   opsiTampil?: { originalIndex: number; text: string }[];
   jawabanPGTersimpan: number | null;
+  jawabanPGMultiTersimpan?: number[] | null;
   jawabanTeksTersimpan: string | null;
+  /** 1.23 — cuma dipakai jenis ESAI/JAWABAN_SINGKAT, batas waktu per-soal (soft enforcement). */
+  durasiDetik?: number | null;
 };
 
 const HURUF = ["A", "B", "C", "D", "E", "F"];
@@ -37,19 +41,23 @@ export default function PengerjaanUjianClient({
   const [jawabanPG, setJawabanPG] = useState<Record<string, number>>(
     Object.fromEntries(soal.filter((s) => s.jawabanPGTersimpan !== null).map((s) => [s.soalId, s.jawabanPGTersimpan as number]))
   );
+  const [jawabanPGMulti, setJawabanPGMulti] = useState<Record<string, number[]>>(
+    Object.fromEntries(soal.filter((s) => s.jawabanPGMultiTersimpan && s.jawabanPGMultiTersimpan.length > 0).map((s) => [s.soalId, s.jawabanPGMultiTersimpan as number[]]))
+  );
   const [jawabanTeks, setJawabanTeks] = useState<Record<string, string>>(
     Object.fromEntries(soal.filter((s) => s.jawabanTeksTersimpan).map((s) => [s.soalId, s.jawabanTeksTersimpan as string]))
   );
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [savedTick, setSavedTick] = useState(0);
+  const [showReview, setShowReview] = useState(false);
   const submittedRef = useRef(false);
 
   const soalAktif = soal[index];
 
   // ----- Autosave -----
   const simpanJawaban = useCallback(
-    (soalId: string, data: { jawabanPG?: number; jawabanTeks?: string }) => {
+    (soalId: string, data: { jawabanPG?: number; jawabanPGMulti?: number[]; jawabanTeks?: string }) => {
       fetch("/api/ujian/jawab", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,6 +72,15 @@ export default function PengerjaanUjianClient({
   function pilihPG(soalId: string, originalIndex: number) {
     setJawabanPG((prev) => ({ ...prev, [soalId]: originalIndex }));
     simpanJawaban(soalId, { jawabanPG: originalIndex });
+  }
+
+  function toggleMulti(soalId: string, originalIndex: number) {
+    setJawabanPGMulti((prev) => {
+      const current = prev[soalId] ?? [];
+      const next = current.includes(originalIndex) ? current.filter((v) => v !== originalIndex) : [...current, originalIndex].sort((a, b) => a - b);
+      simpanJawaban(soalId, { jawabanPGMulti: next });
+      return { ...prev, [soalId]: next };
+    });
   }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,12 +144,52 @@ export default function PengerjaanUjianClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batasWaktuIso]);
 
-  const jumlahTerjawab = soal.filter((s) => jawabanPG[s.soalId] !== undefined || (jawabanTeks[s.soalId] ?? "").trim() !== "").length;
+  // 1.23 — timer PER-SOAL (cuma esai/jawaban singkat yang guru kasih durasiDetik), reset tiap
+  // pindah soal. Soft enforcement: begitu habis, otomatis pindah ke soal berikutnya (jawaban yang
+  // sudah diketik TETAP tersimpan via autosave, tidak dibuang) — bukan auto-submit seluruh ujian.
+  const [sisaDetikSoal, setSisaDetikSoal] = useState<number | null>(null);
+  useEffect(() => {
+    const durasi = soal[index]?.durasiDetik;
+    if (!durasi) {
+      setSisaDetikSoal(null);
+      return;
+    }
+    const mulai = Date.now();
+    function tick() {
+      const sisa = Math.max(0, durasi! - Math.floor((Date.now() - mulai) / 1000));
+      setSisaDetikSoal(sisa);
+      if (sisa <= 0) setIndex((i) => Math.min(soal.length - 1, i + 1));
+    }
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  const jumlahTerjawab = soal.filter(
+    (s) => jawabanPG[s.soalId] !== undefined || (jawabanPGMulti[s.soalId]?.length ?? 0) > 0 || (jawabanTeks[s.soalId] ?? "").trim() !== ""
+  ).length;
 
   function fmtWaktu(detik: number) {
     const m = Math.floor(detik / 60);
     const s = detik % 60;
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  // 1.21 — ringkasan jawaban per soal utk layar tinjau sebelum submit (bukan cuma "terjawab/belum",
+  // tampilkan isi jawabannya biar murid benar-benar bisa cek sebelum final).
+  function ringkasanJawaban(s: SoalTampil): string {
+    if (s.jenis === "PILIHAN_GANDA" || s.jenis === "PILIHAN_GANDA_MINUS") {
+      const idx = jawabanPG[s.soalId];
+      if (idx === undefined) return "";
+      return s.opsiTampil?.find((o) => o.originalIndex === idx)?.text ?? "";
+    }
+    if (s.jenis === "PILIHAN_GANDA_KOMPLEKS") {
+      const idxs = jawabanPGMulti[s.soalId] ?? [];
+      if (idxs.length === 0) return "";
+      return idxs.map((idx) => s.opsiTampil?.find((o) => o.originalIndex === idx)?.text ?? "").join(", ");
+    }
+    return (jawabanTeks[s.soalId] ?? "").trim();
   }
 
   return (
@@ -150,6 +207,50 @@ export default function PengerjaanUjianClient({
         )}
       </div>
 
+      {showReview ? (
+        <div className="max-w-3xl mx-auto p-6">
+          <div className="bg-paper-raised border border-rule rounded-2xl p-7 shadow-sm">
+            <h2 className="font-serif text-xl mb-1.5">Tinjau jawabanmu sebelum dikumpulkan</h2>
+            <p className="text-sm text-ink-soft mb-5">
+              <b>{jumlahTerjawab}</b> dari <b>{soal.length}</b> soal terjawab. Klik satu soal untuk kembali & ubah jawabannya. Setelah dikumpulkan, jawaban tidak bisa diubah lagi.
+            </p>
+            <div className="flex flex-col gap-2 mb-6 max-h-[50vh] overflow-y-auto">
+              {soal.map((s, i) => {
+                const ringkas = ringkasanJawaban(s);
+                return (
+                  <button
+                    key={s.soalId}
+                    onClick={() => {
+                      setShowReview(false);
+                      setIndex(i);
+                    }}
+                    className="flex items-start gap-3 text-left px-3.5 py-2.5 rounded-lg border border-rule hover:bg-paper"
+                  >
+                    <span className="w-6 h-6 rounded-md bg-paper-sunken text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="flex-1 text-sm">
+                      {ringkas ? ringkas : <span className="text-warning italic">Belum dijawab</span>}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2.5">
+              <button onClick={() => setShowReview(false)} className="flex-1 text-sm px-4 py-2.5 rounded-lg border border-rule">
+                ← Kembali, masih mau ubah jawaban
+              </button>
+              <button
+                onClick={() => submitUjian(false)}
+                disabled={submitting}
+                className="flex-1 bg-accent text-[#3A2C10] font-semibold text-sm py-2.5 rounded-lg disabled:opacity-60"
+              >
+                {submitting ? "Mengirim…" : "Ya, kumpulkan sekarang"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-warning-tint border border-warning/35 text-warning rounded-lg px-4 py-3 text-xs mb-5">
           ⚠ Jangan tutup atau tinggalkan halaman ini. Jika keluar, ujian dianggap <b>selesai</b> dan jawaban yang sudah diisi otomatis dikumpulkan.
@@ -159,13 +260,18 @@ export default function PengerjaanUjianClient({
           <div className="bg-paper-raised border border-rule rounded-2xl p-7 shadow-sm">
             <div className="flex justify-between text-xs text-ink-soft mb-2.5">
               <span>Soal {index + 1} dari {soal.length}</span>
-              <span>
-                {soalAktif.jenis === "PILIHAN_GANDA" ? "Pilihan Ganda" : soalAktif.jenis === "JAWABAN_SINGKAT" ? "Jawaban Singkat" : "Esai"} · {soalAktif.poin} poin
+              <span className="flex items-center gap-2">
+                {soalAktif.jenis === "PILIHAN_GANDA" ? "Pilihan Ganda" : soalAktif.jenis === "PILIHAN_GANDA_MINUS" ? "Pilihan Ganda (ada nilai minus jika salah)" : soalAktif.jenis === "PILIHAN_GANDA_KOMPLEKS" ? "Pilihan Ganda Kompleks — bisa >1 jawaban" : soalAktif.jenis === "JAWABAN_SINGKAT" ? "Jawaban Singkat" : "Esai"} · {soalAktif.poin} poin
+                {sisaDetikSoal !== null && (
+                  <span className={"font-semibold tabnum " + (sisaDetikSoal <= 10 ? "text-danger" : "text-ink")}>
+                    ⏱ {fmtWaktu(sisaDetikSoal)}
+                  </span>
+                )}
               </span>
             </div>
-            <p className="text-[17px] mb-5 leading-relaxed">{soalAktif.pertanyaan}</p>
+            <div className="text-[17px] mb-5 leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeSoalHtml(soalAktif.pertanyaan) }} />
 
-            {soalAktif.jenis === "PILIHAN_GANDA" &&
+            {(soalAktif.jenis === "PILIHAN_GANDA" || soalAktif.jenis === "PILIHAN_GANDA_MINUS") &&
               soalAktif.opsiTampil?.map((o, i) => {
                 const dipilih = jawabanPG[soalAktif.soalId] === o.originalIndex;
                 return (
@@ -184,6 +290,30 @@ export default function PengerjaanUjianClient({
                   </button>
                 );
               })}
+
+            {soalAktif.jenis === "PILIHAN_GANDA_KOMPLEKS" && (
+              <>
+                <p className="text-xs text-ink-soft mb-2.5">Boleh pilih lebih dari satu jawaban.</p>
+                {soalAktif.opsiTampil?.map((o, i) => {
+                  const dipilih = (jawabanPGMulti[soalAktif.soalId] ?? []).includes(o.originalIndex);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => toggleMulti(soalAktif.soalId, o.originalIndex)}
+                      className={
+                        "w-full flex items-center gap-3 px-4 py-3.5 rounded-lg border-[1.5px] mb-2.5 text-left text-[14.5px] " +
+                        (dipilih ? "border-primary bg-primary-tint" : "border-rule bg-paper hover:border-primary/50")
+                      }
+                    >
+                      <span className={"w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[13px] shrink-0 " + (dipilih ? "bg-primary text-white" : "bg-paper-sunken")}>
+                        {dipilih ? "☑" : HURUF[i]}
+                      </span>
+                      {o.text}
+                    </button>
+                  );
+                })}
+              </>
+            )}
 
             {(soalAktif.jenis === "JAWABAN_SINGKAT" || soalAktif.jenis === "ESAI") && (
               <textarea
@@ -234,7 +364,7 @@ export default function PengerjaanUjianClient({
             <div className="text-[11px] uppercase tracking-wide text-ink-soft text-center mb-3">Navigasi soal</div>
             <div className="grid grid-cols-5 gap-1.5 mb-3">
               {soal.map((s, i) => {
-                const terjawab = jawabanPG[s.soalId] !== undefined || (jawabanTeks[s.soalId] ?? "").trim() !== "";
+                const terjawab = jawabanPG[s.soalId] !== undefined || (jawabanPGMulti[s.soalId]?.length ?? 0) > 0 || (jawabanTeks[s.soalId] ?? "").trim() !== "";
                 const isFlagged = flagged.has(s.soalId);
                 return (
                   <button
@@ -260,13 +390,11 @@ export default function PengerjaanUjianClient({
               <b>{jumlahTerjawab}</b> terjawab · <b>{flagged.size}</b> ragu · <b>{soal.length - jumlahTerjawab}</b> kosong
             </div>
             <button
-              onClick={() => {
-                if (confirm("Kumpulkan ujian sekarang? Jawaban tidak bisa diubah lagi setelah ini.")) submitUjian(false);
-              }}
+              onClick={() => setShowReview(true)}
               disabled={submitting}
               className="w-full bg-accent text-[#3A2C10] font-semibold text-sm py-2.5 rounded-lg disabled:opacity-60"
             >
-              {submitting ? "Mengirim…" : "Kumpulkan Ujian"}
+              Kumpulkan Ujian
             </button>
             <div className="text-[11px] text-ink-soft text-center mt-3">
               Urutan soal &amp; pilihan jawaban diacak khusus untukmu
@@ -274,6 +402,7 @@ export default function PengerjaanUjianClient({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -7,17 +7,29 @@ const secretKey = new TextEncoder().encode(
 );
 
 const HOME_BY_ROLE: Record<string, string> = {
+  SUPERADMIN: "/superadmin",
   KEPALA_SEKOLAH: "/kepsek",
   BENDAHARA: "/keuangan",
+  TU: "/kepsek/siswa",
   GURU: "/guru",
   ORANG_TUA: "/ortu",
   MURID: "/murid",
 };
 
+// Urutan penting — .find() pakai match pertama, jadi prefix spesifik harus didahulukan
+// dari catch-all-nya. Lihat catatan yang sama di src/lib/auth.ts (duplikat sengaja, edge-safe).
 const ROLE_BY_PATH_PREFIX: { prefix: string; roles: string[] }[] = [
+  { prefix: "/superadmin", roles: ["SUPERADMIN"] },
+  { prefix: "/kepsek/siswa", roles: ["KEPALA_SEKOLAH", "TU"] },
+  { prefix: "/kepsek/guru", roles: ["KEPALA_SEKOLAH", "TU"] },
+  { prefix: "/kepsek/master-data", roles: ["KEPALA_SEKOLAH", "TU"] },
+  { prefix: "/kepsek/tahun-ajaran", roles: ["KEPALA_SEKOLAH", "TU"] },
+  { prefix: "/kepsek/ekspor", roles: ["KEPALA_SEKOLAH", "TU"] },
+  { prefix: "/kepsek/jadwal", roles: ["KEPALA_SEKOLAH", "TU"] },
+  { prefix: "/kepsek/kalender", roles: ["KEPALA_SEKOLAH", "TU"] },
   { prefix: "/kepsek", roles: ["KEPALA_SEKOLAH"] },
   { prefix: "/keuangan", roles: ["KEPALA_SEKOLAH", "BENDAHARA"] },
-  { prefix: "/guru", roles: ["GURU"] },
+  { prefix: "/guru", roles: ["GURU", "KEPALA_SEKOLAH"] },
   { prefix: "/ortu", roles: ["ORANG_TUA"] },
   { prefix: "/murid", roles: ["MURID"] },
 ];
@@ -55,5 +67,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/kepsek/:path*", "/keuangan/:path*", "/guru/:path*", "/ortu/:path*", "/murid/:path*"],
+  matcher: ["/superadmin/:path*", "/kepsek/:path*", "/keuangan/:path*", "/guru/:path*", "/ortu/:path*", "/murid/:path*"],
 };

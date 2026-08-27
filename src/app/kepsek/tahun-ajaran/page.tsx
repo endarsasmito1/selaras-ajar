@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { getDaftarTahunAjaran } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
-import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
+import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
@@ -11,7 +11,7 @@ import { formatTanggal } from "@/lib/utils";
 export default async function TahunAjaranPage({
   searchParams,
 }: {
-  searchParams: Promise<{ promosi?: string; lulus?: string }>;
+  searchParams: Promise<{ promosi?: string; lulus?: string; pindah?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -21,7 +21,7 @@ export default async function TahunAjaranPage({
 
   return (
     <AppShell
-      groups={NAV_KEPSEK}
+      groups={groupsForPeran(session.peran)}
       activeHref="/kepsek/tahun-ajaran"
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
@@ -30,7 +30,7 @@ export default async function TahunAjaranPage({
       headerAction={<LinkButton href="/kepsek/tahun-ajaran/kenaikan-kelas" size="sm">Naik kelas / Tahun ajaran baru →</LinkButton>}
     >
       {params.promosi && (
-        <Callout>✓ Kenaikan kelas selesai — {params.promosi} siswa naik kelas, {params.lulus} siswa lulus/alumni.</Callout>
+        <Callout>✓ Kenaikan kelas selesai — {params.promosi} siswa naik kelas, {params.lulus} siswa lulus, {params.pindah ?? 0} siswa pindah sekolah. Lihat detailnya di Riwayat Siswa.</Callout>
       )}
 
       <div className="flex flex-col gap-3 mt-4">
@@ -47,6 +47,11 @@ export default async function TahunAjaranPage({
                   {formatTanggal(ta.mulai)}
                 </div>
               </div>
+            </div>
+            <div className="mt-3">
+              <LinkButton href={`/kepsek/tahun-ajaran/${ta.id}`} variant="ghost" size="sm">
+                Lihat kelas, guru, absensi & riwayat pembayaran tahun ajaran ini (K-8) →
+              </LinkButton>
             </div>
           </Card>
         ))}

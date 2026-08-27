@@ -1,3 +1,6 @@
+import { PPDBForm } from "./PPDBForm";
+import { ValidasiFormProvider } from "@/components/ValidasiFormProvider";
+
 export default async function PPDBPublikPage({
   searchParams,
 }: {
@@ -7,6 +10,7 @@ export default async function PPDBPublikPage({
 
   return (
     <div className="min-h-screen bg-paper flex items-center justify-center px-4 py-12">
+      <ValidasiFormProvider />
       <div className="w-full max-w-md">
         <div className="flex items-center gap-2 mb-1 justify-center">
           <span className="w-3 h-3 rounded-[3px] bg-accent inline-block" />
@@ -22,27 +26,7 @@ export default async function PPDBPublikPage({
             <p className="text-sm">Sekolah akan menghubungi Anda untuk proses selanjutnya.</p>
           </div>
         ) : (
-          <form action="/api/ppdb" method="POST" className="bg-paper-raised border border-rule rounded-2xl p-7 flex flex-col gap-3.5">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold">Nama calon siswa</label>
-              <input name="namaCalon" required className="bg-paper border border-rule rounded-lg px-3.5 py-2.5 text-sm" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold">Mendaftar untuk jenjang/kelas</label>
-              <input name="jenjangDaftar" required placeholder="mis. Kelas 1" className="bg-paper border border-rule rounded-lg px-3.5 py-2.5 text-sm" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold">Nama orang tua/wali</label>
-              <input name="namaOrtu" required className="bg-paper border border-rule rounded-lg px-3.5 py-2.5 text-sm" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold">Kontak (WhatsApp/email)</label>
-              <input name="kontak" required className="bg-paper border border-rule rounded-lg px-3.5 py-2.5 text-sm" />
-            </div>
-            <button type="submit" className="bg-accent text-[#3A2C10] font-semibold text-sm py-2.5 rounded-lg mt-2">
-              Kirim Pendaftaran
-            </button>
-          </form>
+          <PPDBForm />
         )}
       </div>
     </div>

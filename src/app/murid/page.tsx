@@ -1,21 +1,29 @@
 import { getSession } from "@/lib/auth";
-import { getSiswaByAkun, getDashboardMurid } from "@/lib/data";
+import { getSiswaByAkun, getDashboardMurid, getProfilMurid, getCatatanAsesmen } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Callout } from "@/components/ui/Callout";
+import { PengumumanWidget } from "@/components/PengumumanWidget";
 import { formatTanggal } from "@/lib/utils";
 
 const TIPE_ICON: Record<string, string> = { dokumen: "📄", video: "▶", catatan: "✎" };
 
-export default async function MuridDashboard() {
+export default async function MuridDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
+  const sp = await searchParams;
 
   const siswa = await getSiswaByAkun(session.userId);
   if (!siswa) {
     return (
       <AppShell
+      showBack={false}
         groups={NAV_MURID}
         activeHref="/murid"
         userName={session.nama}
@@ -27,11 +35,16 @@ export default async function MuridDashboard() {
     );
   }
 
-  const { nilai, tugas, materi, absensi } = await getDashboardMurid(siswa.id, siswa.kelasId);
+  const [{ nilai, tugas, materi, absensi }, profil, asesmen] = await Promise.all([
+    getDashboardMurid(siswa.id, siswa.kelasId),
+    getProfilMurid(siswa.id),
+    getCatatanAsesmen(siswa.id),
+  ]);
   const kehadiranTerakhir = absensi[0];
 
   return (
     <AppShell
+      showBack={false}
       groups={NAV_MURID}
       activeHref="/murid"
       userName={session.nama}
@@ -39,6 +52,8 @@ export default async function MuridDashboard() {
       pageTitle={`Halo, ${siswa.nama.split(" ")[0]}!`}
       pageSubtitle={`Kelas ${siswa.kelas.nama}`}
     >
+      {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
+      <div className="mb-4"><PengumumanWidget sekolahId={session.sekolahId} /></div>
       <div className="grid md:grid-cols-2 gap-4 mb-4">
         <Card>
           <h4 className="text-sm font-semibold mb-3">Tugas & Ujian</h4>
@@ -110,6 +125,50 @@ export default async function MuridDashboard() {
                   <div className="font-medium leading-tight">{m.judul}</div>
                   <div className="text-xs text-ink-soft">{m.mapel.nama}</div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4 mt-4">
+        <Card>
+          <h4 className="text-sm font-semibold mb-3">Info diri</h4>
+          <div className="flex flex-col gap-1.5 text-sm">
+            <div className="flex justify-between"><span className="text-ink-soft">Nama</span><span className="font-medium">{siswa.nama}</span></div>
+            <div className="flex justify-between"><span className="text-ink-soft">NISN</span><span className="font-medium tabnum">{siswa.nisn}</span></div>
+            <div className="flex justify-between"><span className="text-ink-soft">Kelas</span><span className="font-medium">{siswa.kelas.nama}</span></div>
+            {profil?.sekolah && (
+              <div className="flex justify-between gap-3">
+                <span className="text-ink-soft shrink-0">Sekolah</span>
+                <span className="font-medium text-right">{profil.sekolah.nama}{profil.sekolah.alamat ? ` — ${profil.sekolah.alamat}` : ""}</span>
+              </div>
+            )}
+            <div className="h-px bg-rule my-1.5" />
+            {!profil || profil.wali.length === 0 ? (
+              <p className="text-xs text-ink-soft">Belum ada wali terdaftar.</p>
+            ) : (
+              profil.wali.map((w) => (
+                <div key={w.id} className="flex justify-between gap-3">
+                  <span className="text-ink-soft shrink-0">{w.hubungan}</span>
+                  <span className="font-medium text-right">
+                    {w.pengguna.nama}
+                    {w.pengguna.telepon && <span className="text-ink-soft"> · {w.pengguna.telepon}</span>}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <h4 className="text-sm font-semibold mb-3">Catatan asesmen dari guru</h4>
+          <div className="flex flex-col gap-2.5">
+            {asesmen.length === 0 && <p className="text-xs text-ink-soft">Belum ada catatan asesmen deskriptif.</p>}
+            {asesmen.slice(0, 5).map((a) => (
+              <div key={a.id} className="text-sm border-b border-rule last:border-0 pb-2 last:pb-0">
+                <div className="text-xs text-ink-soft mb-0.5">{a.mapel.nama} · {a.guru.nama} · {a.periode}</div>
+                <p>{a.isi}</p>
               </div>
             ))}
           </div>

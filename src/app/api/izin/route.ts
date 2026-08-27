@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { simpanFileUpload, ambilFileValid } from "@/lib/upload";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -20,6 +21,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
   }
 
+  // 1.21 — lampiran opsional (mis. foto surat dokter), disimpan lewat helper upload bersama.
+  const lampiran = ambilFileValid(formData, "lampiran");
+  const lampiranUrl = lampiran ? await simpanFileUpload(lampiran, "izin") : null;
+
   await prisma.pengajuanIzin.create({
     data: {
       siswaId,
@@ -27,11 +32,12 @@ export async function POST(req: NextRequest) {
       tanggal: new Date(tanggal),
       jenis: jenis as "SAKIT" | "IZIN",
       keterangan,
+      lampiranUrl,
     },
   });
 
   const url = req.nextUrl.clone();
   url.pathname = "/ortu/izin";
-  url.search = "";
+  url.search = "?izin_diajukan=1";
   return NextResponse.redirect(url, { status: 303 });
 }

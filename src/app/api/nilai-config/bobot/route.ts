@@ -4,13 +4,16 @@ import { getSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session || session.peran !== "KEPALA_SEKOLAH") {
+  if (!session || (session.peran !== "KEPALA_SEKOLAH" && session.peran !== "TU")) {
     return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
   }
 
   const formData = await req.formData();
   const mapelId = String(formData.get("mapelId"));
   const komponenList = ["Ulangan Harian", "Tugas", "UTS", "UAS"];
+
+  const url = req.nextUrl.clone();
+  url.pathname = "/kepsek/master-data";
 
   let total = 0;
   const nilaiList: { komponen: string; persentase: number }[] = [];
@@ -20,8 +23,10 @@ export async function POST(req: NextRequest) {
     nilaiList.push({ komponen: k, persentase: v });
   }
 
+  // N-1 (1.7, diminta eksplisit): total bobot wajib tepat 100% — ditolak dengan pesan jelas, bukan diam-diam disimpan salah.
   if (total !== 100) {
-    return NextResponse.json({ error: `Total bobot harus 100%, sekarang ${total}%` }, { status: 400 });
+    url.search = `?error=${encodeURIComponent(`Total bobot harus 100%, sekarang ${total}%`)}`;
+    return NextResponse.redirect(url, { status: 303 });
   }
 
   for (const n of nilaiList) {
@@ -32,8 +37,6 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = "/kepsek/nilai-pengaturan";
   url.search = "";
   return NextResponse.redirect(url, { status: 303 });
 }

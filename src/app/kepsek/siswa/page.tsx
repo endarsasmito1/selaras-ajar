@@ -1,36 +1,35 @@
 import { getSession } from "@/lib/auth";
-import { getDaftarSiswa } from "@/lib/data";
+import { getDaftarSiswa, getDaftarSiswaHierarkis } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
-import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
+import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Card } from "@/components/ui/Card";
+import { PengumumanWidget } from "@/components/PengumumanWidget";
+import { HasilPencarianTable } from "./HasilPencarianTable";
 
 export default async function DataSiswaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; impor_dibuat?: string; impor_diperbarui?: string }>;
+  searchParams: Promise<{ q?: string; impor_dibuat?: string; impor_diperbarui?: string; siswa_diubah?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
   const params = await searchParams;
-
-  const semuaSiswa = await getDaftarSiswa(session.sekolahId);
   const q = (params.q ?? "").toLowerCase().trim();
-  const siswa = q
-    ? semuaSiswa.filter((s) => s.nama.toLowerCase().includes(q) || s.nisn.includes(q) || s.kelas.nama.toLowerCase().includes(q))
-    : semuaSiswa;
 
   return (
     <AppShell
-      groups={NAV_KEPSEK}
+      groups={groupsForPeran(session.peran)}
       activeHref="/kepsek/siswa"
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle="Data Siswa"
-      pageSubtitle={`${semuaSiswa.length} siswa terdaftar`}
+      pageSubtitle="Disusun hierarkis per kelas — pilih kelas untuk lihat performa & siswanya (K-4)"
       headerAction={
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <LinkButton href="/kepsek/siswa/riwayat" variant="ghost" size="sm">Riwayat Siswa</LinkButton>
           <LinkButton href="/kepsek/siswa/mutasi" variant="ghost" size="sm">Mutasi</LinkButton>
           <LinkButton href="/kepsek/ekspor" size="sm">Ekspor / Impor CSV</LinkButton>
         </div>
@@ -38,56 +37,51 @@ export default async function DataSiswaPage({
     >
       {params.impor_dibuat !== undefined && (
         <Callout>
-          ✓ Impor selesai — {params.impor_dibuat} siswa baru dibuat, {params.impor_diperbarui} siswa diperbarui. Data hasil impor tetap bisa diedit satu per satu di bawah.
+          ✓ Impor selesai — {params.impor_dibuat} siswa baru dibuat, {params.impor_diperbarui} siswa diperbarui. Data hasil impor tetap bisa diedit satu per satu.
         </Callout>
       )}
+      {params.siswa_diubah && <div className="mb-4"><Callout>✓ Data siswa &quot;{params.siswa_diubah}&quot; diperbarui.</Callout></div>}
 
-      <form method="GET" className="mb-4">
+      {session.peran === "TU" && <div className="mb-5"><PengumumanWidget sekolahId={session.sekolahId} /></div>}
+
+      <form method="GET" className="mb-5">
         <input
           name="q"
           defaultValue={params.q}
-          placeholder="Cari nama, NISN, atau kelas…"
-          className="bg-paper-raised border border-rule rounded-lg px-3.5 py-2 text-sm w-72"
+          placeholder="Cari nama, NISN, atau kelas… (mengabaikan hierarki kelas)"
+          className="bg-paper-raised border border-rule rounded-lg px-3.5 py-2 text-sm w-80"
         />
       </form>
 
-      <div className="bg-paper-raised border border-rule rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-paper-sunken text-[11px] uppercase tracking-wider text-ink-soft">
-              <th className="text-left px-4 py-2.5 font-bold">Nama</th>
-              <th className="text-left px-4 py-2.5 font-bold">NISN</th>
-              <th className="text-left px-4 py-2.5 font-bold">Kelas</th>
-              <th className="text-left px-4 py-2.5 font-bold">Wali</th>
-              <th className="text-left px-4 py-2.5 font-bold">Status</th>
-              <th className="text-left px-4 py-2.5 font-bold"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {siswa.map((s) => (
-              <tr key={s.id} className="border-t border-rule hover:bg-paper">
-                <td className="px-4 py-2.5 font-semibold">{s.nama}</td>
-                <td className="px-4 py-2.5 tabnum text-ink-soft">{s.nisn}</td>
-                <td className="px-4 py-2.5">{s.kelas.nama}</td>
-                <td className="px-4 py-2.5 text-ink-soft">
-                  {s.wali[0]
-                    ? `${s.wali[0].pengguna.nama} (${s.wali[0].hubungan})`
-                    : "— belum ada data"}
-                </td>
-                <td className="px-4 py-2.5">
-                  <Pill tone={s.aktif ? "ok" : "neutral"}>{s.aktif ? "Aktif" : "Nonaktif"}</Pill>
-                </td>
-                <td className="px-4 py-2.5">
-                  <a href={`/kepsek/siswa/${s.id}/edit`} className="text-xs font-semibold text-primary-deep hover:underline">Edit</a>
-                </td>
-              </tr>
-            ))}
-            {siswa.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-ink-soft text-xs">Tidak ada siswa yang cocok.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {q ? <HasilPencarian sekolahId={session.sekolahId} q={q} /> : <DaftarKelas sekolahId={session.sekolahId} />}
     </AppShell>
   );
+}
+
+async function DaftarKelas({ sekolahId }: { sekolahId: string }) {
+  const hierarki = await getDaftarSiswaHierarkis(sekolahId);
+  return (
+    <div className="grid md:grid-cols-2 gap-3.5">
+      {hierarki.map(({ kelas, waliKelas, siswa }) => (
+        <a key={kelas.id} href={`/kepsek/siswa/kelas/${kelas.id}`} className="block">
+          <Card className="hover:border-primary">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-semibold">Kelas {kelas.nama}</h3>
+              <Pill tone="info">{siswa.length} siswa</Pill>
+            </div>
+            <p className="text-xs text-ink-soft">Wali kelas: {waliKelas?.nama ?? "belum ditentukan"}</p>
+          </Card>
+        </a>
+      ))}
+      {hierarki.length === 0 && <p className="text-sm text-ink-soft">Belum ada kelas.</p>}
+    </div>
+  );
+}
+
+async function HasilPencarian({ sekolahId, q }: { sekolahId: string; q: string }) {
+  const semuaSiswa = await getDaftarSiswa(sekolahId);
+  const siswa = semuaSiswa.filter(
+    (s) => s.nama.toLowerCase().includes(q) || s.nisn.includes(q) || s.kelas.nama.toLowerCase().includes(q)
+  );
+  return <HasilPencarianTable siswa={siswa} />;
 }

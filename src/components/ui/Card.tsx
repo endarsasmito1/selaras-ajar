@@ -10,7 +10,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "bg-paper-raised border border-rule rounded-xl p-5 shadow-sm",
+        "bg-paper-raised border border-rule rounded-xl p-5 shadow-sm min-w-0",
         className
       )}
     >
@@ -57,7 +57,9 @@ export function StatCard({
       <div className="text-[10px] tracking-wider uppercase text-ink-soft font-bold">
         {label}
       </div>
-      <div className={cn("font-serif text-2xl mt-1.5 tabnum", toneClass)}>{value}</div>
+      {/* 1.21 — angka panjang (mis. "Rp156.800.000") tak punya titik spasi utk break-words wrap
+          dgn wajar, dulu jadi patah di tengah digit; text-xl + nowrap muat tanpa perlu wrap sama sekali. */}
+      <div className={cn("font-serif text-xl mt-1.5 tabnum whitespace-nowrap", toneClass)}>{value}</div>
       {sub && <div className="text-xs text-ink-soft mt-1">{sub}</div>}
     </Card>
   );

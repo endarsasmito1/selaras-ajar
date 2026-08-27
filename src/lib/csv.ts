@@ -55,12 +55,23 @@ export type BarisImporSiswa = {
   aksi?: "buat" | "perbarui";
 };
 
-export type ImportBatch = {
-  jenis: "siswa";
-  valid: BarisImporSiswa[];
-  bermasalah: BarisImporSiswa[];
-  createdAt: number;
+export type BarisImporSoal = {
+  baris: number;
+  mapelNama: string;
+  jenis: "PILIHAN_GANDA" | "JAWABAN_SINGKAT" | "ESAI";
+  pertanyaan: string;
+  opsiA?: string;
+  opsiB?: string;
+  opsiC?: string;
+  opsiD?: string;
+  kunciJawaban?: string;
+  topik?: string;
+  error?: string;
 };
+
+export type ImportBatch =
+  | { jenis: "siswa"; valid: BarisImporSiswa[]; bermasalah: BarisImporSiswa[]; createdAt: number }
+  | { jenis: "soal"; valid: BarisImporSoal[]; bermasalah: BarisImporSoal[]; createdAt: number; mapelId: string; sekolahId: string; guruId: string };
 
 const BATCH_DIR = path.join(os.tmpdir(), "selaras-ajar-import-batches");
 

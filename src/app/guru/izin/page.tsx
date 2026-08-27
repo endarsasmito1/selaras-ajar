@@ -38,9 +38,19 @@ export default async function IzinGuruPage() {
           <div key={p.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5 flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="text-sm font-medium">{p.siswa.nama} — {p.jenis === "SAKIT" ? "Sakit" : "Izin"}</div>
-              <div className="text-xs text-ink-soft">{formatTanggal(p.tanggal)} · diajukan {p.diajukanOleh.nama} · {p.keterangan}</div>
+              <div className="text-xs text-ink-soft">
+                {formatTanggal(p.tanggal)} · diajukan {p.diajukanOleh.nama} · {p.keterangan}
+                {p.lampiranUrl && (
+                  <>
+                    {" "}·{" "}
+                    <a href={p.lampiranUrl} target="_blank" rel="noopener noreferrer" className="text-primary-deep hover:underline">
+                      Lihat lampiran
+                    </a>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <form action="/api/izin/putuskan" method="POST">
                 <input type="hidden" name="pengajuanId" value={p.id} />
                 <input type="hidden" name="keputusan" value="DISETUJUI" />

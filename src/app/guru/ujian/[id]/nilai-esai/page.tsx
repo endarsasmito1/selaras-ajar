@@ -4,14 +4,16 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
+import { SoalHtml } from "@/lib/sanitize-html";
+import { notFound } from "next/navigation";
 
 export default async function NilaiEsaiPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return null;
   const { id } = await params;
 
-  const ujian = await getUjianDetail(id);
-  if (!ujian) return null;
+  const ujian = await getUjianDetail(id, session.sekolahId);
+  if (!ujian) notFound();
 
   const soalEsai = ujian.soal.filter((us) => us.soal.jenis === "ESAI");
   const jawabanEsai = ujian.pengerjaan.flatMap((p) =>
@@ -27,7 +29,7 @@ export default async function NilaiEsaiPage({ params }: { params: Promise<{ id: 
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle={`Nilai Esai — ${ujian.judul}`}
-      pageSubtitle={`${ujian.kelas.nama} · ${jawabanEsai.filter((j) => j.skor === null).length} belum dinilai`}
+      pageSubtitle={`${ujian.kelas.map((uk) => uk.kelas.nama).join(", ")} · ${jawabanEsai.filter((j) => j.skor === null).length} belum dinilai`}
     >
       <form action="/api/ujian/nilai-esai" method="POST" className="flex flex-col gap-4">
         <input type="hidden" name="ujianId" value={ujian.id} />
@@ -47,7 +49,7 @@ export default async function NilaiEsaiPage({ params }: { params: Promise<{ id: 
                   <Pill tone="warn">Perlu dinilai</Pill>
                 )}
               </div>
-              <p className="text-xs text-ink-soft mb-2">{soalTerkait?.pertanyaan}</p>
+              {soalTerkait && <SoalHtml html={soalTerkait.pertanyaan} className="text-xs text-ink-soft mb-2" />}
               <div className="bg-paper border border-rule rounded-lg p-3 text-sm mb-3">
                 {j.jawabanTeks || <span className="text-ink-soft italic">Tidak dijawab</span>}
               </div>

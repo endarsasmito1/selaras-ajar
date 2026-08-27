@@ -1,13 +1,18 @@
 import { getSession } from "@/lib/auth";
 import { getTahunAjaranAktif, getDaftarSiswa } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
-import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
+import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 
-export default async function KenaikanKelasPage() {
+export default async function KenaikanKelasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await getSession();
   if (!session) return null;
+  const { error } = await searchParams;
 
   const [tahunAktif, siswa] = await Promise.all([
     getTahunAjaranAktif(session.sekolahId),
@@ -17,18 +22,19 @@ export default async function KenaikanKelasPage() {
 
   return (
     <AppShell
-      groups={NAV_KEPSEK}
+      groups={groupsForPeran(session.peran)}
       activeHref="/kepsek/tahun-ajaran"
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle="Kenaikan Kelas & Tahun Ajaran Baru"
-      pageSubtitle="Pindahkan seluruh siswa ke kelas berikutnya sekaligus"
+      pageSubtitle="Langkah 1/2 — buat tahun ajaran baru, lalu tinjau rombel tujuan per siswa"
     >
+      {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
       <Callout tone="warn">
-        ⚠ Tindakan ini membuat tahun ajaran baru, menonaktifkan tahun ajaran <b>{tahunAktif?.label}</b> saat ini, dan memindahkan seluruh {totalAktif} siswa aktif ke tingkat berikutnya. Siswa di tingkat tertinggi akan ditandai lulus/alumni.
+        ⚠ Setelah ini, kamu akan diarahkan ke halaman <b>peninjauan</b> untuk memilih rombel tujuan tiap siswa (bisa dipecah ke lebih dari satu rombel, mis. sebagian 4A ke 5B & sebagian ke 5C) sebelum benar-benar dieksekusi — tahun ajaran <b>{tahunAktif?.label}</b> ({totalAktif} siswa aktif) belum berubah apa pun di langkah ini.
       </Callout>
 
-      <form action="/api/tahun-ajaran/kenaikan-kelas" method="POST" className="bg-paper-raised border border-rule rounded-xl p-6 max-w-lg mt-5">
+      <form action="/api/tahun-ajaran/kenaikan-kelas/mulai" method="POST" className="bg-paper-raised border border-rule rounded-xl p-6 max-w-lg mt-5">
         <div className="flex flex-col gap-1.5 mb-4">
           <label className="text-xs font-semibold">Label tahun ajaran baru</label>
           <input name="label" required placeholder="2027/2028" className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" />
@@ -56,7 +62,7 @@ export default async function KenaikanKelasPage() {
             <input type="date" name="selesai" required className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" />
           </div>
         </div>
-        <Button type="submit">Jalankan kenaikan kelas</Button>
+        <Button type="submit">Lanjut ke peninjauan rombel tujuan →</Button>
       </form>
     </AppShell>
   );

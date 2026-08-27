@@ -2,10 +2,13 @@ import { getSession } from "@/lib/auth";
 import { getUjianDetail } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { LinkButton } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
+import { SoalHtml } from "@/lib/sanitize-html";
 import { formatTanggal } from "@/lib/utils";
+import { notFound } from "next/navigation";
 
 const JENIS_LABEL: Record<string, string> = {
   PILIHAN_GANDA: "Pilihan Ganda",
@@ -18,8 +21,8 @@ export default async function KonfirmasiUjianPage({ params }: { params: Promise<
   if (!session) return null;
   const { id } = await params;
 
-  const ujian = await getUjianDetail(id);
-  if (!ujian) return null;
+  const ujian = await getUjianDetail(id, session.sekolahId);
+  if (!ujian) notFound();
   const totalPoin = ujian.soal.reduce((s, x) => s + x.poin, 0);
 
   return (
@@ -41,11 +44,13 @@ export default async function KonfirmasiUjianPage({ params }: { params: Promise<
           <LinkButton href={`/guru/ujian/${ujian.id}/pengaturan`} variant="ghost" size="sm">Edit pengaturan</LinkButton>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="bg-paper border border-rule rounded-full px-3 py-1.5">{ujian.mapel.nama} · Kelas {ujian.kelas.nama}</span>
+          <span className="bg-paper border border-rule rounded-full px-3 py-1.5">{ujian.mapel.nama} · Kelas {ujian.kelas.map((uk) => uk.kelas.nama).join(", ")}</span>
           <span className="bg-paper border border-rule rounded-full px-3 py-1.5">{ujian.soal.length} soal · {totalPoin} poin</span>
-          <span className="bg-paper border border-rule rounded-full px-3 py-1.5">
-            {ujian.jamMulai ? `🕐 ${formatTanggal(ujian.jamMulai)}` : "🕐 Belum dijadwalkan"}
-          </span>
+          {ujian.kelas.map((uk) => (
+            <span key={uk.id} className="bg-paper border border-rule rounded-full px-3 py-1.5">
+              🕐 {uk.kelas.nama}: {uk.jamMulai ? formatTanggal(uk.jamMulai) : "belum dijadwalkan"}
+            </span>
+          ))}
           {ujian.acakSoal && <span className="bg-paper border border-rule rounded-full px-3 py-1.5">🔀 Urutan soal diacak</span>}
           {ujian.acakJawaban && <span className="bg-paper border border-rule rounded-full px-3 py-1.5">🔀 Pilihan jawaban diacak</span>}
           {ujian.sekaliAkses && <span className="bg-paper border border-rule rounded-full px-3 py-1.5">1️⃣ Sekali akses</span>}
@@ -65,7 +70,7 @@ export default async function KonfirmasiUjianPage({ params }: { params: Promise<
               <span>Soal {i + 1} dari {ujian.soal.length}</span>
               <span>{JENIS_LABEL[us.soal.jenis]} · {us.poin} poin</span>
             </div>
-            <p className="text-sm mb-2">{us.soal.pertanyaan}</p>
+            <SoalHtml html={us.soal.pertanyaan} className="text-sm mb-2" />
             {us.soal.jenis === "PILIHAN_GANDA" && us.soal.opsi && (
               <div className="grid grid-cols-2 gap-2">
                 {(JSON.parse(us.soal.opsi) as string[]).map((o, oi) => (
@@ -83,7 +88,9 @@ export default async function KonfirmasiUjianPage({ params }: { params: Promise<
       {ujian.status === "DRAFT" ? (
         <form action="/api/ujian/publish" method="POST">
           <input type="hidden" name="ujianId" value={ujian.id} />
-          <Button type="submit">✓ Terbitkan ujian ini</Button>
+          <ConfirmSubmitButton confirmMessage="Terbitkan ujian ini? Setelah terbit, ujian langsung tampil ke murid sesuai jadwal.">
+            ✓ Terbitkan ujian ini
+          </ConfirmSubmitButton>
         </form>
       ) : (
         <div className="flex gap-3">

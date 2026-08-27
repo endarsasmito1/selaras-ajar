@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getPPDBList } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { formatTanggal } from "@/lib/utils";
@@ -27,7 +27,7 @@ export default async function PPDBKepsekPage() {
         Formulir pendaftaran publik ada di <code className="bg-paper-sunken px-1.5 py-0.5 rounded">/ppdb</code> — bagikan tautan itu ke calon orang tua siswa.
       </Callout>
 
-      <div className="bg-paper-raised border border-rule rounded-xl overflow-hidden mt-5">
+      <div className="bg-paper-raised border border-rule rounded-xl overflow-x-auto mt-5">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-paper-sunken text-[11px] uppercase tracking-wider text-ink-soft">
@@ -55,16 +55,16 @@ export default async function PPDBKepsekPage() {
                 </td>
                 <td className="px-4 py-2.5">
                   {d.status === "BARU" && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <form action="/api/ppdb/putuskan" method="POST">
                         <input type="hidden" name="id" value={d.id} />
                         <input type="hidden" name="status" value="DITERIMA" />
-                        <Button type="submit" size="sm">Terima</Button>
+                        <ConfirmSubmitButton size="sm" confirmMessage={`Terima pendaftaran ${d.namaCalon}?`}>Terima</ConfirmSubmitButton>
                       </form>
                       <form action="/api/ppdb/putuskan" method="POST">
                         <input type="hidden" name="id" value={d.id} />
                         <input type="hidden" name="status" value="DITOLAK" />
-                        <Button type="submit" size="sm" variant="ghost">Tolak</Button>
+                        <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage={`Tolak pendaftaran ${d.namaCalon}?`}>Tolak</ConfirmSubmitButton>
                       </form>
                     </div>
                   )}

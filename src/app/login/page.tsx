@@ -1,11 +1,14 @@
 import { Button } from "@/components/ui/Button";
+import { ValidasiFormProvider } from "@/components/ValidasiFormProvider";
 
 const DEMO_ACCOUNTS = [
   { email: "hendra@selarasajar.demo", label: "Pak Hendra", role: "Kepala Sekolah", icon: "🏫" },
-  { email: "tuti@selarasajar.demo", label: "Bu Tuti", role: "Bendahara / TU", icon: "₽" },
+  { email: "tuti@selarasajar.demo", label: "Bu Tuti", role: "Bendahara", icon: "₽" },
+  { email: "tono@selarasajar.demo", label: "Pak Tono", role: "Tata Usaha (TU)", icon: "🗂" },
   { email: "rina@selarasajar.demo", label: "Bu Rina", role: "Guru · Wali Kelas 5B", icon: "👩‍🏫" },
   { email: "fauzan@selarasajar.demo", label: "Bpk. Fauzan", role: "Orang Tua (wali Ahmad Fauzi)", icon: "👨‍👩‍👧" },
   { email: "ahmad@selarasajar.demo", label: "Ahmad Fauzi", role: "Murid · Kelas 5B", icon: "🎒" },
+  { email: "admin@selarasajar.id", label: "Admin Platform", role: "Superadmin Selaras Ajar", icon: "🛡" },
 ];
 
 export default async function LoginPage({
@@ -17,6 +20,7 @@ export default async function LoginPage({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-paper px-4 py-10">
+      <ValidasiFormProvider />
       <div className="w-full max-w-[860px] grid md:grid-cols-2 gap-8 items-start">
         {/* Login form */}
         <div className="bg-paper-raised border border-rule rounded-2xl p-8 shadow-sm">

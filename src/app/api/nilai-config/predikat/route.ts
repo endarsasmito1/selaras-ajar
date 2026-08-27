@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session || session.peran !== "KEPALA_SEKOLAH") {
+  if (!session || (session.peran !== "KEPALA_SEKOLAH" && session.peran !== "TU")) {
     return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
   }
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const url = req.nextUrl.clone();
-  url.pathname = "/kepsek/nilai-pengaturan";
+  url.pathname = "/kepsek/master-data";
   url.search = "";
   return NextResponse.redirect(url, { status: 303 });
 }

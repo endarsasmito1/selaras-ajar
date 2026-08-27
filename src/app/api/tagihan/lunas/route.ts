@@ -9,16 +9,30 @@ export async function POST(req: NextRequest) {
   }
 
   const formData = await req.formData();
-  const tagihanId = String(formData.get("tagihanId"));
-  const metode = String(formData.get("metode") ?? "Tunai (dicatat manual)");
+  const tagihanId = String(formData.get("tagihanId") ?? "");
+  const metode = String(formData.get("metode") ?? "Tunai");
+  const catatan = String(formData.get("catatan") ?? "").trim();
+  const tanggalBayar = String(formData.get("tanggalBayar") ?? "");
+  const nominalRaw = formData.get("nominal");
+
+  const url = req.nextUrl.clone();
+  // 1.21 — form "Tandai lunas" sekarang di /keuangan/riwayat (dulu inline di /keuangan).
+  url.pathname = "/keuangan/riwayat";
+
+  if (!tagihanId || !tanggalBayar || nominalRaw === null || nominalRaw === "") {
+    url.search = `?error=${encodeURIComponent("Nominal & tanggal pembayaran wajib diisi")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  }
 
   await prisma.tagihan.update({
     where: { id: tagihanId },
-    data: { status: "LUNAS", dibayarPada: new Date(), metodeBayar: metode },
+    data: {
+      status: "LUNAS",
+      dibayarPada: new Date(tanggalBayar),
+      metodeBayar: catatan ? `${metode} — ${catatan}` : metode,
+    },
   });
 
-  const url = req.nextUrl.clone();
-  url.pathname = "/keuangan";
   url.search = "";
   return NextResponse.redirect(url, { status: 303 });
 }

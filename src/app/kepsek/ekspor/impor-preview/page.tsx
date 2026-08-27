@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { ambilBatch } from "@/lib/csv";
 import { AppShell } from "@/components/AppShell";
-import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
+import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
@@ -16,9 +16,9 @@ export default async function ImporPreviewPage({
   const { batch: batchId } = await searchParams;
 
   const batch = batchId ? ambilBatch(batchId) : undefined;
-  if (!batch) {
+  if (!batch || batch.jenis !== "siswa") {
     return (
-      <AppShell groups={NAV_KEPSEK} activeHref="/kepsek/ekspor" userName={session.nama} userRoleLabel={ROLE_LABEL[session.peran]} pageTitle="Preview Impor">
+      <AppShell groups={groupsForPeran(session.peran)} activeHref="/kepsek/ekspor" userName={session.nama} userRoleLabel={ROLE_LABEL[session.peran]} pageTitle="Preview Impor">
         <Callout tone="warn">Batch impor tidak ditemukan atau sudah kedaluwarsa. Silakan unggah ulang.</Callout>
       </AppShell>
     );
@@ -29,7 +29,7 @@ export default async function ImporPreviewPage({
 
   return (
     <AppShell
-      groups={NAV_KEPSEK}
+      groups={groupsForPeran(session.peran)}
       activeHref="/kepsek/ekspor"
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
@@ -48,7 +48,7 @@ export default async function ImporPreviewPage({
           <Callout tone="warn">
             Baris di bawah ini bermasalah. Perbaiki di file lalu unggah ulang, <b>atau</b> lanjut simpan — baris valid tetap masuk, baris bermasalah dilewati &amp; bisa diperbaiki nanti lewat UI.
           </Callout>
-          <div className="bg-paper-raised border border-rule rounded-xl overflow-hidden my-4">
+          <div className="bg-paper-raised border border-rule rounded-xl overflow-x-auto my-4">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-paper-sunken text-[11px] uppercase tracking-wider text-ink-soft">
@@ -74,7 +74,7 @@ export default async function ImporPreviewPage({
       )}
 
       {batch.valid.length > 0 && (
-        <div className="bg-paper-raised border border-rule rounded-xl overflow-hidden mb-5">
+        <div className="bg-paper-raised border border-rule rounded-xl overflow-x-auto mb-5">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-paper-sunken text-[11px] uppercase tracking-wider text-ink-soft">

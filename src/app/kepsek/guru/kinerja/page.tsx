@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { getDaftarGuru } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
-import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
+import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 
 export default async function PilihKinerjaGuruPage() {
   const session = await getSession();
@@ -11,7 +11,7 @@ export default async function PilihKinerjaGuruPage() {
 
   return (
     <AppShell
-      groups={NAV_KEPSEK}
+      groups={groupsForPeran(session.peran)}
       activeHref="/kepsek/guru/kinerja"
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
