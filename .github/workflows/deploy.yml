@@ -15,6 +15,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          command_timeout: 40m
           script: |
             cd ~/selaras-ajar-app
             bash deploy.sh
