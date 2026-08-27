@@ -1,5 +1,7 @@
 # Selaras Ajar — App (Prototype)
 
+**Versi: 1.0.0** — live di [dashboard.selaras-ajar.id](https://dashboard.selaras-ajar.id). Riwayat perubahan lengkap ada di [CHANGELOG.md](./CHANGELOG.md).
+
 Prototype fungsional Selaras Ajar, dibangun dari `PRD-selaras-ajar.md` dan `use-cases-selaras-ajar.md` (38 use case) di folder induk `sekolahku/`. Ini **bukan** mockup statis — data disimpan di database sungguhan, login & akses berbasis peran benar-benar berjalan, dan hampir seluruh use case di PRD (termasuk modul Ujian/CBT lengkap) sudah diimplementasikan dan diverifikasi jalan end-to-end.
 
 ## Tech stack
