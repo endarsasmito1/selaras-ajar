@@ -36,12 +36,23 @@ export default async function MuridDashboard({
     );
   }
 
-  const [{ nilai, tugas, materi, absensi }, profil, asesmen] = await Promise.all([
+  const [{ nilai, tugas, materi, absensi, ujianAktif }, profil, asesmen] = await Promise.all([
     getDashboardMurid(siswa.id, siswa.kelasId),
     getProfilMurid(siswa.id),
     getCatatanAsesmen(siswa.id),
   ]);
   const kehadiranTerakhir = absensi[0];
+
+  // Padanan widget "Tugas & Ujian" prototipe — gabungan tugas belum dikumpul (maks 2) + ujian
+  // yang belum diselesaikan (maks 1), bukan cuma daftar tugas mentah tanpa batas kayak sebelumnya.
+  const tugasBelum = tugas.filter((t) => t.pengumpulan.length === 0).slice(0, 2);
+  const now = new Date();
+  const ujianBelumSelesai = ujianAktif
+    .filter((u) => {
+      const p = u.pengerjaan[0];
+      return !p || (p.status !== "SELESAI" && p.status !== "AUTO_SUBMIT");
+    })
+    .slice(0, 1);
 
   return (
     <AppShell
@@ -59,22 +70,39 @@ export default async function MuridDashboard({
         <div className="flex flex-col gap-4">
           <Card>
             <h4 className="text-sm font-semibold mb-3">Tugas & Ujian</h4>
-            <div className="flex flex-col gap-2">
-              {tugas.length === 0 && <p className="text-xs text-ink-soft">Tidak ada tugas aktif.</p>}
-              {tugas.map((t) => {
-                const sudahKumpul = t.pengumpulan.length > 0;
-                return (
-                  <div key={t.id} className="flex justify-between items-center text-sm border-b border-rule last:border-0 pb-2 last:pb-0">
-                    <div>
-                      <div className="font-medium">{t.judul}</div>
-                      <div className="text-xs text-ink-soft">
-                        {t.mapel.nama} · tenggat {formatTanggal(t.tenggat)}
-                      </div>
+            <div className="flex flex-col gap-1">
+              {tugasBelum.length === 0 && ujianBelumSelesai.length === 0 && (
+                <p className="text-xs text-ink-soft">Tidak ada tugas atau ujian aktif.</p>
+              )}
+              {tugasBelum.map((t) => (
+                <a
+                  key={t.id}
+                  href={`/murid/tugas/${t.id}`}
+                  className="flex justify-between items-center gap-2 text-sm border-b border-rule last:border-0 py-2 -mx-1 px-1 rounded hover:bg-paper"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{t.judul}</div>
+                    <div className="text-xs text-ink-soft">
+                      {t.mapel.nama} · tenggat {formatTanggal(t.tenggat)}
                     </div>
-                    <Pill tone={sudahKumpul ? "ok" : "warn"}>
-                      {sudahKumpul ? "Terkumpul" : "Belum"}
-                    </Pill>
                   </div>
+                  <Pill tone="warn">Belum</Pill>
+                </a>
+              ))}
+              {ujianBelumSelesai.map((u) => {
+                const sudahBuka = !u.jamMulai || now >= new Date(u.jamMulai);
+                return (
+                  <a
+                    key={u.id}
+                    href={`/murid/ujian/${u.id}`}
+                    className="flex justify-between items-center gap-2 text-sm border-b border-rule last:border-0 py-2 -mx-1 px-1 rounded hover:bg-paper"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{u.judul}</div>
+                      <div className="text-xs text-ink-soft">{u.mapel.nama} · {u.jenis === "UJIAN" ? "Ujian" : "Latihan"}</div>
+                    </div>
+                    <Pill tone={sudahBuka ? "warn" : "neutral"}>{sudahBuka ? "Mulai" : "Belum dibuka"}</Pill>
+                  </a>
                 );
               })}
             </div>
@@ -85,11 +113,13 @@ export default async function MuridDashboard({
             <div className="flex flex-col gap-1.5">
               {nilai.length === 0 && <p className="text-xs text-ink-soft">Belum ada nilai.</p>}
               {nilai.map((n) => (
-                <div key={n.id} className="flex justify-between text-sm">
-                  <span className="text-ink-soft">
-                    {n.mapel.nama} — {n.komponen}
-                  </span>
-                  <span className="tabnum font-semibold">{n.skor}</span>
+                <div key={n.id} className="flex items-center gap-3 text-sm">
+                  <span className="text-ink-soft truncate flex-1 min-w-0">{n.mapel.nama} — {n.komponen}</span>
+                  {/* Padanan .weight-row .rng prototipe — bar mini proporsional skor, bukan cuma angka polos. */}
+                  <div className="w-16 h-1.5 bg-paper-sunken rounded-full overflow-hidden shrink-0">
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, n.skor)}%` }} />
+                  </div>
+                  <span className="tabnum font-semibold shrink-0">{n.skor}</span>
                 </div>
               ))}
             </div>
@@ -121,15 +151,15 @@ export default async function MuridDashboard({
             <div className="flex flex-col gap-2">
               {materi.length === 0 && <p className="text-xs text-ink-soft">Belum ada materi.</p>}
               {materi.map((m) => (
-                <div key={m.id} className="flex items-center gap-2.5 text-sm">
+                <a key={m.id} href="/murid/materi" className="flex items-center gap-2.5 text-sm -mx-1 px-1 py-0.5 rounded hover:bg-paper">
                   <span className="w-7 h-7 rounded-md bg-primary-tint text-primary-deep flex items-center justify-center text-xs shrink-0">
                     {TIPE_ICON[m.tipe] ?? "📄"}
                   </span>
-                  <div>
-                    <div className="font-medium leading-tight">{m.judul}</div>
+                  <div className="min-w-0">
+                    <div className="font-medium leading-tight truncate">{m.judul}</div>
                     <div className="text-xs text-ink-soft">{m.mapel.nama}</div>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </Card>

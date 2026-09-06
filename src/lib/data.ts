@@ -844,7 +844,7 @@ export async function getPengerjaan(pengerjaanId: string) {
 }
 
 export async function getDashboardMurid(siswaId: string, kelasId: string) {
-  const [nilai, tugas, materi, absensi] = await Promise.all([
+  const [nilai, tugas, materi, absensi, ujianAktif] = await Promise.all([
     prisma.nilai.findMany({
       where: { siswaId },
       include: { mapel: true },
@@ -867,8 +867,12 @@ export async function getDashboardMurid(siswaId: string, kelasId: string) {
       orderBy: { tanggal: "desc" },
       take: 10,
     }),
+    // Padanan widget "Tugas & Ujian" prototipe (murid/index.html) yang gabungin tugas belum
+    // dikumpul DAN ujian yang belum dikerjakan jadi 1 daftar — sebelumnya cuma tugas doang,
+    // ujian gak pernah ikut ditampilkan di beranda sama sekali.
+    getUjianAktifUntukMurid(kelasId, siswaId),
   ]);
-  return { nilai, tugas, materi, absensi };
+  return { nilai, tugas, materi, absensi, ujianAktif };
 }
 
 // ---------- TUGAS / PR ----------
