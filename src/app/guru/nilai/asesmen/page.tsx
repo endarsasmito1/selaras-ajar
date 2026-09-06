@@ -8,15 +8,17 @@ import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { chipClass } from "@/lib/tab-style";
 import { formatTanggal } from "@/lib/utils";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 export default async function AsesmenDeskriptifPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kelas?: string; error?: string }>;
+  searchParams: Promise<{ kelas?: string; error?: string; q?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
   const sp = await searchParams;
+  const q = (sp.q ?? "").trim().toLowerCase();
 
   const penugasan = await getKelasDiampu(session.userId);
   const kelasUnik = Array.from(new Map(penugasan.map((p) => [p.kelas.id, p.kelas])).values());
@@ -43,6 +45,9 @@ export default async function AsesmenDeskriptifPage({
   for (const c of catatanTerbaruList) {
     if (!terbaruPerSiswa.has(c.siswaId)) terbaruPerSiswa.set(c.siswaId, c);
   }
+  // Padanan "Cari murid" prototipe (guru/nilai-asesmen.html) — sebelumnya gak ada filter sama
+  // sekali, langsung tampilkan semua siswa kelas tanpa cara mempersempit.
+  const siswaTampil = q ? siswaList.filter((s) => s.nama.toLowerCase().includes(q)) : siswaList;
 
   return (
     <AppShell
@@ -65,6 +70,11 @@ export default async function AsesmenDeskriptifPage({
         </div>
       )}
 
+      <form method="GET" className="mb-4">
+        <input type="hidden" name="kelas" value={kelasAktif.id} />
+        <SearchInput name="q" defaultValue={sp.q ?? ""} placeholder="Ketik nama murid…" className="py-2 max-w-[280px]" inputClassName="text-sm" />
+      </form>
+
       <div className="bg-paper-raised border border-rule rounded-xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -75,7 +85,10 @@ export default async function AsesmenDeskriptifPage({
             </tr>
           </thead>
           <tbody>
-            {siswaList.map((s) => {
+            {siswaTampil.length === 0 && (
+              <tr><td colSpan={3} className="px-4 py-6 text-center text-ink-soft text-xs">Tidak ada murid yang cocok dengan pencarian.</td></tr>
+            )}
+            {siswaTampil.map((s) => {
               const terbaru = terbaruPerSiswa.get(s.id);
               return (
                 <tr key={s.id} className="border-t border-rule">
