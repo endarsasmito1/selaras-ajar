@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { formatRupiah, formatTanggal, getSalam } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,6 +28,15 @@ export default async function OrtuDashboard({
 
   const anakList = await getAnakDariOrtu(session.userId);
 
+  // NTF-terkait, F-ortu (padanan ortu/index.html prototipe) — kalau >1 anak nunggak sekaligus,
+  // konsolidasi jadi SATU banner emas "Bayar Semua Tagihan" drpd N tombol emas terpisah per anak
+  // (aturan "1 CTA emas per layar"). Tombol per-anak turun jadi ghost begitu konsolidasi aktif —
+  // lihat prop `redup` di bawah, dipasang ke tiap tombol "Bayar" individual.
+  const anakNunggak = anakList.filter((a) => a.tagihan.some((t) => t.status === "BELUM_BAYAR"));
+  const semuaTagihanBelumBayar = anakList.flatMap((a) => a.tagihan.filter((t) => t.status === "BELUM_BAYAR"));
+  const totalTunggakan = semuaTagihanBelumBayar.reduce((s, t) => s + t.nominal, 0);
+  const konsolidasi = anakNunggak.length > 1;
+
   return (
     <AppShell
       showBack={false}
@@ -36,13 +47,36 @@ export default async function OrtuDashboard({
       pageTitle={`${getSalam(new Date(), session.jenisKelamin)} ${session.nama}`}
       pageSubtitle={`Memantau ${anakList.length} anak`}
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
       {/* ortu/index.html prototipe SENGAJA gak punya elemen pengumuman di beranda sama sekali
           (fokus penuh ke tagihan SPP per anak) — beda dari guru/murid/kepsek. Dihapus dari sini
-          biar konsisten, bukan kelewat. TODO belum dikerjakan (butuh keputusan produk, bukan
-          cuma styling): prototipe konsolidasi >1 anak nunggak jadi 1 banner emas "Bayar Semua
-          Tagihan" di atas (lihat komentar panjang di ortu/index.html) — app sungguhan sekarang
-          cuma tombol "Bayar (QRIS)" terpisah per tagihan, gak ada alur bayar-gabungan. */}
+          biar konsisten, bukan kelewat. */}
+      {konsolidasi && (
+        <div
+          className="rounded-xl border border-[#e6d3a4] px-5 py-4 mb-5 flex items-center justify-between gap-3 flex-wrap"
+          style={{ background: "linear-gradient(160deg, var(--accent-tint), #faf3e2)" }}
+        >
+          <div>
+            <h3 className="text-base m-0">{anakNunggak.length} anak punya tagihan SPP belum dibayar</h3>
+            <p className="text-xs text-ink-soft mt-1">
+              {anakNunggak.map((a) => a.nama).join(" & ")} — total {formatRupiah(totalTunggakan)}
+            </p>
+          </div>
+          <form action="/api/tagihan/bayar" method="POST">
+            {semuaTagihanBelumBayar.map((t) => (
+              <input key={t.id} type="hidden" name="tagihanId" value={t.id} />
+            ))}
+            <ConfirmSubmitButton
+              variant="accent"
+              confirmMessage={`Bayar semua tagihan (${formatRupiah(totalTunggakan)}) via QRIS? Mencakup tagihan ${anakNunggak.map((a) => a.nama).join(" & ")}.`}
+              labelKonfirmasi="Lanjut bayar"
+            >
+              Bayar Semua Tagihan ({formatRupiah(totalTunggakan)})
+            </ConfirmSubmitButton>
+          </form>
+        </div>
+      )}
       <div className="flex flex-col gap-6">
         {anakList.map((anak) => (
           <div key={anak.id}>
@@ -117,7 +151,9 @@ export default async function OrtuDashboard({
                         {t.status === "BELUM_BAYAR" && (
                           <form action="/api/tagihan/bayar" method="POST">
                             <input type="hidden" name="tagihanId" value={t.id} />
-                            <Button type="submit" size="sm" variant="accent">
+                            {/* Turun jadi ghost begitu banner "Bayar Semua" di atas aktif — jangan
+                                2 CTA emas sekaligus di 1 layar (padanan aturan yg sama di prototipe). */}
+                            <Button type="submit" size="sm" variant={konsolidasi ? "ghost" : "accent"}>
                               Bayar (QRIS)
                             </Button>
                           </form>

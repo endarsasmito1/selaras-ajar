@@ -961,6 +961,24 @@ export function hitungPredikat(skor: number, scale: { minSkor: number; maxSkor: 
   return cocok?.label ?? "-";
 }
 
+/**
+ * Padanan warna `.grade-badge` prototipe (yang hardcode 4 tingkat tetap Sangat Baik/Baik/Cukup/
+ * Perlu Bimbingan → warna tetap) — TAPI di app sungguhan label predikat bisa dikonfigurasi bebas
+ * tiap sekolah (`GradeScale`, lihat kepsek/master-data), jadi gak bisa asal cocokkan TEKS label ke
+ * warna. Solusinya: urutkan band skala dari TERTINGGI, tone-nya ditentukan dari RANKING posisi band
+ * yg cocok (bukan isi labelnya) — band teratas = "ok", band terbawah = "warn", sisanya "info". Kalau
+ * cuma 1 band (Sekolah gak setting rentang predikat sama sekali) semua "ok" (gak ada tingkat wajar
+ * yg bisa dibedakan, gak masuk akal nge-warn skor apapun.
+ */
+export function hitungPredikatTone(skor: number, scale: { minSkor: number; maxSkor: number; label: string }[]): "ok" | "info" | "warn" {
+  const terurut = [...scale].sort((a, b) => b.minSkor - a.minSkor);
+  const idx = terurut.findIndex((s) => skor >= s.minSkor && skor <= s.maxSkor);
+  if (idx === -1 || terurut.length <= 1) return "ok";
+  if (idx === 0) return "ok";
+  if (idx === terurut.length - 1) return "warn";
+  return "info";
+}
+
 // ---------- PERFORMA MURID (D-2) ----------
 
 export async function getPerformaSiswa(siswaId: string, sekolahId?: string) {
@@ -1004,6 +1022,7 @@ export async function getPerformaSiswa(siswaId: string, sekolahId?: string) {
 
   const rataKeseluruhan = rataDariNilaiPerMapel(nilai, bobot);
   const predikat = rataKeseluruhan !== null ? hitungPredikat(rataKeseluruhan, gradeScale) : "-";
+  const predikatTone = rataKeseluruhan !== null ? hitungPredikatTone(rataKeseluruhan, gradeScale) : "ok";
 
   const hadir = absensi.filter((a) => a.status === "HADIR").length;
   const persenHadir = absensi.length > 0 ? Math.round((hadir / absensi.length) * 100) : null;
@@ -1013,6 +1032,7 @@ export async function getPerformaSiswa(siswaId: string, sekolahId?: string) {
     perMapel,
     rataKeseluruhan,
     predikat,
+    predikatTone,
     persenHadir,
     totalAbsensi: absensi.length,
     tugasSelesai: pengumpulanTugas.length,

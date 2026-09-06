@@ -43,7 +43,7 @@ export function PerformaSiswaView({
   hrefTugas?: string;
   hrefUjianList?: string;
 }) {
-  const { siswa, perMapel, rataKeseluruhan, predikat, persenHadir, totalAbsensi, tugasSelesai, tugasTotal, ujianSelesai, ujianTotal } = performa;
+  const { siswa, perMapel, rataKeseluruhan, predikat, predikatTone, persenHadir, totalAbsensi, tugasSelesai, tugasTotal, ujianSelesai, ujianTotal } = performa;
   const hrefUjian = (ujianId: string) =>
     basePath === "/ortu/ujian" ? `${basePath}/${siswa.id}/${ujianId}` : `${basePath}/${ujianId}`;
 
@@ -59,7 +59,7 @@ export function PerformaSiswaView({
         </div>
         {predikat !== "-" && (
           <div className="ml-auto text-right">
-            <Pill tone="ok">Predikat: {predikat}</Pill>
+            <Pill tone={predikatTone}>Predikat: {predikat}</Pill>
             <div className="text-xs text-ink-soft mt-1">Rata-rata {rataKeseluruhan}</div>
           </div>
         )}
