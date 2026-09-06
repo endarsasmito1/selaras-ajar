@@ -117,6 +117,9 @@ export const HOME_BY_ROLE: Record<Peran, string> = {
 // Peta prefix rute -> peran yang boleh akses. Urutan penting — dicocokkan lewat .find(),
 // yang pertama cocok yang menang, jadi prefix lebih spesifik HARUS didahulukan dari catch-all-nya.
 export const ROLE_BY_PATH_PREFIX: { prefix: string; roles: Peran[] }[] = [
+  // Halaman "Semua Notifikasi" (dari bell topbar) dipakai bersama semua peran, gak punya
+  // folder role sendiri — lihat notifikasi-selaras-ajar.md §10 & AppShell/NotifBell.
+  { prefix: "/notifikasi", roles: ["SUPERADMIN", "KEPALA_SEKOLAH", "BENDAHARA", "TU", "GURU", "ORANG_TUA", "MURID"] },
   { prefix: "/superadmin", roles: ["SUPERADMIN"] },
   // TU (1.6): administrasi data saja — beberapa subpath /kepsek/* dibuka juga untuk TU,
   // reuse halaman yang sama dengan kepsek (bukan duplikat halaman). Harus didahulukan dari

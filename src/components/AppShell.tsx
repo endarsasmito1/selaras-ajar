@@ -6,6 +6,9 @@ import { Sidebar, NavLinks } from "@/components/Sidebar";
 import { getSession } from "@/lib/auth";
 import { getAccountBadge } from "@/lib/data";
 import { ROLE_LABEL } from "@/lib/nav";
+import { NotifBell } from "@/components/NotifBell";
+import { getNotifikasi, getNotifikasiUnreadCount } from "@/lib/notifikasi";
+import type { Notifikasi } from "@/generated/prisma/client";
 
 export type NavItem = { href: string; label: string; icon: string };
 export type NavGroup = { label?: string; items: NavItem[] };
@@ -43,6 +46,22 @@ export async function AppShell({
         (p) => !(p.peran === session.peran && p.sekolahId === session.sekolahId)
       )
     : [];
+  // Notifikasi bell — panel cuma butuh preview beberapa item teratas (NotifBell yg motong ke
+  // PANEL_MAKS), tapi query semua sekalian di sini lebih simpel drpd tambah parameter limit;
+  // jumlah baris per pengguna kecil (auto-resolve tiap kondisi clear, bukan log tanpa batas).
+  const [notifRows, unreadCount] = session
+    ? await Promise.all([getNotifikasi(session.userId), getNotifikasiUnreadCount(session.userId)])
+    : [[], 0];
+  const notifItems = notifRows.map((n: Notifikasi) => ({
+    id: n.id,
+    tipe: n.tipe,
+    judul: n.judul,
+    deskripsi: n.deskripsi,
+    href: n.href,
+    prioritas: n.prioritas,
+    dibacaPada: n.dibacaPada ? n.dibacaPada.toISOString() : null,
+    createdAt: n.createdAt.toISOString(),
+  }));
 
   return (
     <div className="flex min-h-screen">
@@ -74,6 +93,7 @@ export async function AppShell({
           </div>
           <div className="flex items-center justify-end gap-2 md:gap-3 w-full md:w-auto md:shrink-0">
             {headerAction}
+            <NotifBell initial={notifItems} unreadCount={unreadCount} />
             <AccountMenu
               userName={userName}
               userRoleLabel={userRoleLabel}

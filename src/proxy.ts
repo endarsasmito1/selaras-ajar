@@ -19,6 +19,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 // Urutan penting — .find() pakai match pertama, jadi prefix spesifik harus didahulukan
 // dari catch-all-nya. Lihat catatan yang sama di src/lib/auth.ts (duplikat sengaja, edge-safe).
 const ROLE_BY_PATH_PREFIX: { prefix: string; roles: string[] }[] = [
+  { prefix: "/notifikasi", roles: ["SUPERADMIN", "KEPALA_SEKOLAH", "BENDAHARA", "TU", "GURU", "ORANG_TUA", "MURID"] },
   { prefix: "/superadmin", roles: ["SUPERADMIN"] },
   { prefix: "/kepsek/siswa", roles: ["KEPALA_SEKOLAH", "TU"] },
   { prefix: "/kepsek/guru", roles: ["KEPALA_SEKOLAH", "TU"] },
@@ -67,5 +68,13 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/superadmin/:path*", "/kepsek/:path*", "/keuangan/:path*", "/guru/:path*", "/ortu/:path*", "/murid/:path*"],
+  matcher: [
+    "/notifikasi/:path*",
+    "/superadmin/:path*",
+    "/kepsek/:path*",
+    "/keuangan/:path*",
+    "/guru/:path*",
+    "/ortu/:path*",
+    "/murid/:path*",
+  ],
 };

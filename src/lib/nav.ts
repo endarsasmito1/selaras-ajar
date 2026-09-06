@@ -135,6 +135,29 @@ export function groupsForPeran(peran: string): NavGroup[] {
   return peran === "TU" ? NAV_TU : NAV_KEPSEK;
 }
 
+/** Padanan `groupsForPeran` tapi utk SEMUA peran — dipakai halaman lintas-peran seperti
+ * `/notifikasi` yang gak punya folder role sendiri (§ rencana-penggabungan, notifikasi bell). */
+export function navGroupsForPeran(peran: string): NavGroup[] {
+  switch (peran) {
+    case "SUPERADMIN":
+      return NAV_SUPERADMIN;
+    case "KEPALA_SEKOLAH":
+      return NAV_KEPSEK;
+    case "TU":
+      return NAV_TU;
+    case "BENDAHARA":
+      return NAV_KEUANGAN;
+    case "GURU":
+      return NAV_GURU;
+    case "ORANG_TUA":
+      return NAV_ORTU;
+    case "MURID":
+      return NAV_MURID;
+    default:
+      return [];
+  }
+}
+
 export const ROLE_LABEL: Record<string, string> = {
   SUPERADMIN: "Superadmin Selaras Ajar",
   KEPALA_SEKOLAH: "Kepala Sekolah",

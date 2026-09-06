@@ -139,6 +139,7 @@ model Pengguna {
   perananLain           PenggunaPeran[]
   kurikulumDibuat       Kurikulum[]
   pengumumanDibuat      PengumumanSekolah[]
+  notifikasi            Notifikasi[]
 }
 
 /// Multi-role (1.20): satu Pengguna bisa punya lebih dari satu peran tambahan di luar `peran`
@@ -1065,4 +1066,38 @@ model PembayaranLangganan {
   status       StatusPembayaranLangganan @default(BELUM_BAYAR)
 
   @@unique([langgananId, periode])
+}
+
+enum PrioritasNotif {
+  TINGGI
+  SEDANG
+  RENDAH
+}
+
+/// Notifikasi bell topbar — lihat notifikasi-selaras-ajar.md & rencana-api-database-selaras-ajar.md
+/// §3 (Langkah 3, penggabungan UI). `tipe`+`entitasKey` sama persis pola `type:key` di evaluator
+/// client-side prototipe (assets/notif.js) — dipakai supaya status baca nempel ke KEJADIAN
+/// sungguhan, bukan ke teks tampilan yang bisa berubah. Baris di sini DITULIS langsung oleh
+/// service/route yang menangani aksi terkait (dalam transaksi yang sama), bukan dihitung ulang
+/// tiap kali bell dibuka — beda dari prototipe yang query localStorage live tiap render.
+model Notifikasi {
+  id          String         @id @default(cuid())
+  penggunaId  String
+  pengguna    Pengguna       @relation(fields: [penggunaId], references: [id])
+  /// Kode kategori tetap, mis. "esai-pending", "tugas-jatuh-tempo" — sama kode dgn
+  /// notifikasi-selaras-ajar.md supaya rancangan lama & implementasi ini tetap selaras.
+  tipe        String
+  /// Identitas instance spesifik (id ujian/tugas/izin/dst) — WAJIB entitas sungguhan, bukan
+  /// angka yang bisa berubah (pelajaran dari skema lama `index+judul` di prototipe yang rapuh).
+  entitasKey  String
+  judul       String
+  deskripsi   String?
+  href        String?
+  prioritas   PrioritasNotif @default(SEDANG)
+  dibacaPada  DateTime?
+  createdAt   DateTime       @default(now())
+
+  /// Padanan `_id = type:key` di prototipe — cegah baris duplikat utk kejadian yang sama persis.
+  @@unique([penggunaId, tipe, entitasKey])
+  @@index([penggunaId, dibacaPada])
 }
