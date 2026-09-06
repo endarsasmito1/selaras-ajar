@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_SUPERADMIN, ROLE_LABEL } from "@/lib/nav";
 import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { TampilanTabelPeta } from "./TampilanTabelPeta";
 import { Pagination } from "@/components/ui/Pagination";
 import { Button } from "@/components/ui/Button";
@@ -89,11 +90,12 @@ export default async function SuperadminSekolahListPage({
 
       <form method="GET" className="mb-4 flex flex-wrap items-center gap-2">
         <input type="hidden" name="halaman" value="1" />
-        <input
+        <SearchInput
           name="cari"
           defaultValue={sp.cari ?? ""}
           placeholder="Cari nama sekolah…"
-          className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-64"
+          className="py-2 w-64"
+          inputClassName="text-sm"
         />
         <select id="provinsi-select" name="provinsi" defaultValue={provinsi} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
           <option value="">Semua provinsi</option>

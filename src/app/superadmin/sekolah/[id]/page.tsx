@@ -9,6 +9,7 @@ import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -157,11 +158,12 @@ export default async function SuperadminSekolahDetailPage({
 
         <form method="GET" className="mb-3 flex flex-wrap items-center gap-2">
           <input type="hidden" name="halPengguna" value="1" />
-          <input
+          <SearchInput
             name="cariPengguna"
             defaultValue={sp.cariPengguna ?? ""}
             placeholder="Cari nama/email pengguna…"
-            className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-64"
+            className="py-2 w-64"
+            inputClassName="text-sm"
           />
           <select name="peranFilter" defaultValue={peranFilter} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
             <option value="">Semua peran</option>

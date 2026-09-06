@@ -7,6 +7,7 @@ import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 export default async function DataGuruPage({
   searchParams,
@@ -51,11 +52,12 @@ export default async function DataGuruPage({
       pageSubtitle={`${guru.length} guru & staf`}
       headerAction={
         <form method="GET" className="flex items-center gap-1.5">
-          <input
+          <SearchInput
             name="q"
             defaultValue={sp.q ?? ""}
             placeholder="Cari nama guru…"
-            className="bg-paper-raised border border-rule rounded-lg px-3 py-1.5 text-xs w-48"
+            className="py-1.5 w-48"
+            inputClassName="text-xs"
           />
           <Button type="submit" size="sm" variant="ghost">Cari</Button>
         </form>

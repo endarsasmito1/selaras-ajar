@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -148,11 +149,12 @@ export default async function KinerjaGuruDetailPage({
         </div>
         <form method="GET" className="flex items-center gap-1.5 mb-3">
           <input type="hidden" name="tahun" value={tahunDipilih} />
-          <input
+          <SearchInput
             name="q"
             defaultValue={sp.q ?? ""}
             placeholder="Cari nama murid…"
-            className="flex-1 bg-paper border border-rule rounded-lg px-3 py-1.5 text-xs max-w-xs"
+            className="flex-1 bg-paper py-1.5 max-w-xs"
+            inputClassName="text-xs"
           />
           <Button type="submit" size="sm" variant="ghost">Cari</Button>
         </form>

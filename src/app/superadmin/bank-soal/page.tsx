@@ -10,6 +10,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { OpsiPreview } from "@/components/ui/OpsiPreview";
 import { SoalEditor } from "@/components/ui/SoalEditor";
 import { SoalHtml } from "@/lib/sanitize-html";
@@ -73,11 +74,12 @@ export default async function SuperadminBankSoalPage({
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
 
       <form method="GET" className="mb-5 flex items-center gap-2">
-        <input
+        <SearchInput
           name="cari"
           defaultValue={sp.cari ?? ""}
           placeholder="Cari soal (isi pertanyaan atau topik)…"
-          className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-80"
+          className="py-2 w-80"
+          inputClassName="text-sm"
         />
         <Button type="submit" size="sm" variant="ghost">Cari</Button>
         {cari && <LinkButton href="/superadmin/bank-soal" size="sm" variant="ghost">Reset</LinkButton>}

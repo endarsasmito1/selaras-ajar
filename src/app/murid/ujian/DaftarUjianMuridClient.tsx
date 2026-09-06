@@ -59,15 +59,18 @@ export function DaftarUjianMuridClient({ daftar, now }: { daftar: UjianBaris[]; 
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setHalaman(1);
-          }}
-          placeholder="Cari nama ujian…"
-          className="flex-1 min-w-[200px] bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm"
-        />
+        <div className="flex-1 min-w-[200px] flex items-center gap-2 bg-paper-raised border border-rule rounded-lg px-3.5 py-2">
+          <span aria-hidden="true" className="text-ink-soft text-sm shrink-0">🔍</span>
+          <input
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setHalaman(1);
+            }}
+            placeholder="Cari nama ujian…"
+            className="bg-transparent outline-none text-sm text-ink placeholder:text-ink-soft w-full"
+          />
+        </div>
         <div className="flex gap-1.5 text-xs">
           <button type="button" onClick={() => toggleSort("nama")} className="px-2.5 py-1.5 rounded-lg border border-rule hover:bg-paper-raised inline-flex items-center gap-1">
             Nama <span className="text-[9px] leading-none">{sortKey === "nama" ? (dir === "asc" ? "▲" : "▼") : "⇅"}</span>

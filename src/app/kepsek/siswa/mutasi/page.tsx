@@ -8,6 +8,7 @@ import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 const SISWA_PER_HALAMAN = 25;
 
@@ -82,11 +83,12 @@ export default async function MutasiSiswaPage({
         <Card>
           <CardHead title="Siswa pindah keluar" subtitle="Wajib isi keterangan & tanggal — dikonfirmasi lewat popup" />
           <form method="GET" className="flex items-center gap-1.5 mb-3">
-            <input
+            <SearchInput
               name="q"
               defaultValue={sp.q ?? ""}
               placeholder="Cari nama siswa…"
-              className="flex-1 bg-paper border border-rule rounded-lg px-3 py-1.5 text-xs"
+              className="flex-1 bg-paper py-1.5"
+              inputClassName="text-xs"
             />
             <Button type="submit" size="sm" variant="ghost">Cari</Button>
           </form>

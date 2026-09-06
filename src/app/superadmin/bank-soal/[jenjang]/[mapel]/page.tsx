@@ -9,6 +9,7 @@ import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { OpsiPreview } from "@/components/ui/OpsiPreview";
 import { SoalHtml } from "@/lib/sanitize-html";
 import { JENIS_SOAL_LABEL, TINGKAT_KESULITAN_TONE, JENJANG_PILL_CLASS } from "@/lib/soal-ui";
@@ -75,11 +76,12 @@ export default async function SuperadminBankSoalMapelPage({
 
       <form method="GET" className="mb-5 flex flex-wrap items-center gap-2">
         <input type="hidden" name="halaman" value="1" />
-        <input
+        <SearchInput
           name="cari"
           defaultValue={sp.cari ?? ""}
           placeholder="Cari soal ini (isi/topik)…"
-          className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-64"
+          className="py-2 w-64"
+          inputClassName="text-sm"
         />
         <select name="jenis" defaultValue={jenisFilter} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
           <option value="">Semua jenis</option>

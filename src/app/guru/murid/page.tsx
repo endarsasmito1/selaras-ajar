@@ -5,6 +5,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 export default async function MuridGuruPage({
   searchParams,
@@ -28,12 +29,7 @@ export default async function MuridGuruPage({
       pageSubtitle="Ranking paralel per tingkat, cari nama, atau pilih kelas untuk lihat daftar & ranking murid (1.6)"
     >
       <form method="GET" className="mb-6">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Cari nama murid…"
-          className="bg-paper-raised border border-rule rounded-lg px-3.5 py-2 text-sm w-80"
-        />
+        <SearchInput name="q" defaultValue={q} placeholder="Cari nama murid…" className="py-2 w-80" inputClassName="text-sm" />
       </form>
 
       {q ? (

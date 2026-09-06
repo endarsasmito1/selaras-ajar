@@ -8,6 +8,7 @@ import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { PengumumanNotifCard } from "@/components/PengumumanWidget";
 import { HasilPencarianTable } from "./HasilPencarianTable";
 
@@ -47,11 +48,12 @@ export default async function DataSiswaPage({
       {session.peran === "TU" && <div className="mb-5"><PengumumanNotifCard sekolahId={session.sekolahId} /></div>}
 
       <form method="GET" className="mb-5">
-        <input
+        <SearchInput
           name="q"
           defaultValue={params.q}
           placeholder="Cari nama, NISN, atau kelas… (mengabaikan hierarki kelas)"
-          className="bg-paper-raised border border-rule rounded-lg px-3.5 py-2 text-sm w-80"
+          className="py-2 w-80"
+          inputClassName="text-sm"
         />
       </form>
 
