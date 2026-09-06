@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { tandaiPresensiGuruOtomatis } from "@/lib/data";
-import { toDateOnlyUTC } from "@/lib/utils";
+import { toDateOnlyUTC, formatTanggal } from "@/lib/utils";
+import { upsertNotifikasi, hapusNotifikasi } from "@/lib/notifikasi";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -41,6 +42,47 @@ export async function POST(req: NextRequest) {
       update: { status, catatan },
       create: { siswaId, kelasId, tanggal, status, catatan },
     });
+
+    // NTF-M-10/O-06 — kehadiran bukan Hadir, beritahu murid ybs & orang tuanya. entitasKey dipatok
+    // ke siswa+tanggal (bukan id baris Absensi) supaya idempotent thd guru edit ulang tanggal yg
+    // sama berkali-kali (upsert nulis ulang, bukan numpuk baris baru per edit).
+    const entitasKey = `${siswaId}:${tanggalFinalStr}`;
+    if (status !== "HADIR") {
+      const siswa = await prisma.siswa.findUnique({
+        where: { id: siswaId },
+        include: { akun: true, kelas: true, wali: { include: { pengguna: true } } },
+      });
+      if (siswa) {
+        const label = status === "SAKIT" ? "Sakit" : status === "IZIN" ? "Izin" : "Alpa";
+        if (siswa.akunId) {
+          await upsertNotifikasi({
+            penggunaId: siswa.akunId,
+            tipe: "absensi-tidak-hadir",
+            entitasKey,
+            judul: `Kamu tercatat ${label} pada ${formatTanggal(tanggal)}`,
+            href: `/murid/kehadiran`,
+            prioritas: status === "ALPA" ? "TINGGI" : "SEDANG",
+          });
+        }
+        await Promise.all(
+          siswa.wali.map((w) =>
+            upsertNotifikasi({
+              penggunaId: w.penggunaId,
+              tipe: "anak-tidak-hadir",
+              entitasKey,
+              judul: `${siswa.nama} tercatat ${label} pada ${formatTanggal(tanggal)}`,
+              href: `/ortu/performa/${siswaId}/kehadiran`,
+              prioritas: status === "ALPA" ? "TINGGI" : "SEDANG",
+            })
+          )
+        );
+      }
+    } else {
+      // Guru koreksi balik jadi Hadir — resolve notif yg mungkin sempat tertulis sebelumnya.
+      const siswaAkun = await prisma.siswa.findUnique({ where: { id: siswaId }, select: { akunId: true, wali: { select: { penggunaId: true } } } });
+      if (siswaAkun?.akunId) await hapusNotifikasi(siswaAkun.akunId, "absensi-tidak-hadir", entitasKey);
+      if (siswaAkun) await Promise.all(siswaAkun.wali.map((w) => hapusNotifikasi(w.penggunaId, "anak-tidak-hadir", entitasKey)));
+    }
   }
 
   // AG-1: kehadiran mengajar guru (kalau ia wali kelas ini) tercatat otomatis dari aksi ini.

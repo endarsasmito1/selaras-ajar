@@ -1650,7 +1650,10 @@ export async function getProjekSiswa(siswaId: string) {
 // ---------- REMINDER PROAKTIF GURU (X-7, versi in-app tanpa cron) ----------
 
 export async function getRemindersGuru(guruPenggunaId: string) {
-  const reminders: { pesan: string; href: string }[] = [];
+  // `id` = "tipe:entitasKey" — dipakai sbg React key di widget dashboard DAN sbg sumber sinkronisasi
+  // ke tabel Notifikasi (lib/notifikasi.ts syncNotifikasiReminderGuru) supaya satu logic ini jadi
+  // satu-satunya sumber kebenaran, gak dobel-tulis di 2 tempat.
+  const reminders: { id: string; pesan: string; href: string }[] = [];
 
   const tugasBelumDinilai = await prisma.tugas.findMany({
     where: { penggunaId: guruPenggunaId, pengumpulan: { some: { nilai: null } } },
@@ -1661,6 +1664,7 @@ export async function getRemindersGuru(guruPenggunaId: string) {
     const lamaHari = Math.floor((Date.now() - Math.min(...belumDinilai.map((p) => p.submitAt.getTime()))) / 86400000);
     if (lamaHari > 5) {
       reminders.push({
+        id: `tugas-belum-nilai:${t.id}`,
         pesan: `Tugas "${t.judul}": ${belumDinilai.length} pengumpulan sudah >${lamaHari} hari belum dinilai.`,
         href: `/guru/tugas/${t.id}`,
       });
@@ -1686,7 +1690,11 @@ export async function getRemindersGuru(guruPenggunaId: string) {
   const ujianPerluDinilai = new Map<string, string>();
   for (const j of jawabanPerluDinilai) ujianPerluDinilai.set(j.pengerjaan.ujianId, j.pengerjaan.ujian.judul);
   for (const [ujianId, judul] of ujianPerluDinilai) {
-    reminders.push({ pesan: `Ujian "${judul}" punya jawaban esai/singkat yang belum dinilai.`, href: `/guru/ujian/${ujianId}/nilai-esai` });
+    reminders.push({
+      id: `esai-pending:${ujianId}`,
+      pesan: `Ujian "${judul}" punya jawaban esai/singkat yang belum dinilai.`,
+      href: `/guru/ujian/${ujianId}/nilai-esai`,
+    });
   }
 
   const kelengkapanRPP = await prisma.pengguna.findUnique({ where: { id: guruPenggunaId } });
@@ -1695,6 +1703,7 @@ export async function getRemindersGuru(guruPenggunaId: string) {
     const belumRPP = matrix.filter((m) => m.guru.id === guruPenggunaId && !m.adaRPP);
     if (belumRPP.length > 0) {
       reminders.push({
+        id: "rpp-belum:rpp-belum",
         pesan: `RPP belum dibuat untuk ${belumRPP.length} kelas/mapel yang diampu.`,
         href: `/guru/rpp`,
       });

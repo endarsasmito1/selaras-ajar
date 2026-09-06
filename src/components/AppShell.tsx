@@ -7,7 +7,17 @@ import { getSession } from "@/lib/auth";
 import { getAccountBadge } from "@/lib/data";
 import { ROLE_LABEL } from "@/lib/nav";
 import { NotifBell } from "@/components/NotifBell";
-import { getNotifikasi, getNotifikasiUnreadCount } from "@/lib/notifikasi";
+import {
+  getNotifikasi,
+  getNotifikasiUnreadCount,
+  syncNotifikasiAbsensiBelum,
+  syncNotifikasiReminderGuru,
+  syncNotifikasiTugasJatuhTempo,
+  syncNotifikasiTagihanOrtu,
+  syncNotifikasiTagihanBendahara,
+  syncNotifikasiHasilUjianMurid,
+  syncNotifikasiHasilUjianOrtu,
+} from "@/lib/notifikasi";
 import type { Notifikasi } from "@/generated/prisma/client";
 
 export type NavItem = { href: string; label: string; icon: string };
@@ -46,6 +56,22 @@ export async function AppShell({
         (p) => !(p.peran === session.peran && p.sekolahId === session.sekolahId)
       )
     : [];
+  // Sinkronisasi notifikasi state-based (absensi belum, reminder guru, tugas jatuh tempo, tagihan)
+  // dijalankan di SETIAP render AppShell (bukan cuma dashboard) utk peran yg relevan — padanan
+  // evaluator live prototipe yang dihitung ulang tiap panel bell dibuka, cuma titik hitungnya
+  // dipindah ke sini krn gak ada infra cron. Query di-scope per akun, murah (lihat notifikasi.ts).
+  if (session) {
+    if (session.peran === "GURU") {
+      await Promise.all([syncNotifikasiAbsensiBelum(session.userId), syncNotifikasiReminderGuru(session.userId)]);
+    } else if (session.peran === "MURID") {
+      await Promise.all([syncNotifikasiTugasJatuhTempo(session.userId), syncNotifikasiHasilUjianMurid(session.userId)]);
+    } else if (session.peran === "ORANG_TUA") {
+      await Promise.all([syncNotifikasiTagihanOrtu(session.userId), syncNotifikasiHasilUjianOrtu(session.userId)]);
+    } else if (session.peran === "BENDAHARA" || session.peran === "KEPALA_SEKOLAH") {
+      await syncNotifikasiTagihanBendahara(session.userId, session.sekolahId);
+    }
+  }
+
   // Notifikasi bell — panel cuma butuh preview beberapa item teratas (NotifBell yg motong ke
   // PANEL_MAKS), tapi query semua sekalian di sini lebih simpel drpd tambah parameter limit;
   // jumlah baris per pengguna kecil (auto-resolve tiap kondisi clear, bukan log tanpa batas).

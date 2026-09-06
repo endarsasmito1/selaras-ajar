@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const pengumpulan = await prisma.pengumpulanTugas.update({
       where: { id: pid },
       data: { nilai: Number(nilaiRaw), catatanGuru: catatan ? String(catatan) : null },
-      include: { siswa: true, tugas: true },
+      include: { siswa: { include: { wali: true } }, tugas: true },
     });
     // NTF-M-03 — beritahu murid begitu nilai tugasnya keluar (cuma kalau punya akun murid sendiri —
     // siswa titipan/blm py akun dilewati begitu saja, gak ada penerima yg valid).
@@ -35,6 +35,20 @@ export async function POST(req: NextRequest) {
         prioritas: "RENDAH",
       });
     }
+    // NTF-O-07 — mirror ke semua wali/orang tua siswa ybs.
+    await Promise.all(
+      pengumpulan.siswa.wali.map((w) =>
+        upsertNotifikasi({
+          penggunaId: w.penggunaId,
+          tipe: "anak-tugas-dinilai",
+          entitasKey: pengumpulan.id,
+          judul: `Nilai tugas "${pengumpulan.tugas.judul}" ${pengumpulan.siswa.nama} sudah keluar`,
+          deskripsi: `Nilai: ${Number(nilaiRaw)}`,
+          href: `/ortu/performa/${pengumpulan.siswaId}`,
+          prioritas: "RENDAH",
+        })
+      )
+    );
   }
 
   const url = req.nextUrl.clone();

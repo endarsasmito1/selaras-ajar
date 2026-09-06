@@ -40,9 +40,9 @@ export default async function GuruDashboard({
         <Card className="mb-4">
           <h3 className="text-sm font-semibold mb-2">Perlu ditindaklanjuti (X-7)</h3>
           <div className="flex flex-col gap-2">
-            {reminders.map((r, i) => (
+            {reminders.map((r) => (
               <a
-                key={i}
+                key={r.id}
                 href={r.href}
                 className="flex items-center justify-between gap-2 bg-warning-tint text-warning rounded-lg px-3.5 py-3 text-sm font-semibold hover:brightness-95"
               >
