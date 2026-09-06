@@ -24,7 +24,9 @@ export function Drawer({
   title,
   children,
 }: {
-  triggerLabel: string;
+  /** Biasanya teks tombol biasa — tapi bisa JSX utuh (mis. isi 1 blok event kalender, WeekCalendar)
+   * kalau seluruh blok itu sendiri yang jadi pemicu, bukan tombol kecil terpisah di dalamnya. */
+  triggerLabel: React.ReactNode;
   /** Override tampilan pemicu (mis. link kecil `text-[10px]` di sel grid padat) — kalau diisi,
    * dipakai SEBAGAI GANTI style default `<Button variant="ghost" size="sm">`, bukan ditambahkan ke
    * atasnya, supaya Drawer tetap bisa dipakai di tempat yang terlalu sempit utk tombol standar. */
