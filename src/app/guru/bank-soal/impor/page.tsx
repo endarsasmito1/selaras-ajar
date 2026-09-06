@@ -5,6 +5,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Stepper } from "@/components/ui/Stepper";
+import { Dropzone } from "@/components/ui/Dropzone";
 
 export default async function ImporSoalPage({
   searchParams,
@@ -49,7 +50,7 @@ export default async function ImporSoalPage({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">File CSV</label>
-            <input type="file" name="file" accept=".csv" required className="text-sm" />
+            <Dropzone name="file" accept=".csv" required hint="atau seret berkas .csv ke sini" />
           </div>
           <Button type="submit" size="sm">Unggah & pratinjau</Button>
         </form>
