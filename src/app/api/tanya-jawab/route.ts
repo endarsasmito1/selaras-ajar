@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { upsertNotifikasi } from "@/lib/notifikasi";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -42,15 +43,54 @@ export async function POST(req: NextRequest) {
   }
 
   let parentId: string | null = null;
+  let parentAsker: { id: string; peran: string } | null = null;
   if (parentIdRaw) {
     // Thread cuma 1 level — kalau parent yang dirujuk sendiri punya parent, tolak nesting lebih dalam.
-    const parent = await prisma.tanyaJawabKelas.findUnique({ where: { id: String(parentIdRaw) } });
-    if (parent && !parent.parentId) parentId = parent.id;
+    const parent = await prisma.tanyaJawabKelas.findUnique({ where: { id: String(parentIdRaw) }, include: { pengguna: true } });
+    if (parent && !parent.parentId) {
+      parentId = parent.id;
+      parentAsker = { id: parent.pengguna.id, peran: parent.pengguna.peran };
+    }
   }
 
-  await prisma.tanyaJawabKelas.create({
+  const dibuat = await prisma.tanyaJawabKelas.create({
     data: { kelasId, mapelId, penggunaId: session.userId, isi, anonim, parentId },
+    include: { kelas: true, mapel: true },
   });
+
+  if (!parentId && session.peran === "MURID") {
+    // NTF-G-06 — pertanyaan baru dari murid, beritahu guru yang mengampu kelas+mapel ini.
+    const penugasan = await prisma.penugasanGuru.findMany({
+      where: { kelasId, mapelId },
+      include: { guru: true },
+    });
+    await Promise.all(
+      penugasan.map((p) =>
+        upsertNotifikasi({
+          penggunaId: p.guru.penggunaId,
+          tipe: "tanya-jawab-baru",
+          entitasKey: dibuat.id,
+          judul: `Pertanyaan baru di ${dibuat.mapel.nama} — Kelas ${dibuat.kelas.nama}`,
+          deskripsi: isi.length > 80 ? isi.slice(0, 80) + "…" : isi,
+          href: `/guru/tanya-jawab?kelas=${kelasId}&mapel=${mapelId}`,
+          prioritas: "SEDANG",
+        })
+      )
+    );
+  } else if (parentId && session.peran === "GURU" && parentAsker && parentAsker.peran === "MURID") {
+    // NTF-M-08 — guru membalas pertanyaan murid, beritahu murid yang bertanya. entitasKey dipatok
+    // ke THREAD (parentId) bukan balasan ini sendiri — biar balasan susulan cuma update satu baris
+    // notif yang sama (upsert), bukan numpuk notif baru tiap kali guru nambah komentar di thread itu.
+    await upsertNotifikasi({
+      penggunaId: parentAsker.id,
+      tipe: "tanya-jawab-dibalas",
+      entitasKey: parentId,
+      judul: `Pertanyaanmu di ${dibuat.mapel.nama} dibalas`,
+      deskripsi: isi.length > 80 ? isi.slice(0, 80) + "…" : isi,
+      href: `/murid/tanya-jawab?mapel=${mapelId}`,
+      prioritas: "SEDANG",
+    });
+  }
 
   url.search = `?kelas=${kelasId}&mapel=${mapelId}`;
   return NextResponse.redirect(url, { status: 303 });

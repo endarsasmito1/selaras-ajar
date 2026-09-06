@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { upsertNotifikasi } from "@/lib/notifikasi";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -16,10 +17,24 @@ export async function POST(req: NextRequest) {
     const nilaiRaw = formData.get(`nilai_${pid}`);
     const catatan = formData.get(`catatan_${pid}`);
     if (nilaiRaw === null || nilaiRaw === "") continue;
-    await prisma.pengumpulanTugas.update({
+    const pengumpulan = await prisma.pengumpulanTugas.update({
       where: { id: pid },
       data: { nilai: Number(nilaiRaw), catatanGuru: catatan ? String(catatan) : null },
+      include: { siswa: true, tugas: true },
     });
+    // NTF-M-03 — beritahu murid begitu nilai tugasnya keluar (cuma kalau punya akun murid sendiri —
+    // siswa titipan/blm py akun dilewati begitu saja, gak ada penerima yg valid).
+    if (pengumpulan.siswa.akunId) {
+      await upsertNotifikasi({
+        penggunaId: pengumpulan.siswa.akunId,
+        tipe: "tugas-dinilai",
+        entitasKey: pengumpulan.id,
+        judul: `Nilai tugas "${pengumpulan.tugas.judul}" sudah keluar`,
+        deskripsi: `Nilai: ${Number(nilaiRaw)}`,
+        href: `/murid/tugas/${tugasId}`,
+        prioritas: "RENDAH",
+      });
+    }
   }
 
   const url = req.nextUrl.clone();
