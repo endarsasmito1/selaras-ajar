@@ -5,7 +5,7 @@ import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
-import { PengumumanWidget } from "@/components/PengumumanWidget";
+import { PengumumanNotifCard } from "@/components/PengumumanWidget";
 import { formatTanggal } from "@/lib/utils";
 
 const TIPE_ICON: Record<string, string> = { dokumen: "📄", video: "▶", catatan: "✎" };
@@ -53,7 +53,7 @@ export default async function MuridDashboard({
       pageSubtitle={`Kelas ${siswa.kelas.nama}`}
     >
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      <div className="mb-4"><PengumumanWidget sekolahId={session.sekolahId} /></div>
+      <div className="mb-4"><PengumumanNotifCard sekolahId={session.sekolahId} /></div>
       <div className="grid md:grid-cols-2 gap-4 mb-4 items-start">
         <div className="flex flex-col gap-4">
           <Card>

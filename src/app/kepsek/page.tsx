@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
-import { PengumumanWidget } from "@/components/PengumumanWidget";
+import { PengumumanNotifCard } from "@/components/PengumumanWidget";
 import { formatRupiah, getSalam } from "@/lib/utils";
 
 export default async function KepsekDashboard({
@@ -42,7 +42,7 @@ export default async function KepsekDashboard({
       <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
 
-      <div className="mb-4"><PengumumanWidget sekolahId={session.sekolahId} /></div>
+      <div className="mb-4"><PengumumanNotifCard sekolahId={session.sekolahId} /></div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 mb-6">
         <StatCard label="Total Siswa" value={String(ringkasan.totalSiswa)} sub={`${ringkasan.totalKelas} kelas`} />

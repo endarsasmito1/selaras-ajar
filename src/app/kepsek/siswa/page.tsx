@@ -8,7 +8,7 @@ import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { PengumumanWidget } from "@/components/PengumumanWidget";
+import { PengumumanNotifCard } from "@/components/PengumumanWidget";
 import { HasilPencarianTable } from "./HasilPencarianTable";
 
 export default async function DataSiswaPage({
@@ -44,7 +44,7 @@ export default async function DataSiswaPage({
         </Callout>
       )}
 
-      {session.peran === "TU" && <div className="mb-5"><PengumumanWidget sekolahId={session.sekolahId} /></div>}
+      {session.peran === "TU" && <div className="mb-5"><PengumumanNotifCard sekolahId={session.sekolahId} /></div>}
 
       <form method="GET" className="mb-5">
         <input

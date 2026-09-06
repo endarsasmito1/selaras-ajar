@@ -5,7 +5,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead, StatCard } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
-import { PengumumanWidget } from "@/components/PengumumanWidget";
+import { PengumumanBanner } from "@/components/PengumumanWidget";
 import { getSalam, formatTanggal } from "@/lib/utils";
 
 export default async function GuruDashboard({
@@ -35,7 +35,7 @@ export default async function GuruDashboard({
       pageSubtitle="Kumpulan data informatif dari kelas & muridmu hari ini (D-1, 1.6)"
     >
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      <div className="mb-4"><PengumumanWidget sekolahId={session.sekolahId} /></div>
+      <div className="mb-4"><PengumumanBanner sekolahId={session.sekolahId} /></div>
       {reminders.length > 0 && (
         <Card className="mb-4">
           <h3 className="text-sm font-semibold mb-2">Perlu ditindaklanjuti (X-7)</h3>

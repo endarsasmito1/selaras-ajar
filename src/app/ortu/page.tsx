@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
-import { PengumumanWidget } from "@/components/PengumumanWidget";
 import { formatRupiah, formatTanggal, getSalam } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,7 +37,12 @@ export default async function OrtuDashboard({
       pageSubtitle={`Memantau ${anakList.length} anak`}
     >
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      <div className="mb-6"><PengumumanWidget sekolahId={session.sekolahId} /></div>
+      {/* ortu/index.html prototipe SENGAJA gak punya elemen pengumuman di beranda sama sekali
+          (fokus penuh ke tagihan SPP per anak) — beda dari guru/murid/kepsek. Dihapus dari sini
+          biar konsisten, bukan kelewat. TODO belum dikerjakan (butuh keputusan produk, bukan
+          cuma styling): prototipe konsolidasi >1 anak nunggak jadi 1 banner emas "Bayar Semua
+          Tagihan" di atas (lihat komentar panjang di ortu/index.html) — app sungguhan sekarang
+          cuma tombol "Bayar (QRIS)" terpisah per tagihan, gak ada alur bayar-gabungan. */}
       <div className="flex flex-col gap-6">
         {anakList.map((anak) => (
           <div key={anak.id}>
@@ -58,7 +62,7 @@ export default async function OrtuDashboard({
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
-              <Card>
+              <Card className="bg-paper shadow-none">
                 <h4 className="text-sm font-semibold mb-3">Kehadiran terakhir</h4>
                 <div className="flex flex-col gap-1.5">
                   {anak.absensi.length === 0 && (
@@ -75,7 +79,7 @@ export default async function OrtuDashboard({
                 </div>
               </Card>
 
-              <Card>
+              <Card className="bg-paper shadow-none">
                 <h4 className="text-sm font-semibold mb-3">Nilai terbaru</h4>
                 <div className="flex flex-col gap-1.5">
                   {anak.nilai.length === 0 && (
@@ -90,7 +94,7 @@ export default async function OrtuDashboard({
                 </div>
               </Card>
 
-              <Card>
+              <Card className="bg-paper shadow-none">
                 <h4 className="text-sm font-semibold mb-3">Tagihan SPP</h4>
                 <div className="flex flex-col gap-3">
                   {anak.tagihan.length === 0 && (
