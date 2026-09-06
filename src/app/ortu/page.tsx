@@ -79,9 +79,12 @@ export default async function OrtuDashboard({
       )}
       <div className="flex flex-col gap-6">
         {anakList.map((anak) => (
-          <div key={anak.id}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-full bg-primary-tint text-primary-deep flex items-center justify-center font-serif font-bold text-lg">
+          // Padanan prototipe: header (avatar+nama+link) & grid tiga-kolom di bawahnya SATU kartu
+          // utuh per anak (bukan header lepas tanpa bingkai + 3 kartu kecil terpisah) — biar begitu
+          // ortu py >1 anak, jelas mana milik siapa, bukan mengambang gak ada pembatas visual.
+          <Card key={anak.id}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-full bg-primary-tint text-primary-deep flex items-center justify-center font-serif font-bold text-lg shrink-0">
                 {anak.nama.split(" ").map((w) => w[0]).slice(0, 2).join("")}
               </div>
               <div className="flex-1">
@@ -90,7 +93,7 @@ export default async function OrtuDashboard({
                   Kelas {anak.kelas.nama} · NISN {anak.nisn} · {anak.hubungan}
                 </p>
               </div>
-              <LinkButton href={`/ortu/performa/${anak.id}`} size="sm">
+              <LinkButton href={`/ortu/performa/${anak.id}`} size="sm" variant="ghost">
                 Lihat performa & ujian lengkap →
               </LinkButton>
             </div>
@@ -164,7 +167,7 @@ export default async function OrtuDashboard({
                 </div>
               </Card>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </AppShell>
