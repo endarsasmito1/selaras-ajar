@@ -7,7 +7,7 @@ import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Pill } from "@/components/ui/Pill";
-import { StatCard } from "@/components/ui/Card";
+import { Card, CardHead, StatCard } from "@/components/ui/Card";
 import { formatTanggal } from "@/lib/utils";
 import { tabClass, chipClass } from "@/lib/tab-style";
 
@@ -144,6 +144,50 @@ async function IsiTab({
         <p className="text-[11px] uppercase tracking-wider text-primary-deep font-bold">Mengisi absensi untuk</p>
         <p className="font-serif text-lg text-primary-deep">{tanggalIsiLabel}</p>
       </div>
+
+      {/* Padanan card "Pengajuan izin menunggu" prototipe (guru/absensi.html) — SEBELUMNYA dijejal
+          jadi badge kecil inline di baris murid (tanpa keterangan/alasan sama sekali), padahal
+          prototipe sengaja bikin ini kartu TERPISAH & MENONJOL di atas tabel absensi, dgn kolom
+          Keterangan yang jelas — biar gak ketinggalan lihat di antara puluhan baris murid lain. */}
+      {izinPendingMap.size > 0 && (
+        <Card className="mb-4">
+          <CardHead title="Pengajuan izin menunggu" subtitle="Diajukan orang tua untuk hari ini — menyetujui akan otomatis mengisi status di tabel absensi di bawah." />
+          <div className="bg-paper border border-rule rounded-lg overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-paper-sunken text-[11px] uppercase tracking-wider text-ink-soft">
+                  <th className="text-left px-4 py-2 font-bold">Murid</th>
+                  <th className="text-left px-4 py-2 font-bold">Jenis</th>
+                  <th className="text-left px-4 py-2 font-bold">Keterangan</th>
+                  <th className="text-left px-4 py-2 font-bold">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from(izinPendingMap.values()).map((iz) => (
+                  <tr key={iz.id} className="border-t border-rule">
+                    <td className="px-4 py-2 font-semibold">{iz.siswa.nama}</td>
+                    <td className="px-4 py-2"><Pill tone={iz.jenis === "SAKIT" ? "warn" : "blue"}>{iz.jenis === "SAKIT" ? "Sakit" : "Izin"}</Pill></td>
+                    <td className="px-4 py-2 text-ink-soft">
+                      {iz.keterangan}
+                      {iz.lampiranUrl && (
+                        <>
+                          {" "}
+                          <a href={iz.lampiranUrl} target="_blank" rel="noopener noreferrer" className="text-primary-deep hover:underline">📎</a>
+                        </>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button type="submit" form={`izin-setujui-${iz.id}`} className="text-[11px] font-semibold text-success hover:underline mr-3">Setujui</button>
+                      <button type="submit" form={`izin-tolak-${iz.id}`} className="text-[11px] font-semibold text-danger hover:underline">Tolak</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
       <form action="/api/absensi" method="POST">
         <input type="hidden" name="kelasId" value={kelasId} />
         <input type="hidden" name="tanggal" value={tanggalIsi} />
@@ -161,24 +205,10 @@ async function IsiTab({
             <tbody>
               {siswa.map((s, i) => {
                 const statusSekarang = absensiMap.get(s.id) ?? "HADIR";
-                const izinPending = izinPendingMap.get(s.id);
                 return (
                   <tr key={s.id} className="border-t border-rule">
                     <td className="px-4 py-2.5 tabnum">{i + 1}</td>
-                    <td className="px-4 py-2.5 font-semibold">
-                      {s.nama}
-                      {izinPending && (
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <Pill tone="warn">✋ Izin diajukan — {izinPending.jenis === "SAKIT" ? "Sakit" : "Izin"}</Pill>
-                          {/* 1.23 — form Setujui/Tolak TIDAK boleh nested di dalam <form> absensi
-                              (HTML5 tak izinkan <form> bersarang, browser bakal reparent-nya diam-diam
-                              & bikin hydration mismatch) — dihubungkan via atribut `form="id"` ke
-                              form kosong yang dirender di luar, pola sama kayak "Tambah rombel" (1.20). */}
-                          <button type="submit" form={`izin-setujui-${izinPending.id}`} className="text-[11px] font-semibold text-success hover:underline">Setujui</button>
-                          <button type="submit" form={`izin-tolak-${izinPending.id}`} className="text-[11px] font-semibold text-danger hover:underline">Tolak</button>
-                        </div>
-                      )}
-                    </td>
+                    <td className="px-4 py-2.5 font-semibold">{s.nama}</td>
                     <td className="px-4 py-2.5 tabnum text-ink-soft">{s.nisn}</td>
                     <td className="px-4 py-2.5">
                       <input type="hidden" name="siswaId" value={s.id} />
