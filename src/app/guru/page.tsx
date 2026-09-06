@@ -55,10 +55,10 @@ export default async function GuruDashboard({
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-5">
-        <StatCard label="Kelas diampu" value={String(jumlahKelas)} />
-        <StatCard label="Murid diajar" value={String(jumlahMurid)} />
-        <StatCard label="Kehadiran hari ini" value={persenHadirHariIni !== null ? `${persenHadirHariIni}%` : "belum diisi"} tone={persenHadirHariIni !== null && persenHadirHariIni < 80 ? "warn" : "good"} />
-        <StatCard label="Tugas belum dinilai" value={String(tugasBelumDinilai)} tone={tugasBelumDinilai > 0 ? "warn" : "default"} />
+        <StatCard icon="▦" label="Kelas diampu" value={String(jumlahKelas)} />
+        <StatCard icon="◔" label="Murid diajar" value={String(jumlahMurid)} />
+        <StatCard icon="✓" label="Kehadiran hari ini" value={persenHadirHariIni !== null ? `${persenHadirHariIni}%` : "belum diisi"} tone={persenHadirHariIni !== null && persenHadirHariIni < 80 ? "warn" : "good"} />
+        <StatCard icon="▧" label="Tugas belum dinilai" value={String(tugasBelumDinilai)} tone={tugasBelumDinilai > 0 ? "warn" : "default"} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4 items-start">
@@ -68,9 +68,9 @@ export default async function GuruDashboard({
             {jadwalHariIni.length === 0 && <p className="text-xs text-ink-soft">Tidak ada jadwal hari ini, atau belum diisi — atur di menu Jadwal Mengajar.</p>}
             <div className="flex flex-col gap-1.5">
               {jadwalHariIni.map((e) => (
-                <div key={e.id} className="flex items-center justify-between text-sm border-b border-rule last:border-0 py-1.5">
-                  <span className="tabnum text-ink-soft w-28 shrink-0">{e.jamMulai}–{e.jamSelesai}</span>
-                  <span className="flex-1">{e.mapel.nama} — Kelas {e.kelas.nama}</span>
+                <div key={e.id} className="flex items-center gap-3.5 flex-wrap border-b border-rule-soft last:border-0 py-2.5">
+                  <span className="tabnum bg-primary-tint text-primary-deep rounded-lg px-2.5 py-1 text-[11.5px] font-bold text-center shrink-0 min-w-16">{e.jamMulai}–{e.jamSelesai}</span>
+                  <span className="flex-1 text-[13.5px] font-semibold">{e.mapel.nama} — Kelas {e.kelas.nama}</span>
                   <a href={`/guru/absensi`} className="text-xs font-semibold text-primary-deep hover:underline">Absensi →</a>
                 </div>
               ))}
@@ -111,11 +111,11 @@ export default async function GuruDashboard({
           {catatanSupervisi.length > 0 && (
             <Card>
               <CardHead title="Catatan supervisi" subtitle="Penilaian kualitatif dari kepala sekolah" />
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-4">
                 {catatanSupervisi.map((c) => (
-                  <div key={c.id} className="bg-paper border border-rule rounded-lg p-3 text-sm">
-                    <p>{c.catatan}</p>
-                    <p className="text-xs text-ink-soft mt-1.5">— {c.kepsek.nama}, {formatTanggal(c.createdAt)}</p>
+                  <div key={c.id} className="text-[13px] italic leading-relaxed">
+                    &ldquo;{c.catatan}&rdquo;
+                    <p className="not-italic text-[11.5px] text-ink-soft mt-2">— {c.kepsek.nama}, {formatTanggal(c.createdAt)}</p>
                   </div>
                 ))}
               </div>

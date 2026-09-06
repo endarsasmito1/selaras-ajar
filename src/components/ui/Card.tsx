@@ -39,21 +39,39 @@ export function CardHead({
   );
 }
 
+// Padanan `.stat .icon-badge`/`.icon-badge.warn`/`.icon-badge.ok`/`.icon-badge.gold` di prototipe
+// (assets/styles.css) — kotak ikon 34x34 warna sesuai tone, dipasang SEBELUM label tiap stat.
+const ICON_BADGE_TONE: Record<string, string> = {
+  default: "bg-primary-tint text-primary-deep",
+  good: "bg-success-tint text-success-text",
+  warn: "bg-warning-tint text-warning",
+  gold: "bg-accent-tint text-accent-deep",
+};
+
 export function StatCard({
   label,
   value,
   sub,
   tone = "default",
+  icon,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: "default" | "good" | "warn";
+  /** Emoji/karakter ikon opsional — kalau diisi, tampil sbg kotak warna di atas label (persis
+   * `.icon-badge` prototipe). Opsional & backward-compatible: StatCard lama tanpa ikon tetap sah. */
+  icon?: string;
 }) {
   const toneClass =
     tone === "good" ? "text-primary-deep" : tone === "warn" ? "text-warning" : "text-ink";
   return (
     <Card>
+      {icon && (
+        <div className={cn("w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-base mb-3", ICON_BADGE_TONE[tone === "good" ? "good" : tone === "warn" ? "warn" : "default"])}>
+          {icon}
+        </div>
+      )}
       <div className="text-[10px] tracking-wider uppercase text-ink-soft font-bold">
         {label}
       </div>
