@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type Tone = "ok" | "warn" | "info" | "neutral" | "danger";
+type Tone = "ok" | "warn" | "info" | "neutral" | "danger" | "blue";
 
 const toneClass: Record<Tone, string> = {
   ok: "bg-success-tint text-success",
@@ -8,6 +8,9 @@ const toneClass: Record<Tone, string> = {
   info: "bg-primary-tint text-primary-deep",
   neutral: "bg-paper-sunken text-ink-soft",
   danger: "bg-danger-tint text-danger",
+  // Padanan `.pill.blue` di prototipe — khusus status "Izin", sengaja beda hue dari `info`
+  // (yang pakai primary-tint) supaya gak ketuker sama warna brand di konteks lain.
+  blue: "bg-info-blue-tint text-info-blue",
 };
 
 export function Pill({

@@ -9,19 +9,22 @@ import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Pill } from "@/components/ui/Pill";
 import { StatCard } from "@/components/ui/Card";
 import { formatTanggal } from "@/lib/utils";
-import { tabClass } from "@/lib/tab-style";
+import { tabClass, chipClass } from "@/lib/tab-style";
 
 const STATUS_OPTIONS = [
   { value: "HADIR", label: "H", peerClass: "peer-checked:bg-success peer-checked:text-white" },
   { value: "SAKIT", label: "S", peerClass: "peer-checked:bg-warning peer-checked:text-white" },
-  { value: "IZIN", label: "I", peerClass: "peer-checked:bg-primary peer-checked:text-white" },
+  // Izin sengaja pakai --info-blue, BUKAN primary — padanan `.att-toggle span.sel-i` di prototipe
+  // (assets/styles.css: "beda hue dari primary/success biar gak ketuker"), token ini sempat
+  // kelewat gak ikut kesalin waktu app sungguhan pertama dibangun.
+  { value: "IZIN", label: "I", peerClass: "peer-checked:bg-info-blue peer-checked:text-white" },
   { value: "ALPA", label: "A", peerClass: "peer-checked:bg-danger peer-checked:text-white" },
 ] as const;
 
-const STATUS_TONE: Record<string, "ok" | "warn" | "info" | "danger"> = {
+const STATUS_TONE: Record<string, "ok" | "warn" | "blue" | "danger"> = {
   HADIR: "ok",
   SAKIT: "warn",
-  IZIN: "info",
+  IZIN: "blue",
   ALPA: "danger",
 };
 
@@ -79,9 +82,9 @@ export default async function AbsensiPage({
     >
       <ToastFromQuery />
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-1 border-b border-rule mb-4" role="tablist">
+        <div className="flex flex-wrap gap-2 mb-4" role="tablist">
           {kelasUnik.map((k) => (
-            <a key={k.id} href={`/guru/absensi?kelas=${k.id}&tab=${tab}`} role="tab" aria-selected={k.id === kelasAktif.id} className={tabClass(k.id === kelasAktif.id)}>
+            <a key={k.id} href={`/guru/absensi?kelas=${k.id}&tab=${tab}`} role="tab" aria-selected={k.id === kelasAktif.id} className={chipClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}

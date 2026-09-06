@@ -5,7 +5,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { DiskusiPanel } from "@/components/DiskusiPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { tabClass } from "@/lib/tab-style";
+import { chipClass } from "@/lib/tab-style";
 import { formatTanggal } from "@/lib/utils";
 import { toEmbedVideo } from "@/lib/video-embed";
 
@@ -54,9 +54,9 @@ export default async function MateriPage({
       pageSubtitle={`Kelas ${kelasAktif.nama}`}
     >
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-1 border-b border-rule mb-5" role="tablist">
+        <div className="flex flex-wrap gap-2 mb-5" role="tablist">
           {kelasUnik.map((k) => (
-            <a key={k.id} href={`/guru/materi?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={tabClass(k.id === kelasAktif.id)}>
+            <a key={k.id} href={`/guru/materi?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={chipClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}

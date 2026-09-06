@@ -23,6 +23,10 @@
   --warning-tint: #f1e1d1;
   --danger: #b4685a;
   --danger-tint: #f3ddd8;
+  /* Khusus status "Izin" — beda hue dari primary/success (sama-sama hijau) biar gak ketuker
+     (padanan --info-blue di prototipe assets/styles.css, kelewat gak ikut kesalin sebelumnya). */
+  --info-blue: #5c7fa6;
+  --info-blue-tint: #e1e7ee;
 
   --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --font-sans: ui-sans-serif, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -50,6 +54,8 @@
   --color-warning-tint: var(--warning-tint);
   --color-danger: var(--danger);
   --color-danger-tint: var(--danger-tint);
+  --color-info-blue: var(--info-blue);
+  --color-info-blue-tint: var(--info-blue-tint);
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);

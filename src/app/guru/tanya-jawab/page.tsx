@@ -3,7 +3,7 @@ import { getKelasDiampu, getTanyaJawabKelas } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { TanyaJawabPanel } from "@/components/TanyaJawabPanel";
-import { tabClass } from "@/lib/tab-style";
+import { tabClass, chipClass } from "@/lib/tab-style";
 import { Callout } from "@/components/ui/Callout";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -52,9 +52,9 @@ export default async function TanyaJawabGuruPage({
       pageSubtitle={`Kelas ${kelasAktif.nama}${mapelAktif ? ` · ${mapelAktif.nama}` : ""}`}
     >
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-1 border-b border-rule mb-3" role="tablist">
+        <div className="flex flex-wrap gap-2 mb-4" role="tablist">
           {kelasUnik.map((k) => (
-            <a key={k.id} href={`/guru/tanya-jawab?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={tabClass(k.id === kelasAktif.id)}>
+            <a key={k.id} href={`/guru/tanya-jawab?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={chipClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}

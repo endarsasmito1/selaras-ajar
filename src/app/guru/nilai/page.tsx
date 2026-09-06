@@ -7,7 +7,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { tabClass } from "@/lib/tab-style";
+import { chipClass } from "@/lib/tab-style";
 
 export default async function NilaiPage({
   searchParams,
@@ -106,9 +106,9 @@ export default async function NilaiPage({
       pageSubtitle={`${penugasanAktif.mapel.nama} — Kelas ${penugasanAktif.kelas.nama} · KKM ${penugasanAktif.mapel.kkm}${penugasanAktif.mapel.kkmUTS !== null || penugasanAktif.mapel.kkmUAS !== null ? ` (UTS ${penugasanAktif.mapel.kkmUTS ?? penugasanAktif.mapel.kkm} · UAS ${penugasanAktif.mapel.kkmUAS ?? penugasanAktif.mapel.kkm})` : ""}`}
     >
       {penugasan.length > 1 && (
-        <div className="flex flex-wrap gap-1 border-b border-rule mb-4" role="tablist">
+        <div className="flex flex-wrap gap-2 mb-4" role="tablist">
           {penugasan.map((p) => (
-            <a key={p.id} href={`/guru/nilai?kelas=${p.kelas.id}&mapel=${p.mapel.id}`} role="tab" aria-selected={p.id === penugasanAktif.id} className={tabClass(p.id === penugasanAktif.id)}>
+            <a key={p.id} href={`/guru/nilai?kelas=${p.kelas.id}&mapel=${p.mapel.id}`} role="tab" aria-selected={p.id === penugasanAktif.id} className={chipClass(p.id === penugasanAktif.id)}>
               {p.mapel.nama} · {p.kelas.nama}
             </a>
           ))}
