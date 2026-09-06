@@ -1294,6 +1294,15 @@ export async function getDashboardGuru(penggunaId: string, sekolahId: string) {
   ]);
   const kelasUnik = Array.from(new Map(penugasan.map((p) => [p.kelas.id, p.kelas])).values());
 
+  // Padanan "· N murid" di kartu "Kelas & mapel yang diampu" prototipe (guru/index.html) — dulu
+  // gak ikut ditampilkan sama sekali di app sungguhan, cuma KKM doang.
+  const siswaPerKelasRaw = await prisma.siswa.findMany({
+    where: { kelasId: { in: kelasUnik.map((k) => k.id) }, aktif: true },
+    select: { kelasId: true },
+  });
+  const jumlahMuridPerKelas: Record<string, number> = {};
+  for (const s of siswaPerKelasRaw) jumlahMuridPerKelas[s.kelasId] = (jumlahMuridPerKelas[s.kelasId] ?? 0) + 1;
+
   const today = new Date();
   const hariIni = today.getDay() === 0 ? 7 : today.getDay();
   const jadwalHariIni =
@@ -1321,6 +1330,7 @@ export async function getDashboardGuru(penggunaId: string, sekolahId: string) {
     esaiPerluDinilai: esaiPerlu.length,
     persenHadirHariIni,
     penugasan,
+    jumlahMuridPerKelas,
   };
 }
 

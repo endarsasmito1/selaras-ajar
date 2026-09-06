@@ -11,7 +11,7 @@ import { getSalam, formatTanggal } from "@/lib/utils";
 export default async function GuruDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; tingkat?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -22,7 +22,17 @@ export default async function GuruDashboard({
     getRemindersGuru(session.userId),
     getCatatanSupervisiUntukGuru(session.userId),
   ]);
-  const { jumlahKelas, jumlahMurid, jadwalHariIni, tugasBelumDinilai, esaiPerluDinilai, persenHadirHariIni, penugasan } = dashboard;
+  const { jumlahKelas, jumlahMurid, jadwalHariIni, tugasBelumDinilai, esaiPerluDinilai, persenHadirHariIni, penugasan, jumlahMuridPerKelas } = dashboard;
+
+  // Padanan `SA.kelasGridByTingkat()` prototipe — grid "Kelas & mapel yang diampu" difilter per
+  // TINGKAT (dropdown), bukan ditumpuk flat semua kelas sekaligus (guru yg ngajar lintas banyak
+  // kelas/tingkat bisa keteteran liat puluhan kartu tanpa filter). Default ke tingkat kelas yang
+  // dia jadi wali kelasnya (kalau ada), sama persis fallback di prototipe.
+  const tingkatSet = Array.from(new Set(penugasan.map((p) => p.kelas.tingkat))).sort((a, b) => a - b);
+  const waliKelasPenugasan = penugasan.find((p) => p.kelas.waliKelasId === session.userId);
+  const tingkatFallback = waliKelasPenugasan ? waliKelasPenugasan.kelas.tingkat : tingkatSet[0];
+  const tingkatAktif = sp.tingkat && tingkatSet.includes(Number(sp.tingkat)) ? Number(sp.tingkat) : tingkatFallback;
+  const penugasanTingkatIni = penugasan.filter((p) => p.kelas.tingkat === tingkatAktif);
 
   return (
     <AppShell
@@ -79,16 +89,29 @@ export default async function GuruDashboard({
 
           <div>
             <h3 className="text-sm font-semibold mb-2">Kelas & mapel yang diampu</h3>
+            {tingkatSet.length > 1 && (
+              <form method="GET" className="flex items-center gap-2 mb-3">
+                <select name="tingkat" defaultValue={tingkatAktif} className="bg-paper-raised border border-rule rounded-lg px-3 py-1.5 text-xs">
+                  {tingkatSet.map((t) => (
+                    <option key={t} value={t}>Tingkat {t}</option>
+                  ))}
+                </select>
+                <button type="submit" className="text-xs font-semibold text-primary-deep">Tampilkan</button>
+              </form>
+            )}
             <div className="grid sm:grid-cols-2 gap-3">
-              {penugasan.map((p) => (
+              {penugasanTingkatIni.map((p) => (
                 <Card key={p.id}>
                   <h4 className="font-semibold text-[13.5px]">
-                    {p.mapel.nama} — Kelas {p.kelas.nama}
+                    {p.mapel.nama} — {p.kelas.nama}
+                    {p.kelas.waliKelasId === session.userId && " (Wali)"}
                   </h4>
-                  <p className="text-xs text-ink-soft mt-1 mb-2.5">KKM {p.mapel.kkm}</p>
+                  <p className="text-xs text-ink-soft mt-1 mb-2.5">
+                    KKM {p.mapel.kkm} · {jumlahMuridPerKelas[p.kelasId] ?? 0} murid
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    <LinkButton href="/guru/absensi" variant="ghost" size="sm">Absensi</LinkButton>
-                    <LinkButton href="/guru/nilai" variant="ghost" size="sm">Nilai</LinkButton>
+                    <LinkButton href="/guru/absensi" size="sm">Absensi</LinkButton>
+                    <LinkButton href="/guru/nilai" variant="accent" size="sm">Nilai</LinkButton>
                   </div>
                 </Card>
               ))}
