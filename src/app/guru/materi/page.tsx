@@ -201,11 +201,27 @@ export default async function MateriPage({
         }}
       />
 
-      <div className="flex flex-col gap-2.5">
-        {materi.length === 0 && <EmptyState icon="▢" title="Belum ada materi" hint="Tambahkan materi belajar lewat form di atas." />}
-        {materi.map((m) => (
-          <MateriRow key={m.id} materi={m} penggunaId={session.userId} />
-        ))}
+      {/* Padanan pengelompokan per-mapel prototipe (guru/materi.html: "📚 Matematika (4 materi)")
+          — sebelumnya semua materi lintas mapel ditumpuk flat 1 daftar, gak ada pengelompokan
+          sama sekali (padahal 1 guru bisa mengampu >1 mapel di kelas yang sama). */}
+      {materi.length === 0 && <EmptyState icon="▢" title="Belum ada materi" hint="Tambahkan materi belajar lewat form di atas." />}
+      <div className="flex flex-col gap-3">
+        {mapelUnikUntukKelas
+          .map((mapel) => ({ mapel, list: materi.filter((m) => m.mapelId === mapel.id) }))
+          .filter(({ list }) => list.length > 0)
+          .map(({ mapel, list }, i) => (
+            <details key={mapel.id} open={i === 0} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5">
+              <summary className="cursor-pointer font-semibold text-sm flex items-center gap-2">
+                📚 {mapel.nama}
+                <span className="bg-paper-sunken text-ink-soft text-[11px] font-bold px-2 py-0.5 rounded-full">{list.length} materi</span>
+              </summary>
+              <div className="flex flex-col gap-2.5 mt-3">
+                {list.map((m) => (
+                  <MateriRow key={m.id} materi={m} penggunaId={session.userId} />
+                ))}
+              </div>
+            </details>
+          ))}
       </div>
     </AppShell>
   );
