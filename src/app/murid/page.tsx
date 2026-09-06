@@ -5,6 +5,7 @@ import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { Donut } from "@/components/ui/Donut";
 import { PengumumanNotifCard } from "@/components/PengumumanWidget";
 import { formatTanggal } from "@/lib/utils";
 
@@ -96,13 +97,12 @@ export default async function MuridDashboard({
         </div>
 
         <div className="flex flex-col gap-4">
-          <Card className="bg-primary-tint text-center">
+          {/* Padanan .card.highlight prototipe — gradient tint→nyaris-putih, bukan flat bg-primary-tint. */}
+          <Card className="text-center border-[#c9dcd2]" style={{ background: "linear-gradient(160deg, var(--primary-tint), #eef4ef)" }}>
             <h4 className="text-sm font-semibold mb-3">Kehadiran</h4>
             {kehadiranTerakhir ? (
               <>
-                <div className="font-serif text-3xl text-primary-deep font-bold">
-                  {Math.round((absensi.filter((a) => a.status === "HADIR").length / absensi.length) * 100)}%
-                </div>
+                <Donut persen={Math.round((absensi.filter((a) => a.status === "HADIR").length / absensi.length) * 100)} />
                 <p className="text-xs text-ink-soft mt-1">
                   {absensi.filter((a) => a.status === "HADIR").length} dari {absensi.length} hari terakhir hadir
                 </p>

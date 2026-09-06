@@ -2,13 +2,18 @@ import { cn } from "@/lib/utils";
 
 export function Card({
   className,
+  style,
   children,
 }: {
   className?: string;
+  /** Dipakai buat kasus jarang butuh nilai gak bisa lewat kelas Tailwind biasa, mis. gradient
+   * ".card.highlight" prototipe (linear-gradient 2 titik non-standar) — bukan cara default. */
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
   return (
     <div
+      style={style}
       className={cn(
         "bg-paper-raised border border-rule rounded-xl p-5 shadow-sm min-w-0",
         className
