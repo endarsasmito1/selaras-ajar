@@ -3,6 +3,7 @@ import { getRiwayatTagihanSiswa } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_KEPSEK, NAV_KEUANGAN, ROLE_LABEL } from "@/lib/nav";
 import { Card, StatCard } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { formatRupiah, formatTanggal } from "@/lib/utils";
@@ -59,7 +60,7 @@ export default async function RiwayatTagihanSiswaPage({ params }: { params: Prom
               </div>
             </div>
           ))}
-          {tagihan.length === 0 && <p className="text-xs text-ink-soft">Belum ada tagihan untuk siswa ini.</p>}
+          {tagihan.length === 0 && <EmptyState icon="₽" title="Belum ada tagihan untuk siswa ini" />}
         </div>
       </Card>
     </AppShell>

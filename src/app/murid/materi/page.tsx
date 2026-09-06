@@ -5,6 +5,7 @@ import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
 import { DiskusiPanel } from "@/components/DiskusiPanel";
 import { formatTanggal } from "@/lib/utils";
 import { toEmbedVideo } from "@/lib/video-embed";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const TIPE_ICON: Record<string, string> = { dokumen: "📄", video: "▶", catatan: "✎" };
 
@@ -43,7 +44,7 @@ export default async function MateriMuridPage() {
             </div>
           </details>
         ))}
-        {perMapel.size === 0 && <p className="text-sm text-ink-soft">Belum ada materi untuk kelasmu.</p>}
+        {perMapel.size === 0 && <EmptyState icon="▢" title="Belum ada materi untuk kelasmu" />}
       </div>
     </AppShell>
   );

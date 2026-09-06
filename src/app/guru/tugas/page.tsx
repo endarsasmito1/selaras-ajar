@@ -93,7 +93,7 @@ export default async function TugasPage({
             </Card>
           </a>
         ))}
-        {kelasUnik.length === 0 && <p className="text-sm text-ink-soft">Belum ada kelas yang diampu.</p>}
+        {kelasUnik.length === 0 && <Callout tone="warn">Belum ada kelas yang diampu.</Callout>}
       </div>
 
       <script

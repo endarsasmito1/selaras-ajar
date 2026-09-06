@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { TanyaJawabPanel } from "@/components/TanyaJawabPanel";
 import { tabClass } from "@/lib/tab-style";
+import { Callout } from "@/components/ui/Callout";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function TanyaJawabGuruPage({
   searchParams,
@@ -28,7 +30,7 @@ export default async function TanyaJawabGuruPage({
         userRoleLabel={ROLE_LABEL[session.peran]}
         pageTitle="Tanya Jawab Kelas"
       >
-        <p className="text-sm text-ink-soft">Belum ada kelas yang diampu.</p>
+        <Callout tone="warn">Belum ada kelas yang diampu.</Callout>
       </AppShell>
     );
   }
@@ -72,7 +74,7 @@ export default async function TanyaJawabGuruPage({
       {mapelAktif ? (
         <TanyaJawabPanel pertanyaan={pertanyaan} kelasId={kelasAktif.id} mapelId={mapelAktif.id} canModerate />
       ) : (
-        <p className="text-sm text-ink-soft">Belum ada mata pelajaran yang diampu di kelas ini.</p>
+        <EmptyState icon="💬" title="Belum ada mata pelajaran yang diampu di kelas ini" />
       )}
     </AppShell>
   );

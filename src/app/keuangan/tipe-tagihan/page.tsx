@@ -3,6 +3,7 @@ import { getSemuaTagihanTipe, getSemuaKelas, getDaftarSiswa } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_KEPSEK, NAV_KEUANGAN, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
@@ -50,7 +51,7 @@ export default async function TipeTagihanPage({
             {tipeList.map((t) => (
               <div key={t.id} className="text-sm border-b border-rule last:border-0 py-1.5">{t.nama}</div>
             ))}
-            {tipeList.length === 0 && <p className="text-xs text-ink-soft">Belum ada jenis tagihan.</p>}
+            {tipeList.length === 0 && <EmptyState icon="₽" title="Belum ada jenis tagihan" />}
           </div>
           <form action="/api/tagihan-tipe" method="POST" className="flex items-center gap-2">
             <input name="nama" required placeholder="mis. Study Tour Kelas 6" className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />

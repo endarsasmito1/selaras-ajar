@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal } from "@/lib/utils";
 
 export default async function PengumumanPage({
@@ -45,7 +46,7 @@ export default async function PengumumanPage({
       </form>
 
       <div className="flex flex-col gap-2.5">
-        {pengumuman.length === 0 && <p className="text-sm text-ink-soft">Belum ada pengumuman.</p>}
+        {pengumuman.length === 0 && <EmptyState icon="📣" title="Belum ada pengumuman" />}
         {pengumuman.map((p) => (
           <div key={p.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5">
             <div className="flex items-start justify-between gap-3">

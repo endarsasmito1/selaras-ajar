@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -47,7 +48,7 @@ export default async function TugasKelasListPage({ params }: { params: Promise<{
             </a>
           );
         })}
-        {tugasList.length === 0 && <p className="text-sm text-ink-soft">Belum ada tugas untuk kelas ini.</p>}
+        {tugasList.length === 0 && <EmptyState icon="📝" title="Belum ada tugas untuk kelas ini" />}
       </div>
     </AppShell>
   );

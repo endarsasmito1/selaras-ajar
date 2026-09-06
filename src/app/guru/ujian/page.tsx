@@ -98,7 +98,7 @@ export default async function KelolaUjianPage({
               </Card>
             </a>
           ))}
-          {kelasCards.length === 0 && <p className="text-sm text-ink-soft">Belum ada kelas yang diampu.</p>}
+          {kelasCards.length === 0 && <Callout tone="warn">Belum ada kelas yang diampu.</Callout>}
         </div>
       )}
     </AppShell>

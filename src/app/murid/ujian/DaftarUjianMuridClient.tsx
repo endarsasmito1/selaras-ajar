@@ -5,6 +5,7 @@ import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { ConfirmLinkButton } from "@/components/ui/ConfirmLinkButton";
 import { formatTanggalWaktu } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type UjianBaris = {
   id: string;
@@ -79,7 +80,7 @@ export function DaftarUjianMuridClient({ daftar, now }: { daftar: UjianBaris[]; 
 
       <div className="flex flex-col gap-3">
         {halamanIni.length === 0 && (
-          <p className="text-sm text-ink-soft">{q ? "Tidak ada ujian yang cocok." : "Belum ada ujian/latihan aktif."}</p>
+          q ? <p className="text-sm text-ink-soft">Tidak ada ujian yang cocok.</p> : <EmptyState icon="▤" title="Belum ada ujian/latihan aktif" />
         )}
         {halamanIni.map((u) => {
           const pengerjaan = u.pengerjaan[0];

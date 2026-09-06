@@ -7,6 +7,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PengumumanWidget } from "@/components/PengumumanWidget";
 import { HasilPencarianTable } from "./HasilPencarianTable";
 
@@ -74,7 +75,7 @@ async function DaftarKelas({ sekolahId }: { sekolahId: string }) {
           </Card>
         </a>
       ))}
-      {hierarki.length === 0 && <p className="text-sm text-ink-soft">Belum ada kelas.</p>}
+      {hierarki.length === 0 && <EmptyState icon="☰" title="Belum ada kelas" />}
     </div>
   );
 }

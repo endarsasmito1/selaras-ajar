@@ -6,6 +6,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { SoalEditor } from "@/components/ui/SoalEditor";
@@ -75,7 +76,7 @@ export default async function EditUjianPage({
           </div>
 
           {ujian.soal.length === 0 && (
-            <p className="text-sm text-ink-soft mb-4">Belum ada soal — tambahkan dari bank soal di kanan, atau buat baru.</p>
+            <div className="mb-4"><EmptyState icon="❖" title="Belum ada soal" hint="Tambahkan dari bank soal di kanan, atau buat baru." /></div>
           )}
 
           <div className="flex flex-col gap-3 mb-6">

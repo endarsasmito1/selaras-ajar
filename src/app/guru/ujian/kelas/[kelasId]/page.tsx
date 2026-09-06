@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { LinkButton } from "@/components/ui/Button";
 import { notFound } from "next/navigation";
 
@@ -67,7 +68,7 @@ export default async function UjianKelasListPage({ params }: { params: Promise<{
             </div>
           );
         })}
-        {ujianList.length === 0 && <p className="text-sm text-ink-soft">Belum ada ujian untuk kelas ini.</p>}
+        {ujianList.length === 0 && <EmptyState icon="▤" title="Belum ada ujian untuk kelas ini" />}
       </div>
     </AppShell>
   );

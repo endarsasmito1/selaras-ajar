@@ -8,6 +8,7 @@ import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { Pagination } from "@/components/ui/Pagination";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { OpsiPreview } from "@/components/ui/OpsiPreview";
 import { SoalHtml } from "@/lib/sanitize-html";
 import { JENIS_SOAL_LABEL, TINGKAT_KESULITAN_TONE, JENJANG_PILL_CLASS } from "@/lib/soal-ui";
@@ -124,9 +125,9 @@ export default async function SuperadminBankSoalMapelPage({
           </div>
         ))}
         {soalList.length === 0 && (
-          <p className="text-sm text-ink-soft">
-            {soalKelompok.length === 0 ? "Belum ada soal di kelompok ini." : "Tidak ada soal yang cocok dengan filter."}
-          </p>
+          soalKelompok.length === 0
+            ? <EmptyState icon="❖" title="Belum ada soal di kelompok ini" />
+            : <p className="text-sm text-ink-soft">Tidak ada soal yang cocok dengan filter.</p>
         )}
       </div>
 

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
 import { TanyaJawabPanel } from "@/components/TanyaJawabPanel";
 import { tabClass } from "@/lib/tab-style";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function TanyaJawabMuridPage({
   searchParams,
@@ -45,7 +46,7 @@ export default async function TanyaJawabMuridPage({
       {mapelAktif ? (
         <TanyaJawabPanel pertanyaan={pertanyaan} kelasId={siswa.kelasId} mapelId={mapelAktif.id} canModerate={false} />
       ) : (
-        <p className="text-sm text-ink-soft">Belum ada mata pelajaran untuk kelasmu.</p>
+        <EmptyState icon="💬" title="Belum ada mata pelajaran untuk kelasmu" />
       )}
     </AppShell>
   );

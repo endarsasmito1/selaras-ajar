@@ -3,6 +3,7 @@ import { getPerformaKelas } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, StatCard } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { notFound } from "next/navigation";
@@ -36,7 +37,7 @@ export default async function PerformaKelasPage({ params }: { params: Promise<{ 
 
       <Card className="mb-4">
         <h3 className="text-sm font-semibold mb-3">Rata-rata nilai per mata pelajaran</h3>
-        {rataPerMapel.length === 0 && <p className="text-xs text-ink-soft">Belum ada data nilai.</p>}
+        {rataPerMapel.length === 0 && <EmptyState icon="✎" title="Belum ada data nilai" />}
         <div className="flex flex-col gap-2">
           {rataPerMapel.map((m) => (
             <div key={m.nama} className="flex items-center gap-3">

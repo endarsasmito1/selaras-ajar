@@ -7,6 +7,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
@@ -119,7 +120,7 @@ export default async function SuperadminSekolahDetailPage({
 
       <Card className="mb-4">
         <h3 className="text-sm font-semibold mb-3">Tahun ajaran</h3>
-        {tahunAjaran.length === 0 && <p className="text-xs text-ink-soft">Belum ada tahun ajaran.</p>}
+        {tahunAjaran.length === 0 && <EmptyState icon="◷" title="Belum ada tahun ajaran" />}
         <div className="flex flex-col gap-1.5">
           {tahunAjaran.map((ta) => (
             <div key={ta.id} className="flex items-center justify-between text-sm border-b border-rule last:border-0 py-1.5">

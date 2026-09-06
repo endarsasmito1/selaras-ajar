@@ -8,6 +8,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal, formatRupiah } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -117,7 +118,7 @@ export default async function ProfilSiswa360Page({
 
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-3">Riwayat pembayaran SPP</h3>
-        {tagihan.length === 0 && <p className="text-xs text-ink-soft">Belum ada tagihan.</p>}
+        {tagihan.length === 0 && <EmptyState icon="₽" title="Belum ada tagihan" />}
         <div className="flex flex-col gap-1.5">
           {tagihan.map((t) => (
             <div key={t.id} className="flex items-center justify-between text-sm border-b border-rule last:border-0 py-1.5">
@@ -134,7 +135,7 @@ export default async function ProfilSiswa360Page({
 
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-3">Prestasi & Penghargaan</h3>
-        {prestasi.length === 0 && <p className="text-xs text-ink-soft mb-3">Belum ada catatan prestasi.</p>}
+        {prestasi.length === 0 && <EmptyState icon="🏆" title="Belum ada catatan prestasi" />}
         <div className="flex flex-col gap-2 mb-3">
           {prestasi.map((p) => (
             <div key={p.id} className="border-b border-rule last:border-0 pb-2">
@@ -163,7 +164,7 @@ export default async function ProfilSiswa360Page({
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-1">Catatan Guru</h3>
         <p className="text-xs text-ink-soft mb-3">Ditulis guru, privat ke ortu & kepsek — murid tidak melihat ini.</p>
-        {catatan.length === 0 && <p className="text-xs text-ink-soft">Belum ada catatan.</p>}
+        {catatan.length === 0 && <EmptyState icon="📋" title="Belum ada catatan guru" />}
         <div className="flex flex-col gap-2">
           {catatan.map((c) => (
             <div key={c.id} className="bg-paper border border-rule rounded-lg p-3">

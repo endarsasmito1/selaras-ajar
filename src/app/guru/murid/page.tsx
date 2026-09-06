@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Callout } from "@/components/ui/Callout";
 
 export default async function MuridGuruPage({
   searchParams,
@@ -54,7 +55,7 @@ export default async function MuridGuruPage({
                 </Card>
               </a>
             ))}
-            {perKelas.length === 0 && <p className="text-sm text-ink-soft">Belum ada kelas yang diampu.</p>}
+            {perKelas.length === 0 && <Callout tone="warn">Belum ada kelas yang diampu.</Callout>}
           </div>
         </>
       )}

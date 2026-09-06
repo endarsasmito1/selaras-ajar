@@ -7,6 +7,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { SoalEditor } from "@/components/ui/SoalEditor";
 import { SoalHtml } from "@/lib/sanitize-html";
@@ -153,7 +154,11 @@ export default async function BankSoalMapelPage({
       </form>
 
       <div className="flex flex-col gap-2.5">
-        {semuaSoal.length === 0 && <p className="text-sm text-ink-soft">{poinMin !== null || poinMax !== null ? "Tidak ada soal di rentang poin ini." : "Belum ada soal di mapel ini."}</p>}
+        {semuaSoal.length === 0 && (
+          poinMin !== null || poinMax !== null
+            ? <p className="text-sm text-ink-soft">Tidak ada soal di rentang poin ini.</p>
+            : <EmptyState icon="❖" title="Belum ada soal di mapel ini" hint='Klik "+ Tambah soal baru" di atas untuk mulai.' />
+        )}
         {semuaSoal.map((s) => (
           <div key={s.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5">
             <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">

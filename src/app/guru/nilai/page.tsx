@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { tabClass } from "@/lib/tab-style";
 
 export default async function NilaiPage({
@@ -32,7 +33,7 @@ export default async function NilaiPage({
         userRoleLabel={ROLE_LABEL[session.peran]}
         pageTitle="Nilai & Rapor"
       >
-        <p className="text-sm text-ink-soft">Belum ada kelas yang diampu.</p>
+        <Callout tone="warn">Belum ada kelas yang diampu.</Callout>
       </AppShell>
     );
   }
@@ -206,7 +207,7 @@ export default async function NilaiPage({
           )}
         </div>
         {kelompokList.length === 0 ? (
-          <p className="text-sm text-ink-soft">Belum ada nilai tersimpan.</p>
+          <EmptyState icon="✎" title="Belum ada nilai tersimpan" />
         ) : (
           <div className="flex flex-col gap-3">
             {kelompokList.map((g) => (
