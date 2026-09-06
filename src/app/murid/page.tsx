@@ -139,31 +139,30 @@ export default async function MuridDashboard({
       <div className="grid md:grid-cols-2 gap-4 mt-4">
         <Card>
           <h4 className="text-sm font-semibold mb-3">Info diri</h4>
-          <div className="flex flex-col gap-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-ink-soft">Nama</span><span className="font-medium">{siswa.nama}</span></div>
-            <div className="flex justify-between"><span className="text-ink-soft">NISN</span><span className="font-medium tabnum">{siswa.nisn}</span></div>
-            <div className="flex justify-between"><span className="text-ink-soft">Kelas</span><span className="font-medium">{siswa.kelas.nama}</span></div>
+          {/* Padanan .profile-grid/.profile-item prototipe — grid ikon+label+nilai, bukan daftar
+              baris justify-between polos yang dipakai sebelumnya. */}
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3.5">
+            <ProfilItem ic="👤" label="Nama Lengkap" value={siswa.nama} />
+            <ProfilItem ic="🪪" label="NISN" value={siswa.nisn} tabnum />
+            <ProfilItem ic="🏫" label="Kelas" value={siswa.kelas.nama} />
             {profil?.sekolah && (
-              <div className="flex justify-between gap-3">
-                <span className="text-ink-soft shrink-0">Sekolah</span>
-                <span className="font-medium text-right">{profil.sekolah.nama}{profil.sekolah.alamat ? ` — ${profil.sekolah.alamat}` : ""}</span>
-              </div>
+              <ProfilItem ic="🏛️" label="Sekolah" value={profil.sekolah.nama} />
             )}
-            <div className="h-px bg-rule my-1.5" />
-            {!profil || profil.wali.length === 0 ? (
-              <p className="text-xs text-ink-soft">Belum ada wali terdaftar.</p>
-            ) : (
-              profil.wali.map((w) => (
-                <div key={w.id} className="flex justify-between gap-3">
-                  <span className="text-ink-soft shrink-0">{w.hubungan}</span>
-                  <span className="font-medium text-right">
-                    {w.pengguna.nama}
-                    {w.pengguna.telepon && <span className="text-ink-soft"> · {w.pengguna.telepon}</span>}
-                  </span>
-                </div>
-              ))
+            {profil && profil.wali.length > 0 && profil.wali.map((w) => (
+              <ProfilItem key={w.id} ic="👨‍👩‍👦" label={w.hubungan} value={w.pengguna.nama} />
+            ))}
+            {profil && profil.wali.some((w) => w.pengguna.telepon) && (
+              <ProfilItem
+                ic="📞"
+                label="Kontak Wali"
+                value={profil.wali.find((w) => w.pengguna.telepon)?.pengguna.telepon ?? "—"}
+                tabnum
+              />
             )}
           </div>
+          {(!profil || profil.wali.length === 0) && (
+            <p className="text-xs text-ink-soft mt-3">Belum ada wali terdaftar.</p>
+          )}
         </Card>
 
         <Card>
@@ -180,5 +179,17 @@ export default async function MuridDashboard({
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+function ProfilItem({ ic, label, value, tabnum }: { ic: string; label: string; value: string; tabnum?: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-[38px] h-[38px] rounded-[10px] bg-paper-sunken flex items-center justify-center text-xl shrink-0">{ic}</span>
+      <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wide text-ink-soft font-bold">{label}</div>
+        <div className={"text-sm font-semibold text-ink-heading mt-0.5 truncate" + (tabnum ? " tabnum" : "")}>{value}</div>
+      </div>
+    </div>
   );
 }
