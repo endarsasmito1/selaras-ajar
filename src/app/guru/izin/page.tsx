@@ -12,6 +12,10 @@ const STATUS_TONE: Record<string, "ok" | "warn" | "neutral"> = {
   MENUNGGU: "neutral",
 };
 
+// Padanan `SA.statusPillClass()` di prototipe (assets/app.js) — Sakit=warn, Izin=blue (bukan
+// "info"/primary, biar gak ketuker sama warna brand — lihat catatan --info-blue di globals.css).
+const JENIS_TONE: Record<string, "warn" | "blue"> = { SAKIT: "warn", IZIN: "blue" };
+
 export default async function IzinGuruPage() {
   const session = await getSession();
   if (!session) return null;
@@ -37,8 +41,11 @@ export default async function IzinGuruPage() {
         {menunggu.map((p) => (
           <div key={p.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5 flex items-center justify-between flex-wrap gap-3">
             <div>
-              <div className="text-sm font-medium">{p.siswa.nama} — {p.jenis === "SAKIT" ? "Sakit" : "Izin"}</div>
-              <div className="text-xs text-ink-soft">
+              <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                {p.siswa.nama}
+                <Pill tone={JENIS_TONE[p.jenis]}>{p.jenis === "SAKIT" ? "Sakit" : "Izin"}</Pill>
+              </div>
+              <div className="text-xs text-ink-soft mt-0.5">
                 {formatTanggal(p.tanggal)} · diajukan {p.diajukanOleh.nama} · {p.keterangan}
                 {p.lampiranUrl && (
                   <>
@@ -70,7 +77,14 @@ export default async function IzinGuruPage() {
       <div className="flex flex-col gap-2">
         {sudahDiputuskan.map((p) => (
           <div key={p.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-            <div className="text-sm">{p.siswa.nama} — {p.jenis === "SAKIT" ? "Sakit" : "Izin"} · {formatTanggal(p.tanggal)}</div>
+            {/* Riwayat sengaja pakai tone "info" (bukan JENIS_TONE) utk pill jenis — beda dari
+                daftar "Menunggu" di atas, konsisten dgn prototipe (guru/izin.html & ortu/izin.html
+                sama-sama pakai `pill info` di tabel riwayat, `statusPillClass` cuma di daftar aktif). */}
+            <div className="text-sm flex items-center gap-2 flex-wrap">
+              {p.siswa.nama}
+              <Pill tone="info">{p.jenis === "SAKIT" ? "Sakit" : "Izin"}</Pill>
+              <span className="text-ink-soft">· {formatTanggal(p.tanggal)}</span>
+            </div>
             <Pill tone={STATUS_TONE[p.status]}>{p.status === "DISETUJUI" ? "Disetujui" : "Ditolak"}</Pill>
           </div>
         ))}

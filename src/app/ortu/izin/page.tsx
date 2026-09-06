@@ -72,8 +72,11 @@ export default async function AjukanIzinPage() {
         {riwayat.map((r) => (
           <div key={r.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
             <div>
-              <div className="text-sm font-medium">{r.siswa.nama} — {r.jenis === "SAKIT" ? "Sakit" : "Izin"}</div>
-              <div className="text-xs text-ink-soft">
+              <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                {r.siswa.nama}
+                <Pill tone="info">{r.jenis === "SAKIT" ? "Sakit" : "Izin"}</Pill>
+              </div>
+              <div className="text-xs text-ink-soft mt-0.5">
                 {formatTanggal(r.tanggal)} · {r.keterangan}
                 {r.lampiranUrl && (
                   <>
