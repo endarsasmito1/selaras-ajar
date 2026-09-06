@@ -38,6 +38,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = "/ortu/izin";
-  url.search = "?izin_diajukan=1";
+  url.search = `?toast=${encodeURIComponent("Pengajuan izin terkirim.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

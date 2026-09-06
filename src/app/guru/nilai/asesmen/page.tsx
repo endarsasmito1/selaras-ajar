@@ -6,6 +6,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { tabClass } from "@/lib/tab-style";
 import { formatTanggal } from "@/lib/utils";
 
 export default async function AsesmenDeskriptifPage({
@@ -55,13 +56,9 @@ export default async function AsesmenDeskriptifPage({
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
 
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-1 border-b border-rule mb-5" role="tablist">
           {kelasUnik.map((k) => (
-            <a
-              key={k.id}
-              href={`/guru/nilai/asesmen?kelas=${k.id}`}
-              className={"text-xs px-3 py-1.5 rounded-full border " + (k.id === kelasAktif.id ? "bg-primary text-white border-primary font-semibold" : "border-rule text-ink-soft hover:bg-paper-raised")}
-            >
+            <a key={k.id} href={`/guru/nilai/asesmen?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={tabClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}

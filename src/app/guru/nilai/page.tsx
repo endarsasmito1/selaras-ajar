@@ -5,11 +5,13 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
+import { tabClass } from "@/lib/tab-style";
 
 export default async function NilaiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kelas?: string; mapel?: string; sumber?: string; error?: string; nilai_disimpan?: string }>;
+  searchParams: Promise<{ kelas?: string; mapel?: string; sumber?: string; error?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -103,26 +105,17 @@ export default async function NilaiPage({
       pageSubtitle={`${penugasanAktif.mapel.nama} — Kelas ${penugasanAktif.kelas.nama} · KKM ${penugasanAktif.mapel.kkm}${penugasanAktif.mapel.kkmUTS !== null || penugasanAktif.mapel.kkmUAS !== null ? ` (UTS ${penugasanAktif.mapel.kkmUTS ?? penugasanAktif.mapel.kkm} · UAS ${penugasanAktif.mapel.kkmUAS ?? penugasanAktif.mapel.kkm})` : ""}`}
     >
       {penugasan.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-1 border-b border-rule mb-4" role="tablist">
           {penugasan.map((p) => (
-            <a
-              key={p.id}
-              href={`/guru/nilai?kelas=${p.kelas.id}&mapel=${p.mapel.id}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (p.id === penugasanAktif.id
-                  ? "bg-primary text-white border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={p.id} href={`/guru/nilai?kelas=${p.kelas.id}&mapel=${p.mapel.id}`} role="tab" aria-selected={p.id === penugasanAktif.id} className={tabClass(p.id === penugasanAktif.id)}>
               {p.mapel.nama} · {p.kelas.nama}
             </a>
           ))}
         </div>
       )}
 
+      <ToastFromQuery />
       {params.error && <div className="mb-4"><Callout tone="warn">{params.error}</Callout></div>}
-      {params.nilai_disimpan && <div className="mb-4"><Callout>✓ Nilai untuk &quot;{params.nilai_disimpan}&quot; tersimpan.</Callout></div>}
 
       {opsiSumber.length === 0 ? (
         <Callout tone="warn">Belum ada Tugas atau Ujian di kelas & mapel ini — buat dulu di menu Tugas/Ujian sebelum bisa input nilai di sini.</Callout>

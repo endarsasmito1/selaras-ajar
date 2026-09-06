@@ -16,5 +16,7 @@ export async function POST(req: NextRequest) {
   const url = req.nextUrl.clone();
   url.pathname = "/kepsek";
   url.search = "";
+  url.searchParams.set("toast", "Alamat sekolah tersimpan.");
+  url.searchParams.set("tone", "success");
   return NextResponse.redirect(url, { status: 303 });
 }

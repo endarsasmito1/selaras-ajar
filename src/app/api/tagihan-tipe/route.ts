@@ -27,6 +27,6 @@ export async function POST(req: NextRequest) {
 
   await prisma.tagihanTipe.create({ data: { sekolahId: session.sekolahId, nama } });
 
-  url.search = `?tipe_dibuat=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Jenis tagihan "${nama}" ditambahkan.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

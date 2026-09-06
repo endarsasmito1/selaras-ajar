@@ -23,6 +23,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = session.peran === "GURU" ? "/guru/jadwal" : "/kepsek/presensi-guru";
-  url.search = "?hadir_disimpan=1";
+  url.search = `?toast=${encodeURIComponent("Kehadiran mengajar tercatat.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

@@ -5,9 +5,11 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Pill } from "@/components/ui/Pill";
 import { StatCard } from "@/components/ui/Card";
 import { formatTanggal } from "@/lib/utils";
+import { tabClass } from "@/lib/tab-style";
 
 const STATUS_OPTIONS = [
   { value: "HADIR", label: "H", peerClass: "peer-checked:bg-success peer-checked:text-white" },
@@ -26,7 +28,7 @@ const STATUS_TONE: Record<string, "ok" | "warn" | "info" | "danger"> = {
 export default async function AbsensiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kelas?: string; tab?: string; tanggal?: string; siswaId?: string; absensi_disimpan?: string }>;
+  searchParams: Promise<{ kelas?: string; tab?: string; tanggal?: string; siswaId?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -75,35 +77,26 @@ export default async function AbsensiPage({
       pageTitle={`Absensi — Kelas ${kelasAktif.nama}`}
       pageSubtitle={tab === "isi" ? tanggalIsiLabel : "Riwayat absensi — G-1"}
     >
+      <ToastFromQuery />
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-1 border-b border-rule mb-4" role="tablist">
           {kelasUnik.map((k) => (
-            <a
-              key={k.id}
-              href={`/guru/absensi?kelas=${k.id}&tab=${tab}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (k.id === kelasAktif.id
-                  ? "bg-primary text-white border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={k.id} href={`/guru/absensi?kelas=${k.id}&tab=${tab}`} role="tab" aria-selected={k.id === kelasAktif.id} className={tabClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}
         </div>
       )}
 
-      <div className="flex gap-1 mb-5 border-b border-rule">
-        <a href={`/guru/absensi?kelas=${kelasAktif.id}&tab=isi`} className={"text-sm px-3 py-2 font-semibold " + (tab === "isi" ? "border-b-2 border-primary text-primary-deep" : "text-ink-soft")}>
+      <div className="flex gap-1 mb-5 border-b border-rule" role="tablist">
+        <a href={`/guru/absensi?kelas=${kelasAktif.id}&tab=isi`} role="tab" aria-selected={tab === "isi"} className={tabClass(tab === "isi")}>
           Isi Absensi
         </a>
-        <a href={`/guru/absensi?kelas=${kelasAktif.id}&tab=riwayat`} className={"text-sm px-3 py-2 font-semibold " + (tab === "riwayat" ? "border-b-2 border-primary text-primary-deep" : "text-ink-soft")}>
+        <a href={`/guru/absensi?kelas=${kelasAktif.id}&tab=riwayat`} role="tab" aria-selected={tab === "riwayat"} className={tabClass(tab === "riwayat")}>
           Riwayat
         </a>
       </div>
 
-      {params.absensi_disimpan && <div className="mb-4"><Callout>✓ Absensi tersimpan.</Callout></div>}
 
       {tab === "riwayat" ? (
         <RiwayatTab kelasId={kelasAktif.id} siswaKelas={siswaKelas} filter={params} />

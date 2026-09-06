@@ -46,6 +46,6 @@ export async function POST(req: NextRequest) {
   });
 
   url.pathname = "/kepsek/siswa";
-  url.search = `?siswa_diubah=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Data siswa "${nama}" diperbarui.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

@@ -6,6 +6,8 @@ import { StatCard, Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { PengumumanWidget } from "@/components/PengumumanWidget";
 import { formatRupiah, getSalam } from "@/lib/utils";
 
@@ -37,14 +39,8 @@ export default async function KepsekDashboard({
           .join(" · ")
       }
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      <details className="mb-4">
-        <summary className="cursor-pointer text-xs font-semibold text-primary-deep">Ubah alamat sekolah</summary>
-        <form action="/api/sekolah/profil" method="POST" className="mt-2 flex items-center gap-2 max-w-md">
-          <input name="alamat" defaultValue={ringkasan.sekolah?.alamat ?? ""} placeholder="mis. Jl. Merdeka No. 12, Jakarta" className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
-          <Button type="submit" size="sm">Simpan</Button>
-        </form>
-      </details>
 
       <div className="mb-4"><PengumumanWidget sekolahId={session.sekolahId} /></div>
 
@@ -101,6 +97,29 @@ export default async function KepsekDashboard({
           </table>
         </div>
       </Card>
+
+      <div className="mb-4">
+        <Drawer triggerLabel="Ubah alamat sekolah" eyebrow="Profil sekolah" title="Ubah alamat sekolah">
+          <form action="/api/sekolah/profil" method="POST" className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold">Alamat</label>
+              <input
+                name="alamat"
+                defaultValue={ringkasan.sekolah?.alamat ?? ""}
+                placeholder="mis. Jl. Merdeka No. 12, Jakarta"
+                className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="border-b border-rule my-1" />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm">Simpan</Button>
+              {/* formMethod="dialog" = tutup <dialog> terdekat tanpa submit ke server — atribut HTML
+                  polos, aman dipakai dari Server Component (beda dari onClick yang butuh Client). */}
+              <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+            </div>
+          </form>
+        </Drawer>
+      </div>
 
       <div className="bg-paper-raised border border-rule rounded-xl p-5">
         <h3 className="text-base font-semibold mb-1">{getSalam(new Date(), session.jenisKelamin)} {session.nama}</h3>

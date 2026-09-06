@@ -51,6 +51,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = "/guru/bank-soal";
-  url.search = `?soal_diimpor=${batch.valid.length}`;
+  url.search = `?toast=${encodeURIComponent(`${batch.valid.length} soal berhasil diimpor.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

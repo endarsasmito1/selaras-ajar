@@ -17,6 +17,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = "/kepsek/pengumuman";
-  url.search = "?pengumuman_dihapus=1";
+  url.search = `?toast=${encodeURIComponent("Pengumuman dihapus.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

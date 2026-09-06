@@ -37,6 +37,6 @@ export async function POST(req: NextRequest) {
     data: { sekolahId: session.sekolahId, tahunAjaranId: tahunAktif.id, nama, tingkat },
   });
 
-  url.search = `?kelas_dibuat=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Kelas "${nama}" ditambahkan.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

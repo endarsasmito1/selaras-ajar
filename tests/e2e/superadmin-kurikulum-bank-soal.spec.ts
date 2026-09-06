@@ -16,8 +16,10 @@ test.describe("Superadmin — Kurikulum (22.7)", () => {
 
     await tautanKurikulum.click();
     await expect(page).toHaveURL(/\/superadmin\/kurikulum\//);
-    await page.fill('input[name="nama"]', "Bahasa Inggris Lanjutan");
-    await page.fill('input[name="kkm"]', "75");
+    // 1.24 — halaman detail kurikulum sekarang juga punya form "ubah nama & jenjang kurikulum"
+    // yang input-nya SAMA-SAMA name="nama" — scope ke form tambah-mapel spesifik biar gak ambigu.
+    await page.fill('form[action="/api/superadmin/kurikulum-mapel"] input[name="nama"]', "Bahasa Inggris Lanjutan");
+    await page.fill('form[action="/api/superadmin/kurikulum-mapel"] input[name="kkm"]', "75");
     await page.getByRole("button", { name: "Tambah mapel" }).click();
     // 1.21 — getByText polos ambigu: dialog konfirmasi hapus utk mapel ini juga nyimpan namanya
     // permanen di DOM (di dalam <dialog> tak terbuka) — scope ke sel tabel spesifik.
@@ -51,6 +53,8 @@ test.describe("Superadmin — Bank Soal Global (22.9)", () => {
     await page.goto("/superadmin/bank-soal");
     await page.getByText("+ Tambah soal baru").click();
     await page.fill('input[name="mapelNama"]', "Matematika");
+    // 1.24 — jenjang sekarang wajib dipilih (dipakai buat breakdown per jenjang di halaman ini).
+    await page.selectOption('select[name="jenjang"]', "SD");
     await page.fill('input[name="rekomendasiKelas"]', "Kelas 5-6");
     await isiPertanyaan(page, pertanyaan);
     const opsi = page.locator('input[name="opsi"]');

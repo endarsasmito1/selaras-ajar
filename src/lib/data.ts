@@ -701,6 +701,12 @@ export async function getSoalById(soalId: string, sekolahId?: string) {
   return prisma.soal.findFirst({ where: { id: soalId, ...(sekolahId ? { sekolahId } : {}) } });
 }
 
+/** Scoped eksplisit ke sekolahId null (soal global/bank soal terpusat) — dipakai halaman edit
+ * superadmin, biar gak lewat cek `getSoalById(id)` tanpa filter yang bisa kena soal sekolah lain. */
+export async function getSoalGlobalById(soalId: string) {
+  return prisma.soal.findFirst({ where: { id: soalId, sekolahId: null } });
+}
+
 // ---------- UJIAN / CBT — GURU ----------
 
 /** U-1 (1.6): kelas card untuk halaman utama Ujian guru — jumlah ujian per kelas, list muncul saat kartu diklik. */

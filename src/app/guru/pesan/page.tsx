@@ -3,6 +3,8 @@ import { getInboxPengguna, getKontakUntukPesan } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Drawer } from "@/components/ui/Drawer";
 import { formatTanggal } from "@/lib/utils";
 
 export default async function PesanGuruPage() {
@@ -23,31 +25,34 @@ export default async function PesanGuruPage() {
       pageTitle="Pesan"
       pageSubtitle="Komunikasi ke orang tua lewat sistem — nomor pribadi tetap aman"
     >
-      <details className="bg-paper-raised border border-rule rounded-xl p-5 mb-6">
-        <summary className="cursor-pointer font-semibold text-sm">+ Kirim pesan baru</summary>
-        <form action="/api/pesan" method="POST" className="mt-4">
-          <div className="flex flex-col gap-1.5 mb-3">
+      <Drawer triggerLabel="+ Kirim pesan baru" eyebrow="Pesan" title="Kirim pesan baru">
+        <form action="/api/pesan" method="POST" className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Kepada</label>
-            <select name="penerimaId" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+            <select name="penerimaId" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
               {kontak.map((k) => (
                 <option key={k.id} value={k.id}>{k.nama}</option>
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-1.5 mb-3">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Judul</label>
-            <input name="judul" required className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+            <input name="judul" required className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
           </div>
-          <div className="flex flex-col gap-1.5 mb-4">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Pesan</label>
-            <textarea name="isi" required rows={3} className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+            <textarea name="isi" required rows={3} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
           </div>
-          <Button type="submit" size="sm">Kirim</Button>
+          <div className="border-b border-rule my-1" />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm">Kirim</Button>
+            <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+          </div>
         </form>
-      </details>
+      </Drawer>
 
       <div className="flex flex-col gap-3">
-        {inbox.length === 0 && <p className="text-sm text-ink-soft">Belum ada pesan.</p>}
+        {inbox.length === 0 && <EmptyState icon="✉" title="Belum ada pesan" hint="Pesan dari orang tua akan muncul di sini." />}
         {inbox.map((p) => (
           <div key={p.id} className="bg-paper-raised border border-rule rounded-xl p-4">
             <div className="flex justify-between items-start mb-1.5">

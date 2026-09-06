@@ -32,6 +32,7 @@ export default async function SuperadminDashboard({
       pageTitle="Ringkasan Platform"
       pageSubtitle="Semua sekolah yang memakai Selaras Ajar"
       headerAction={<LinkButton href="/superadmin/sekolah/tambah" size="sm">+ Tambah Sekolah</LinkButton>}
+      lebarPenuh
     >
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
@@ -42,23 +43,6 @@ export default async function SuperadminDashboard({
       </div>
 
       <Card className="mb-6">
-        <h3 className="text-sm font-semibold mb-3">Sebaran sekolah</h3>
-        <SekolahMapCard
-          titik={sekolahList
-            .filter((s) => s.sekolah.latitude !== null && s.sekolah.longitude !== null)
-            .map((s) => ({
-              id: s.sekolah.id,
-              nama: s.sekolah.nama,
-              jenjang: s.sekolah.jenjang,
-              kabupatenKota: s.sekolah.kabupatenKota,
-              provinsi: s.sekolah.provinsi,
-              latitude: s.sekolah.latitude as number,
-              longitude: s.sekolah.longitude as number,
-            }))}
-        />
-      </Card>
-
-      <Card>
         <h3 className="text-sm font-semibold mb-3">Sekolah terbaru</h3>
         <div className="bg-paper border border-rule rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
@@ -88,6 +72,23 @@ export default async function SuperadminDashboard({
             </tbody>
           </table>
         </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-sm font-semibold mb-3">Sebaran sekolah</h3>
+        <SekolahMapCard
+          titik={sekolahList
+            .filter((s) => s.sekolah.latitude !== null && s.sekolah.longitude !== null)
+            .map((s) => ({
+              id: s.sekolah.id,
+              nama: s.sekolah.nama,
+              jenjang: s.sekolah.jenjang,
+              kabupatenKota: s.sekolah.kabupatenKota,
+              provinsi: s.sekolah.provinsi,
+              latitude: s.sekolah.latitude as number,
+              longitude: s.sekolah.longitude as number,
+            }))}
+        />
       </Card>
     </AppShell>
   );

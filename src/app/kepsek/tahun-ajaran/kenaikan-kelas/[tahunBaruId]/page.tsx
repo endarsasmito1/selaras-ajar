@@ -5,6 +5,7 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
+import { Stepper } from "@/components/ui/Stepper";
 import { notFound } from "next/navigation";
 
 function bumpNamaKelas(nama: string, tingkatBaru: number) {
@@ -44,9 +45,10 @@ export default async function TinjauKenaikanKelasPage({
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle={`Tinjau Kenaikan Kelas — ${tahunLama.label} → ${tahunBaru.label}`}
-      pageSubtitle="Langkah 2/2 — cek/ubah rombel tujuan tiap siswa sebelum dijalankan. Belum ada yang berubah di data sampai kamu klik tombol di bawah."
+      pageSubtitle="Cek/ubah rombel tujuan tiap siswa sebelum dijalankan. Belum ada yang berubah di data sampai kamu klik tombol di bawah."
       headerAction={<LinkButton href="/kepsek/tahun-ajaran" variant="ghost" size="sm">Batalkan</LinkButton>}
     >
+      <Stepper steps={["Tahun Ajaran Baru", "Tinjau Rombel Tujuan"]} activeIndex={1} />
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
 
       {/* Form kecil "tambah rombel" dirender terpisah (bukan nested) dari form besar "Jalankan

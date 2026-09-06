@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Stepper } from "@/components/ui/Stepper";
 
 export default async function KenaikanKelasPage({
   searchParams,
@@ -27,8 +28,9 @@ export default async function KenaikanKelasPage({
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle="Kenaikan Kelas & Tahun Ajaran Baru"
-      pageSubtitle="Langkah 1/2 — buat tahun ajaran baru, lalu tinjau rombel tujuan per siswa"
+      pageSubtitle="Buat tahun ajaran baru, lalu tinjau rombel tujuan per siswa"
     >
+      <Stepper steps={["Tahun Ajaran Baru", "Tinjau Rombel Tujuan"]} activeIndex={0} />
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
       <Callout tone="warn">
         ⚠ Setelah ini, kamu akan diarahkan ke halaman <b>peninjauan</b> untuk memilih rombel tujuan tiap siswa (bisa dipecah ke lebih dari satu rombel, mis. sebagian 4A ke 5B & sebagian ke 5C) sebelum benar-benar dieksekusi — tahun ajaran <b>{tahunAktif?.label}</b> ({totalAktif} siswa aktif) belum berubah apa pun di langkah ini.

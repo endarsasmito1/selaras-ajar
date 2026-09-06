@@ -34,6 +34,6 @@ export async function POST(req: NextRequest) {
     data: { koreksiDikonfirmasi: true, dikonfirmasiPada: new Date() },
   });
 
-  url.search = "?koreksi_dikonfirmasi=1";
+  url.search = `?toast=${encodeURIComponent("Koreksi dikonfirmasi — nilai & komentar sekarang tampil ke murid/ortu.")}`;
   return NextResponse.redirect(url, { status: 303 });
 }

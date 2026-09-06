@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { BackButton } from "@/components/ui/BackButton";
 import { GantiPasswordForm } from "@/components/GantiPasswordForm";
 import { ValidasiFormProvider } from "@/components/ValidasiFormProvider";
+import { Sidebar, NavLinks } from "@/components/Sidebar";
 import { getSession } from "@/lib/auth";
 import { getAccountBadge } from "@/lib/data";
 import { ROLE_LABEL } from "@/lib/nav";
@@ -47,18 +47,9 @@ export async function AppShell({
   return (
     <div className="flex min-h-screen">
       <ValidasiFormProvider />
-      {/* 1.16 — sidebar penuh cuma di layar md+; di layar sempit digantikan menu hamburger di header. */}
-      <aside className="hidden md:flex w-[220px] shrink-0 bg-paper-sunken border-r border-rule p-3.5 flex-col gap-1.5 sticky top-0 h-screen overflow-y-auto">
-        <Link
-          href="/"
-          className="font-serif font-bold text-[17px] text-primary-deep px-2.5 pb-4 pt-1 flex items-center gap-2"
-        >
-          <span className="w-2.5 h-2.5 rounded-[3px] bg-accent inline-block" />
-          Selaras Ajar
-        </Link>
-        <NavLinks groups={groups} activeHref={activeHref} />
-        <div className="flex-1" />
-      </aside>
+      {/* 1.16 — sidebar penuh cuma di layar md+; di layar sempit digantikan menu hamburger di header.
+          Bisa diciutkan jadi mode ikon-saja (Sidebar.tsx, client component, preferensi di localStorage). */}
+      <Sidebar groups={groups} activeHref={activeHref} />
 
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex items-center justify-between gap-3 px-4 md:px-7 py-3.5 md:py-4 border-b border-rule bg-paper sticky top-0 z-10 flex-wrap">
@@ -95,40 +86,6 @@ export async function AppShell({
         <main className={"p-4 md:p-7 w-full " + (lebarPenuh ? "max-w-none" : "max-w-[1100px]")}>{children}</main>
       </div>
     </div>
-  );
-}
-
-function NavLinks({ groups, activeHref }: { groups: NavGroup[]; activeHref: string }) {
-  return (
-    <>
-      {groups.map((g, gi) => (
-        <div key={gi}>
-          {g.label && (
-            <div className="text-[10px] tracking-wider uppercase text-ink-soft font-bold px-2.5 pt-3.5 pb-1">
-              {g.label}
-            </div>
-          )}
-          {g.items.map((item) => {
-            const active = activeHref === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13.5px] mb-0.5 " +
-                  (active
-                    ? "bg-primary-tint text-primary-deep font-semibold"
-                    : "text-ink-soft hover:bg-paper-raised hover:text-ink")
-                }
-              >
-                <span className="w-4 text-center">{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      ))}
-    </>
   );
 }
 

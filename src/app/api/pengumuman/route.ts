@@ -24,6 +24,6 @@ export async function POST(req: NextRequest) {
     data: { sekolahId: session.sekolahId, judul, isi, dibuatOlehId: session.userId },
   });
 
-  url.search = `?pengumuman_dibuat=${encodeURIComponent(judul)}`;
+  url.search = `?toast=${encodeURIComponent(`Pengumuman "${judul}" berhasil diterbitkan.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

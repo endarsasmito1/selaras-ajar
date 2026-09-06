@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { DiskusiPanel } from "@/components/DiskusiPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { tabClass } from "@/lib/tab-style";
 import { formatTanggal } from "@/lib/utils";
 import { toEmbedVideo } from "@/lib/video-embed";
 
@@ -52,18 +54,9 @@ export default async function MateriPage({
       pageSubtitle={`Kelas ${kelasAktif.nama}`}
     >
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-1 border-b border-rule mb-5" role="tablist">
           {kelasUnik.map((k) => (
-            <a
-              key={k.id}
-              href={`/guru/materi?kelas=${k.id}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (k.id === kelasAktif.id
-                  ? "bg-primary text-white border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={k.id} href={`/guru/materi?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={tabClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}
@@ -209,7 +202,7 @@ export default async function MateriPage({
       />
 
       <div className="flex flex-col gap-2.5">
-        {materi.length === 0 && <p className="text-sm text-ink-soft">Belum ada materi.</p>}
+        {materi.length === 0 && <EmptyState icon="▢" title="Belum ada materi" hint="Tambahkan materi belajar lewat form di atas." />}
         {materi.map((m) => (
           <MateriRow key={m.id} materi={m} penggunaId={session.userId} />
         ))}

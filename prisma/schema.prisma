@@ -577,6 +577,10 @@ model Soal {
   durasiDetik      Int?
   /// Label bebas target level, khusus soal global lintas jenjang (mis. "Kelas 7" / "SMP semua kelas").
   rekomendasiKelas String?
+  /// Jenjang terstruktur ("SD"|"SMP"|"SMA"|"SMK") khusus soal global (sekolahId null) — dipakai
+  /// buat breakdown per jenjang di halaman Bank Soal Terpusat superadmin, terpisah dari
+  /// rekomendasiKelas yang bebas teks. Null utk soal milik sekolah (jenjang ikut sekolahnya).
+  jenjang          String?
   createdAt        DateTime       @default(now())
 
   ujianSoal UjianSoal[]

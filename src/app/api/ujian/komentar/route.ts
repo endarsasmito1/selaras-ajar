@@ -20,6 +20,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = `/guru/ujian/${ujianId}`;
-  url.search = "?komentar_disimpan=1";
+  url.search = `?toast=${encodeURIComponent("Komentar tersimpan.")}`;
   return NextResponse.redirect(url, { status: 303 });
 }

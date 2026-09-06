@@ -50,6 +50,6 @@ export async function POST(req: NextRequest) {
     dibuat++;
   }
 
-  url.search = `?impor_guru=${dibuat}`;
+  url.search = `?toast=${encodeURIComponent(`Impor guru selesai — ${dibuat} akun guru baru dibuat.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

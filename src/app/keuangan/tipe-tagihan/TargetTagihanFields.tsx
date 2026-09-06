@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { tabClass } from "@/lib/tab-style";
 
 type Opsi = { value: string; label: string };
 
 const MODE_LABEL: Record<string, string> = {
-  SEMUA: "Semua siswa aktif",
-  JENJANG: "Jenjang/tingkat",
-  KELAS: "Kelas tertentu",
-  MURID: "Murid tertentu",
+  SEMUA: "Semua Siswa",
+  JENJANG: "Per Jenjang",
+  KELAS: "Per Kelas",
+  MURID: "Per Murid",
 };
 
 /** 1.21 — target tagihan dulu cuma "Semua" atau 1 kelas; sekarang 4 mode (bisa multiselect
  * utk 3 mode terakhir), dipisah jadi client component krn visibilitas selector-nya bergantung
- * mode yang dipilih (radio), butuh state di client. */
+ * mode yang dipilih. Gaya tab (bukan radio berjejer) — `targetMode` tetap dikirim via hidden
+ * input krn tombol tab bukan elemen form bawaan. */
 export function TargetTagihanFields({
   jenjangOpsi,
   kelasOpsi,
@@ -28,14 +30,22 @@ export function TargetTagihanFields({
   return (
     <div className="flex flex-col gap-2">
       <label className="text-xs font-semibold">Target</label>
-      <div className="flex gap-3 flex-wrap text-xs">
+      <input type="hidden" name="targetMode" value={mode} />
+      <div className="flex gap-1 border-b border-rule flex-wrap" role="tablist">
         {(["SEMUA", "JENJANG", "KELAS", "MURID"] as const).map((m) => (
-          <label key={m} className="flex items-center gap-1.5">
-            <input type="radio" name="targetMode" value={m} checked={mode === m} onChange={() => setMode(m)} />
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => setMode(m)}
+            className={tabClass(mode === m)}
+          >
             {MODE_LABEL[m]}
-          </label>
+          </button>
         ))}
       </div>
+      {mode === "SEMUA" && <p className="text-xs text-ink-soft">Tagihan akan dibuat untuk semua siswa aktif.</p>}
       {mode === "JENJANG" && (
         <select name="jenjangTargets" multiple required size={Math.min(6, jenjangOpsi.length)} className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
           {jenjangOpsi.map((o) => (

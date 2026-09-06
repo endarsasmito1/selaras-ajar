@@ -49,6 +49,6 @@ export async function POST(req: NextRequest) {
   // kontraknya sama persis kayak sebelum 1.23 (`hariIni` lokal), gak numpang norma UTC absensi.
   await tandaiPresensiGuruOtomatis(kelasId, new Date(tanggalFinalStr + "T00:00:00"), session.userId);
 
-  url.search = `?kelas=${kelasId}&tab=isi&tanggal=${tanggalFinalStr}&absensi_disimpan=1`;
+  url.search = `?kelas=${kelasId}&tab=isi&tanggal=${tanggalFinalStr}&toast=${encodeURIComponent("Absensi tersimpan.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

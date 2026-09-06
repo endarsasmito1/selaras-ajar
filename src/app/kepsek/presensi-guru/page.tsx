@@ -5,6 +5,7 @@ import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 
 export default async function PresensiGuruPage() {
   const session = await getSession();
@@ -33,6 +34,7 @@ export default async function PresensiGuruPage() {
       pageTitle="Presensi Guru Mengajar"
       pageSubtitle="AG-3/AG-4 — kehadiran mengajar sesuai jadwal"
     >
+      <ToastFromQuery />
       <Card className="mb-4">
         <h3 className="text-sm font-semibold mb-3">Sesi hari ini yang belum terisi</h3>
         {sesiBelumTerisi.length === 0 ? (

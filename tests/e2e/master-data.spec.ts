@@ -10,7 +10,9 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     await page.fill('form[action="/api/master-data/kelas"] input[name="nama"]', nama);
     await page.fill('form[action="/api/master-data/kelas"] input[name="tingkat"]', "6");
     await page.locator('form[action="/api/master-data/kelas"] button[type="submit"]').click();
-    await expect(page).toHaveURL(/kelas_dibuat/);
+    // 1.24 — pesan sukses dipindah ke toast (`?toast=`, lihat ToastFromQuery), URL-nya sendiri
+    // dibersihkan client-side sesaat sesudah toast muncul — assert teks toast, bukan query param.
+    await expect(page.getByText(`Kelas "${nama}" ditambahkan.`)).toBeVisible();
     await expect(page.locator("span.font-semibold", { hasText: nama })).toBeVisible();
   });
 
@@ -38,7 +40,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     const namaBaru = `Edited${Date.now() % 10000}`;
     await details.locator('input[name="nama"]').fill(namaBaru);
     await details.getByRole("button", { name: "Simpan" }).click();
-    await expect(page).toHaveURL(/kelas_diubah/);
+    await expect(page.getByText(`Kelas "${namaBaru}" diperbarui.`)).toBeVisible();
   });
 
   test("positif: pembobotan nilai valid (total 100%) tersimpan tanpa error", async ({ page }) => {

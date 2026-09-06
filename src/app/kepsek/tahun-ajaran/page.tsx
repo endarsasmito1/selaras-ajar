@@ -27,7 +27,7 @@ export default async function TahunAjaranPage({
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle="Tahun Ajaran & Semester"
       pageSubtitle="Periode aktif menopang semua data — nilai, absensi, tagihan, kelas"
-      headerAction={<LinkButton href="/kepsek/tahun-ajaran/kenaikan-kelas" size="sm">Naik kelas / Tahun ajaran baru →</LinkButton>}
+      headerAction={<LinkButton href="/kepsek/tahun-ajaran/kenaikan-kelas" size="sm" variant="accent">Naik kelas / Tahun ajaran baru →</LinkButton>}
     >
       {params.promosi && (
         <Callout>✓ Kenaikan kelas selesai — {params.promosi} siswa naik kelas, {params.lulus} siswa lulus, {params.pindah ?? 0} siswa pindah sekolah. Lihat detailnya di Riwayat Siswa.</Callout>

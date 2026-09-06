@@ -4,12 +4,14 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
+import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 
 export default async function DataGuruPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; impor_guru?: string; guru_dibuat?: string; guru_diubah?: string; q?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -59,45 +61,10 @@ export default async function DataGuruPage({
         </form>
       }
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.impor_guru && <div className="mb-4"><Callout>✓ Impor guru selesai — {sp.impor_guru} akun guru baru dibuat.</Callout></div>}
-      {sp.guru_dibuat && <div className="mb-4"><Callout>✓ Guru &quot;{sp.guru_dibuat}&quot; ditambahkan — password sementara <code>selaras123</code>.</Callout></div>}
-      {sp.guru_diubah && <div className="mb-4"><Callout>✓ Data guru &quot;{sp.guru_diubah}&quot; diperbarui.</Callout></div>}
 
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <details className="bg-paper-raised border border-rule rounded-xl p-5">
-          <summary className="cursor-pointer font-semibold text-sm">+ Tambah guru manual (MG-1)</summary>
-          <form action="/api/guru" method="POST" className="mt-4 flex flex-col gap-2.5">
-            <div className="grid grid-cols-2 gap-2.5">
-              <input name="nama" required placeholder="Nama lengkap" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm col-span-2" />
-              <input name="email" type="email" required placeholder="Email" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <input name="telepon" placeholder="No. HP" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <input name="nip" placeholder="NIP/NUPTK (opsional)" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <input name="mapelUtama" placeholder="Mapel utama (opsional)" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <select name="jenisKelamin" defaultValue="" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
-                <option value="">Jenis kelamin (opsional)</option>
-                <option value="L">Laki-laki</option>
-                <option value="P">Perempuan</option>
-              </select>
-            </div>
-            <p className="text-xs text-ink-soft">Akun baru dapat password sementara <code>selaras123</code> — minta guru gantinya setelah login pertama. Penugasan kelas & mapel diatur setelah ini, dari halaman Edit.</p>
-            <Button type="submit" size="sm" className="self-start">Tambah guru</Button>
-          </form>
-        </details>
-
-        <details className="bg-paper-raised border border-rule rounded-xl p-5">
-          <summary className="cursor-pointer font-semibold text-sm">+ Impor guru via CSV (C-2)</summary>
-          <form action="/api/impor/guru" method="POST" encType="multipart/form-data" className="mt-4 flex flex-col gap-2.5">
-            <p className="text-xs text-ink-soft">
-              Kolom: <code>nama,email,telepon,nip,mapelUtama</code> — baris pertama header. Email yang sudah terdaftar akan dilewati.
-            </p>
-            <input name="file" type="file" accept=".csv" required className="text-xs" />
-            <Button type="submit" size="sm" variant="ghost" className="self-start">Unggah & impor</Button>
-          </form>
-        </details>
-      </div>
-
-      <div className="bg-paper-raised border border-rule rounded-xl overflow-x-auto">
+      <div className="bg-paper-raised border border-rule rounded-xl overflow-x-auto mb-6">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-paper-sunken text-[11px] uppercase tracking-wider text-ink-soft">
@@ -161,6 +128,45 @@ export default async function DataGuruPage({
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Drawer triggerLabel="+ Tambah guru manual" eyebrow="Data Guru (MG-1)" title="Tambah guru manual">
+          <form action="/api/guru" method="POST" className="flex flex-col gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
+              <input name="nama" required placeholder="Nama lengkap" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm col-span-2" />
+              <input name="email" type="email" required placeholder="Email" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="telepon" placeholder="No. HP" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="nip" placeholder="NIP/NUPTK (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="mapelUtama" placeholder="Mapel utama (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <select name="jenisKelamin" defaultValue="" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
+                <option value="">Jenis kelamin (opsional)</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+            </div>
+            <p className="text-xs text-ink-soft">Akun baru dapat password sementara <code>selaras123</code> — minta guru gantinya setelah login pertama. Penugasan kelas & mapel diatur setelah ini, dari halaman Edit.</p>
+            <div className="border-b border-rule my-1" />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm">Tambah guru</Button>
+              <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+            </div>
+          </form>
+        </Drawer>
+
+        <Drawer triggerLabel="+ Impor guru via CSV" eyebrow="Data Guru (C-2)" title="Impor guru via CSV">
+          <form action="/api/impor/guru" method="POST" encType="multipart/form-data" className="flex flex-col gap-2.5">
+            <p className="text-xs text-ink-soft">
+              Kolom: <code>nama,email,telepon,nip,mapelUtama</code> — baris pertama header. Email yang sudah terdaftar akan dilewati.
+            </p>
+            <input name="file" type="file" accept=".csv" required className="text-xs" />
+            <div className="border-b border-rule my-1" />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" variant="ghost">Unggah & impor</Button>
+              <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+            </div>
+          </form>
+        </Drawer>
       </div>
     </AppShell>
   );

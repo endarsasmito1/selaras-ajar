@@ -44,6 +44,6 @@ export async function POST(req: NextRequest) {
     diproses++;
   }
 
-  url.search = `?impor_kelas=${diproses}`;
+  url.search = `?toast=${encodeURIComponent(`Impor kelas selesai — ${diproses} baris diproses.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

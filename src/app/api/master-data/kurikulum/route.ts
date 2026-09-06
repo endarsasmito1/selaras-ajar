@@ -18,6 +18,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = "/kepsek/master-data";
-  url.search = "";
+  url.search = `?toast=${encodeURIComponent("Kurikulum sekolah diperbarui.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

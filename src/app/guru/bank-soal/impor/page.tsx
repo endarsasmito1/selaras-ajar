@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Stepper } from "@/components/ui/Stepper";
 
 export default async function ImporSoalPage({
   searchParams,
@@ -25,6 +26,7 @@ export default async function ImporSoalPage({
       pageTitle="Impor Soal via CSV"
       pageSubtitle="BS-7 — untuk soal yang sudah ada di Excel, tak perlu input satu-satu"
     >
+      <Stepper steps={["Pilih", "Unggah", "Periksa", "Simpan"]} activeIndex={0} />
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
 
       <div className="bg-paper-raised border border-rule rounded-xl p-6 max-w-lg flex flex-col gap-4">

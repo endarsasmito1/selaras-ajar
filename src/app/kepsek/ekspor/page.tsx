@@ -4,6 +4,9 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Stepper } from "@/components/ui/Stepper";
+
+const LANGKAH_IMPOR = ["Pilih File", "Unggah", "Periksa", "Simpan"];
 
 export default async function EksporImporPage({
   searchParams,
@@ -39,6 +42,7 @@ export default async function EksporImporPage({
 
         <Card>
           <CardHead title="Impor data siswa" subtitle="Ratusan baris sekali unggah — tetap bisa diedit satuan setelahnya" />
+          <Stepper steps={LANGKAH_IMPOR} activeIndex={0} />
           <LinkButton href="/api/impor/siswa/template" variant="ghost" className="mb-4">⬇ Unduh template CSV</LinkButton>
           <form action="/api/impor/siswa/preview" method="POST" encType="multipart/form-data" className="flex flex-col gap-3">
             <input type="file" name="file" accept=".csv" required className="text-sm" />

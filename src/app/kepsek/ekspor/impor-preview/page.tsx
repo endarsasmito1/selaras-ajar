@@ -5,6 +5,9 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
+import { Stepper } from "@/components/ui/Stepper";
+
+const LANGKAH_IMPOR = ["Pilih File", "Unggah", "Periksa", "Simpan"];
 
 export default async function ImporPreviewPage({
   searchParams,
@@ -36,6 +39,8 @@ export default async function ImporPreviewPage({
       pageTitle="Preview Impor Data Siswa"
       pageSubtitle="Tinjau dulu sebelum data benar-benar masuk"
     >
+      <Stepper steps={LANGKAH_IMPOR} activeIndex={2} />
+
       <div className="flex flex-wrap gap-2 mb-5">
         <Pill tone="ok">✓ {batch.valid.length} baris valid</Pill>
         <Pill tone="info">↻ {akanDiperbarui} akan diperbarui (NISN sudah ada)</Pill>

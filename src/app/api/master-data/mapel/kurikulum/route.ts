@@ -39,6 +39,6 @@ export async function POST(req: NextRequest) {
     ditambahkan++;
   }
 
-  url.search = `?impor_mapel=${ditambahkan}`;
+  url.search = `?toast=${encodeURIComponent(`Impor mapel selesai — ${ditambahkan} baris diproses.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

@@ -7,6 +7,7 @@ import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { SemuaUjianTable } from "./SemuaUjianTable";
+import { tabClass } from "@/lib/tab-style";
 
 export default async function KelolaUjianPage({
   searchParams,
@@ -57,11 +58,11 @@ export default async function KelolaUjianPage({
         <StatCard label="Selesai" value={String(totalSelesai)} />
       </div>
 
-      <div className="flex gap-1 mb-5 border-b border-rule">
-        <a href="?tab=kelas" className={"text-sm px-3 py-2 font-semibold " + (tab === "kelas" ? "border-b-2 border-primary text-primary-deep" : "text-ink-soft")}>
+      <div className="flex gap-1 mb-5 border-b border-rule" role="tablist">
+        <a href="?tab=kelas" role="tab" aria-selected={tab === "kelas"} className={tabClass(tab === "kelas")}>
           Per Kelas
         </a>
-        <a href="?tab=semua" className={"text-sm px-3 py-2 font-semibold " + (tab === "semua" ? "border-b-2 border-primary text-primary-deep" : "text-ink-soft")}>
+        <a href="?tab=semua" role="tab" aria-selected={tab === "semua"} className={tabClass(tab === "semua")}>
           Semua Ujian
         </a>
       </div>

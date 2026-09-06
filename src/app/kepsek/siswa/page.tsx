@@ -5,6 +5,7 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Card } from "@/components/ui/Card";
 import { PengumumanWidget } from "@/components/PengumumanWidget";
 import { HasilPencarianTable } from "./HasilPencarianTable";
@@ -12,7 +13,7 @@ import { HasilPencarianTable } from "./HasilPencarianTable";
 export default async function DataSiswaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; impor_dibuat?: string; impor_diperbarui?: string; siswa_diubah?: string }>;
+  searchParams: Promise<{ q?: string; impor_dibuat?: string; impor_diperbarui?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -35,12 +36,12 @@ export default async function DataSiswaPage({
         </div>
       }
     >
+      <ToastFromQuery />
       {params.impor_dibuat !== undefined && (
         <Callout>
           ✓ Impor selesai — {params.impor_dibuat} siswa baru dibuat, {params.impor_diperbarui} siswa diperbarui. Data hasil impor tetap bisa diedit satu per satu.
         </Callout>
       )}
-      {params.siswa_diubah && <div className="mb-4"><Callout>✓ Data siswa &quot;{params.siswa_diubah}&quot; diperbarui.</Callout></div>}
 
       {session.peran === "TU" && <div className="mb-5"><PengumumanWidget sekolahId={session.sekolahId} /></div>}
 

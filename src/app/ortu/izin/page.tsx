@@ -4,7 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_ORTU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal } from "@/lib/utils";
 
 const STATUS_TONE: Record<string, "ok" | "warn" | "neutral"> = {
@@ -13,14 +14,9 @@ const STATUS_TONE: Record<string, "ok" | "warn" | "neutral"> = {
   MENUNGGU: "neutral",
 };
 
-export default async function AjukanIzinPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ izin_diajukan?: string }>;
-}) {
+export default async function AjukanIzinPage() {
   const session = await getSession();
   if (!session) return null;
-  const sp = await searchParams;
 
   const [anakList, riwayat] = await Promise.all([
     getAnakDariOrtu(session.userId),
@@ -36,7 +32,7 @@ export default async function AjukanIzinPage({
       pageTitle="Ajukan Izin / Sakit"
       pageSubtitle="Menggantikan surat kertas & chat WA — wali kelas menerima & menyetujui di sistem"
     >
-      {sp.izin_diajukan && <div className="mb-4"><Callout>✓ Pengajuan izin terkirim.</Callout></div>}
+      <ToastFromQuery />
       <form action="/api/izin" method="POST" encType="multipart/form-data" className="bg-paper-raised border border-rule rounded-xl p-5 mb-6 max-w-lg">
         <div className="flex flex-col gap-1.5 mb-3">
           <label className="text-xs font-semibold">Anak</label>
@@ -72,7 +68,7 @@ export default async function AjukanIzinPage({
 
       <h3 className="text-sm font-semibold mb-2">Riwayat pengajuan</h3>
       <div className="flex flex-col gap-2">
-        {riwayat.length === 0 && <p className="text-sm text-ink-soft">Belum ada pengajuan.</p>}
+        {riwayat.length === 0 && <EmptyState icon="✋" title="Belum ada pengajuan" hint="Pengajuan izin/sakit yang kamu kirim akan muncul di sini." />}
         {riwayat.map((r) => (
           <div key={r.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
             <div>

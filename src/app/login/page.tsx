@@ -8,7 +8,6 @@ const DEMO_ACCOUNTS = [
   { email: "rina@selarasajar.demo", label: "Bu Rina", role: "Guru · Wali Kelas 5B", icon: "👩‍🏫" },
   { email: "fauzan@selarasajar.demo", label: "Bpk. Fauzan", role: "Orang Tua (wali Ahmad Fauzi)", icon: "👨‍👩‍👧" },
   { email: "ahmad@selarasajar.demo", label: "Ahmad Fauzi", role: "Murid · Kelas 5B", icon: "🎒" },
-  { email: "admin@selarasajar.id", label: "Admin Platform", role: "Superadmin Selaras Ajar", icon: "🛡" },
 ];
 
 export default async function LoginPage({

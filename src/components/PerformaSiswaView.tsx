@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
+import { Trend } from "@/components/ui/Sparkline";
 import type { getPerformaSiswa } from "@/lib/data";
 
 type Performa = NonNullable<Awaited<ReturnType<typeof getPerformaSiswa>>>;
@@ -99,9 +100,7 @@ export function PerformaSiswaView({
                   <div className="flex-1 h-2 bg-paper-sunken rounded-full overflow-hidden">
                     <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, m.rata)}%` }} />
                   </div>
-                  <span className={"text-xs font-semibold " + (m.tren > 1 ? "text-success" : m.tren < -1 ? "text-warning" : "text-ink-soft")}>
-                    {m.tren > 1 ? "▲" : m.tren < -1 ? "▼" : "→"}
-                  </span>
+                  <Trend value={Math.round(m.tren * 10) / 10} netralDi={1} />
                   <span className="text-[10px] text-ink-soft">{ujianMapel.length} ujian</span>
                 </summary>
                 <div className="pl-1 mt-2 flex flex-col gap-1">

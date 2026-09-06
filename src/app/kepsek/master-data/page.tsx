@@ -6,21 +6,14 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 
 const KOMPONEN = ["Ulangan Harian", "Tugas", "UTS", "UAS"];
 
 export default async function MasterDataPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    error?: string;
-    kelas_dibuat?: string;
-    kelas_diubah?: string;
-    mapel_dibuat?: string;
-    mapel_diubah?: string;
-    impor_kelas?: string;
-    impor_mapel?: string;
-  }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -46,13 +39,8 @@ export default async function MasterDataPage({
       pageSubtitle="Kelas & mapel jadi dasar penugasan guru (MG-2), jadwal, ujian, tugas — plus pembobotan/predikat/KKM yang menempel ke mapel di sini (F-18, 1.7)"
       lebarPenuh
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.kelas_dibuat && <div className="mb-4"><Callout>✓ Kelas &quot;{sp.kelas_dibuat}&quot; ditambahkan.</Callout></div>}
-      {sp.kelas_diubah && <div className="mb-4"><Callout>✓ Kelas &quot;{sp.kelas_diubah}&quot; diperbarui.</Callout></div>}
-      {sp.mapel_dibuat && <div className="mb-4"><Callout>✓ Mapel &quot;{sp.mapel_dibuat}&quot; ditambahkan.</Callout></div>}
-      {sp.mapel_diubah && <div className="mb-4"><Callout>✓ Mapel &quot;{sp.mapel_diubah}&quot; diperbarui.</Callout></div>}
-      {sp.impor_kelas && <div className="mb-4"><Callout>✓ Impor kelas selesai — {sp.impor_kelas} baris diproses.</Callout></div>}
-      {sp.impor_mapel && <div className="mb-4"><Callout>✓ Impor mapel selesai — {sp.impor_mapel} baris diproses.</Callout></div>}
 
       {!tahunAktif && (
         <div className="mb-4">

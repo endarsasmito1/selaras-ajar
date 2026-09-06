@@ -4,17 +4,30 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_SUPERADMIN, ROLE_LABEL } from "@/lib/nav";
 import { Card, StatCard } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { Pagination } from "@/components/ui/Pagination";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
+
+const PENGGUNA_PER_HALAMAN = 20;
+const PERAN_FILTER_LIST = ["KEPALA_SEKOLAH", "BENDAHARA", "TU", "GURU", "ORANG_TUA", "MURID"];
 
 export default async function SuperadminSekolahDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; kepsek_dibuat?: string; email?: string; password?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    kepsek_dibuat?: string;
+    email?: string;
+    password?: string;
+    cariPengguna?: string;
+    peranFilter?: string;
+    halPengguna?: string;
+  }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -25,6 +38,24 @@ export default async function SuperadminSekolahDetailPage({
   if (!detail) notFound();
   const { sekolah, pengguna, siswa, kelas, tahunAjaran } = detail;
   const sudahPunyaKepsek = pengguna.some((p) => p.peran === "KEPALA_SEKOLAH");
+
+  // Filter & search diterapkan di memori (jumlah pengguna per sekolah gak akan sebesar itu),
+  // pola sama dgn search nama sekolah di daftar sekolah (1.21).
+  const cariPengguna = (sp.cariPengguna ?? "").trim().toLowerCase();
+  const peranFilter = sp.peranFilter ?? "";
+  const penggunaTersaring = pengguna.filter((p) => {
+    const cocokCari = !cariPengguna || p.nama.toLowerCase().includes(cariPengguna) || p.email.toLowerCase().includes(cariPengguna);
+    const cocokPeran = !peranFilter || p.peran === peranFilter;
+    return cocokCari && cocokPeran;
+  });
+  const totalHalPengguna = Math.max(1, Math.ceil(penggunaTersaring.length / PENGGUNA_PER_HALAMAN));
+  const halPenggunaAman = Math.min(totalHalPengguna, Math.max(1, Number(sp.halPengguna) || 1));
+  const penggunaHalIni = penggunaTersaring.slice(
+    (halPenggunaAman - 1) * PENGGUNA_PER_HALAMAN,
+    halPenggunaAman * PENGGUNA_PER_HALAMAN
+  );
+  const hrefHalPengguna = (h: number) =>
+    `?cariPengguna=${encodeURIComponent(sp.cariPengguna ?? "")}&peranFilter=${encodeURIComponent(peranFilter)}&halPengguna=${h}#pengguna`;
 
   return (
     <AppShell
@@ -53,34 +84,38 @@ export default async function SuperadminSekolahDetailPage({
         <StatCard label="Pengguna" value={String(pengguna.length)} />
       </div>
 
-      {(sekolah.npsn || sekolah.alamat) && (
-        <Card className="mb-4">
-          <h3 className="text-sm font-semibold mb-3">Data Sekolah</h3>
-          <div className="grid md:grid-cols-2 gap-3 text-sm">
-            {sekolah.npsn && <div><span className="text-ink-soft text-xs block">NPSN</span>{sekolah.npsn}</div>}
-            {sekolah.alamat && <div className="md:col-span-2"><span className="text-ink-soft text-xs block">Alamat</span>{sekolah.alamat}</div>}
-            {sekolah.kecamatan && <div><span className="text-ink-soft text-xs block">Kecamatan</span>{sekolah.kecamatan}</div>}
-            {sekolah.kabupatenKota && <div><span className="text-ink-soft text-xs block">Kabupaten/Kota</span>{sekolah.kabupatenKota}</div>}
-            {sekolah.provinsi && <div><span className="text-ink-soft text-xs block">Provinsi</span>{sekolah.provinsi}</div>}
-            {sekolah.kodePos && <div><span className="text-ink-soft text-xs block">Kode Pos</span>{sekolah.kodePos}</div>}
-          </div>
-        </Card>
-      )}
+      <div className="grid md:grid-cols-2 gap-4 mb-4">
+        {(sekolah.npsn || sekolah.alamat) && (
+          <Card>
+            <h3 className="text-sm font-semibold mb-3">Data Sekolah</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {sekolah.npsn && <div><span className="text-ink-soft text-xs block">NPSN</span>{sekolah.npsn}</div>}
+              {sekolah.alamat && <div className="col-span-2"><span className="text-ink-soft text-xs block">Alamat</span>{sekolah.alamat}</div>}
+              {sekolah.kecamatan && <div><span className="text-ink-soft text-xs block">Kecamatan</span>{sekolah.kecamatan}</div>}
+              {sekolah.kabupatenKota && <div><span className="text-ink-soft text-xs block">Kabupaten/Kota</span>{sekolah.kabupatenKota}</div>}
+              {sekolah.provinsi && <div><span className="text-ink-soft text-xs block">Provinsi</span>{sekolah.provinsi}</div>}
+              {sekolah.kodePos && <div><span className="text-ink-soft text-xs block">Kode Pos</span>{sekolah.kodePos}</div>}
+            </div>
+          </Card>
+        )}
 
-      <Card className="mb-4">
-        <h3 className="text-sm font-semibold mb-3">Lokasi (peta sebaran sekolah)</h3>
-        <p className="text-xs text-ink-soft mb-3">
-          {sekolah.latitude !== null && sekolah.longitude !== null
-            ? `Koordinat: ${sekolah.latitude}, ${sekolah.longitude}`
-            : "Belum diisi — sekolah ini tak akan muncul di tampilan Peta pada daftar sekolah."}
-        </p>
-        <form action="/api/superadmin/sekolah/lokasi" method="POST" className="grid md:grid-cols-3 gap-2 max-w-lg">
-          <input type="hidden" name="sekolahId" value={sekolah.id} />
-          <input name="latitude" type="number" step="any" defaultValue={sekolah.latitude ?? ""} placeholder="Latitude" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-          <input name="longitude" type="number" step="any" defaultValue={sekolah.longitude ?? ""} placeholder="Longitude" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-          <Button type="submit" size="sm">Simpan lokasi</Button>
-        </form>
-      </Card>
+        <Card>
+          <h3 className="text-sm font-semibold mb-3">Lokasi (peta sebaran sekolah)</h3>
+          <p className="text-xs text-ink-soft mb-3">
+            {sekolah.latitude !== null && sekolah.longitude !== null
+              ? `Koordinat: ${sekolah.latitude}, ${sekolah.longitude}`
+              : "Belum diisi — sekolah ini tak akan muncul di tampilan Peta pada daftar sekolah."}
+          </p>
+          <form action="/api/superadmin/sekolah/lokasi" method="POST" className="flex flex-col gap-2">
+            <input type="hidden" name="sekolahId" value={sekolah.id} />
+            <div className="grid grid-cols-2 gap-2">
+              <input name="latitude" type="number" step="any" defaultValue={sekolah.latitude ?? ""} placeholder="Latitude" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="longitude" type="number" step="any" defaultValue={sekolah.longitude ?? ""} placeholder="Longitude" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <Button type="submit" size="sm" className="self-start">Simpan lokasi</Button>
+          </form>
+        </Card>
+      </div>
 
       <Card className="mb-4">
         <h3 className="text-sm font-semibold mb-3">Tahun ajaran</h3>
@@ -95,13 +130,13 @@ export default async function SuperadminSekolahDetailPage({
         </div>
       </Card>
 
+      <div id="pengguna" />
       <Card>
         <h3 className="text-sm font-semibold mb-3">Pengguna ({pengguna.length})</h3>
 
         {!sudahPunyaKepsek && (
-          <details className="bg-paper border border-rule rounded-lg p-4 mb-4">
-            <summary className="cursor-pointer font-semibold text-xs text-primary-deep">+ Tambah akun kepala sekolah</summary>
-            <form action="/api/superadmin/sekolah/kepsek" method="POST" className="flex flex-col gap-2 mt-3 max-w-sm">
+          <Drawer triggerLabel="+ Tambah akun kepala sekolah" eyebrow="Sekolah" title="Tambah akun kepala sekolah">
+            <form action="/api/superadmin/sekolah/kepsek" method="POST" className="flex flex-col gap-2">
               <input type="hidden" name="sekolahId" value={sekolah.id} />
               <input name="kepsekNama" required placeholder="Nama kepala sekolah" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
               <input name="kepsekEmail" required type="email" placeholder="Email login" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
@@ -110,10 +145,34 @@ export default async function SuperadminSekolahDetailPage({
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
               </select>
-              <Button type="submit" size="sm" className="self-start">Buat akun</Button>
+              <div className="border-b border-rule my-1" />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">Buat akun</Button>
+                <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+              </div>
             </form>
-          </details>
+          </Drawer>
         )}
+
+        <form method="GET" className="mb-3 flex flex-wrap items-center gap-2">
+          <input type="hidden" name="halPengguna" value="1" />
+          <input
+            name="cariPengguna"
+            defaultValue={sp.cariPengguna ?? ""}
+            placeholder="Cari nama/email pengguna…"
+            className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-64"
+          />
+          <select name="peranFilter" defaultValue={peranFilter} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
+            <option value="">Semua peran</option>
+            {PERAN_FILTER_LIST.map((p) => (
+              <option key={p} value={p}>{ROLE_LABEL[p] ?? p}</option>
+            ))}
+          </select>
+          <Button type="submit" size="sm" variant="ghost">Terapkan</Button>
+          {(cariPengguna || peranFilter) && (
+            <LinkButton href="?halPengguna=1#pengguna" size="sm" variant="ghost">Reset</LinkButton>
+          )}
+        </form>
 
         <div className="bg-paper border border-rule rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
@@ -126,7 +185,7 @@ export default async function SuperadminSekolahDetailPage({
               </tr>
             </thead>
             <tbody>
-              {pengguna.map((p) => (
+              {penggunaHalIni.map((p) => (
                 <tr key={p.id} className="border-t border-rule">
                   <td className="px-4 py-2 font-semibold">{p.nama}</td>
                   <td className="px-4 py-2 text-ink-soft">{p.email}</td>
@@ -134,9 +193,14 @@ export default async function SuperadminSekolahDetailPage({
                   <td className="px-4 py-2"><Pill tone={p.aktif ? "ok" : "neutral"}>{p.aktif ? "Aktif" : "Nonaktif"}</Pill></td>
                 </tr>
               ))}
+              {penggunaHalIni.length === 0 && (
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-ink-soft text-xs">Tidak ada pengguna yang cocok.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        <Pagination halaman={halPenggunaAman} totalHalaman={totalHalPengguna} hrefHalaman={hrefHalPengguna} />
       </Card>
     </AppShell>
   );

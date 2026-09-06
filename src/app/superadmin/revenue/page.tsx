@@ -23,6 +23,7 @@ export default async function SuperadminRevenuePage() {
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle="Revenue Platform"
       pageSubtitle="Pendapatan langganan Selaras Ajar dari sekolah tenant — terpisah dari SPP/tagihan sekolah ke siswanya"
+      lebarPenuh
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-6">
         <StatCard label="MRR (bulan ini)" value={formatRupiah(mrrTotal)} tone="good" />

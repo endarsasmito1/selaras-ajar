@@ -71,7 +71,7 @@ export function SoalEditor({ name, defaultValue = "" }: { name: string; defaultV
           editorRef.current = instance;
         }}
         setOptions={{
-          height: "180",
+          height: "320",
           buttonList: [
             ["bold", "italic", "underline", "strike"],
             ["superscript", "subscript"],

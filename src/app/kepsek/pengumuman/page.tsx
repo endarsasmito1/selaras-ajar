@@ -4,13 +4,14 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { formatTanggal } from "@/lib/utils";
 
 export default async function PengumumanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; pengumuman_dibuat?: string; pengumuman_dihapus?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -27,11 +28,8 @@ export default async function PengumumanPage({
       pageTitle="Pengumuman Sekolah"
       pageSubtitle="1.20 — tampil sbg widget di dashboard guru, murid, orang tua, dan TU"
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.pengumuman_dibuat !== undefined && (
-        <div className="mb-4"><Callout>✓ Pengumuman "{sp.pengumuman_dibuat}" berhasil diterbitkan.</Callout></div>
-      )}
-      {sp.pengumuman_dihapus && <div className="mb-4"><Callout>✓ Pengumuman dihapus.</Callout></div>}
 
       <form action="/api/pengumuman" method="POST" className="bg-paper-raised border border-rule rounded-xl p-5 mb-6">
         <h3 className="text-base font-semibold mb-3">+ Buat pengumuman baru</h3>

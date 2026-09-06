@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
 export default async function TugasPage({
@@ -36,13 +37,12 @@ export default async function TugasPage({
       pageSubtitle={`${tugasList.length} tugas dibuat — pilih kelas untuk lihat daftarnya (1.6)`}
     >
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
-      <details className="bg-paper-raised border border-rule rounded-xl p-5 mb-6">
-        <summary className="cursor-pointer font-semibold text-sm">+ Buat tugas baru</summary>
-        <form action="/api/tugas" method="POST" encType="multipart/form-data" className="mt-4">
-          <div className="grid md:grid-cols-2 gap-3 mb-3">
+      <Drawer triggerLabel="+ Buat tugas baru" eyebrow="Tugas / PR" title="Buat tugas baru">
+        <form action="/api/tugas" method="POST" encType="multipart/form-data" className="flex flex-col gap-3">
+          <div className="grid md:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold">Kelas + mapel</label>
-              <select name="penugasan" id="penugasan-tugas" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+              <select name="penugasan" id="penugasan-tugas" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                 {penugasan.map((p) => (
                   <option key={p.id} value={`${p.kelas.id}|${p.mapel.id}`}>{p.kelas.nama} — {p.mapel.nama}</option>
                 ))}
@@ -52,30 +52,34 @@ export default async function TugasPage({
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold">Tenggat</label>
-              <input type="datetime-local" name="tenggat" required className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input type="datetime-local" name="tenggat" required className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
-          <div className="flex flex-col gap-1.5 mb-3">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Judul</label>
-            <input name="judul" required placeholder="mis. PR Pecahan" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+            <input name="judul" required placeholder="mis. PR Pecahan" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
           </div>
-          <div className="flex flex-col gap-1.5 mb-3">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Instruksi</label>
             <RichTextEditor name="instruksi" required rows={3} placeholder="Kerjakan soal halaman 24…" />
           </div>
-          <div className="grid md:grid-cols-2 gap-3 mb-4">
+          <div className="grid md:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold">Lampiran (unggah berkas, opsional)</label>
               <input name="lampiranFile" type="file" className="text-sm" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold">Tautan rujukan (opsional)</label>
-              <input name="tautanUrl" type="url" placeholder="https://youtube.com/…" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="tautanUrl" type="url" placeholder="https://youtube.com/…" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
-          <Button type="submit" size="sm">Publikasikan tugas</Button>
+          <div className="border-b border-rule my-1" />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm">Publikasikan tugas</Button>
+            <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+          </div>
         </form>
-      </details>
+      </Drawer>
 
       <div className="grid md:grid-cols-3 gap-3.5">
         {kelasUnik.map((k) => (
