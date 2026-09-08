@@ -33,10 +33,26 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
+      - name: "DEBUG: cek file db setelah migrate deploy"
+        run: |
+          ls -la "$GITHUB_WORKSPACE"/*.db* 2>&1 || echo "tidak ada *.db di workspace root"
+          sqlite3 "$GITHUB_WORKSPACE/ci.db" ".tables" 2>&1 || echo "sqlite3 gagal baca"
       - run: npx playwright install --with-deps chromium
+      - name: "DEBUG: cek file db setelah playwright install"
+        run: |
+          ls -la "$GITHUB_WORKSPACE"/*.db* 2>&1 || echo "tidak ada *.db di workspace root"
+          sqlite3 "$GITHUB_WORKSPACE/ci.db" ".tables" 2>&1 || echo "sqlite3 gagal baca"
       - run: npm run build
+      - name: "DEBUG: cek file db setelah build"
+        run: |
+          ls -la "$GITHUB_WORKSPACE"/*.db* 2>&1 || echo "tidak ada *.db di workspace root"
+          sqlite3 "$GITHUB_WORKSPACE/ci.db" ".tables" 2>&1 || echo "sqlite3 gagal baca"
       - run: npm run lint
       - run: npx tsc --noEmit
+      - name: "DEBUG: cek file db tepat sebelum playwright test"
+        run: |
+          ls -la "$GITHUB_WORKSPACE"/*.db* 2>&1 || echo "tidak ada *.db di workspace root"
+          sqlite3 "$GITHUB_WORKSPACE/ci.db" ".tables" 2>&1 || echo "sqlite3 gagal baca"
       - run: npx playwright test
       - name: Upload laporan Playwright kalau ada test gagal
         if: failure()
