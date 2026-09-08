@@ -28,7 +28,12 @@ test.describe("Tugas / PR — guru buat & koreksi", () => {
   test("positif: guru beri nilai & catatan pada pengumpulan murid", async ({ page }) => {
     await page.goto("/guru/tugas");
     await page.locator('a[href^="/guru/tugas/kelas/"]').first().click(); // masuk ke daftar tugas 1 kelas
-    await page.locator('a[href^="/guru/tugas/"]').first().click(); // masuk ke detail 1 tugas
+    // Feedback teknis (Sep 2026) — dua test di describe ini gagal "element is not visible" persisten,
+    // TERNYATA bukan soal timing: `a[href^="/guru/tugas/"]` tanpa scope juga match link notifikasi
+    // "tugas belum dinilai" di panel NotifBell (tersembunyi by-default di topbar, muncul lebih dulu
+    // di document order drpd konten utama) — `.first()` kadang nyangkut ke link tersembunyi itu,
+    // bukan baris tugas yang kelihatan. Scope ke `main` (konten halaman, bukan chrome AppShell).
+    await page.locator('main a[href^="/guru/tugas/"]').first().click(); // masuk ke detail 1 tugas
     const linkMurid = page.locator('a[href*="/murid/"]').first();
     if (await linkMurid.count()) {
       await linkMurid.click();
@@ -43,7 +48,7 @@ test.describe("Tugas / PR — guru buat & koreksi", () => {
   test("negatif: nilai di luar rentang 0-100 ditolak validasi HTML (max=100)", async ({ page }) => {
     await page.goto("/guru/tugas");
     await page.locator('a[href^="/guru/tugas/kelas/"]').first().click();
-    await page.locator('a[href^="/guru/tugas/"]').first().click();
+    await page.locator('main a[href^="/guru/tugas/"]').first().click();
     const linkMurid = page.locator('a[href*="/murid/"]').first();
     if (await linkMurid.count()) {
       await linkMurid.click();

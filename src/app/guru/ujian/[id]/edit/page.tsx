@@ -5,6 +5,9 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { SoalEditor } from "@/components/ui/SoalEditor";
 import { SoalHtml } from "@/lib/sanitize-html";
@@ -23,7 +26,7 @@ export default async function EditUjianPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ ujian_dibuat?: string; error?: string; tingkatKesulitan?: string }>;
+  searchParams: Promise<{ error?: string; tingkatKesulitan?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -54,11 +57,7 @@ export default async function EditUjianPage({
         </LinkButton>
       }
     >
-      {sp.ujian_dibuat && (
-        <div className="mb-4">
-          <Callout>✓ Ujian dibuat. Tersimpan otomatis sebagai draft — aman ditinggal kapan saja, lanjutkan susun soal & pengaturannya nanti.</Callout>
-        </div>
-      )}
+      <ToastFromQuery />
       {sp.error && (
         <div className="mb-4">
           <Callout tone="warn">{sp.error}</Callout>
@@ -77,7 +76,7 @@ export default async function EditUjianPage({
           </div>
 
           {ujian.soal.length === 0 && (
-            <p className="text-sm text-ink-soft mb-4">Belum ada soal — tambahkan dari bank soal di kanan, atau buat baru.</p>
+            <div className="mb-4"><EmptyState icon="❖" title="Belum ada soal" hint="Tambahkan dari bank soal di kanan, atau buat baru." /></div>
           )}
 
           <div className="flex flex-col gap-3 mb-6">
@@ -162,14 +161,13 @@ export default async function EditUjianPage({
             ℹ️ <b>Satu ujian boleh mencampur jenis soal</b> — PG &amp; jawaban singkat dinilai otomatis, esai dinilai manual.
           </Callout>
 
-          <details className="mt-6 bg-paper-raised border border-rule rounded-xl p-5">
-            <summary className="cursor-pointer font-semibold text-sm">+ Buat soal baru langsung untuk ujian ini</summary>
-            <form action="/api/soal" method="POST" className="mt-4">
+          <Drawer triggerLabel="+ Buat soal baru langsung untuk ujian ini" eyebrow="Ujian" title="Buat soal baru">
+            <form action="/api/soal" method="POST">
               <input type="hidden" name="ujianId" value={ujian.id} />
               <input type="hidden" name="mapelId" value={ujian.mapelId} />
               <div className="flex flex-col gap-1.5 mb-3">
                 <label className="text-xs font-semibold">Jenis soal</label>
-                <select name="jenis" id="jenis-select-2" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+                <select name="jenis" id="jenis-select-2" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                   <option value="PILIHAN_GANDA">Pilihan Ganda</option>
                   <option value="PILIHAN_GANDA_KOMPLEKS">Pilihan Ganda Kompleks (bisa &gt;1 jawaban benar)</option>
                   <option value="PILIHAN_GANDA_MINUS">Pilihan Ganda (Nilai Minus jika salah)</option>
@@ -188,16 +186,16 @@ export default async function EditUjianPage({
                     <div key={i} className="flex items-center gap-2">
                       <input type="radio" name="kunciJawaban" value={i} className="kunci-pg-2 accent-[color:var(--primary)]" title="Tandai sebagai kunci jawaban (PG biasa)" />
                       <input type="checkbox" name="kunciJawabanMulti" value={i} className="kunci-pgk-2" style={{ display: "none" }} title="Centang sbg kunci jawaban (PG Kompleks)" />
-                      <input name="opsi" required placeholder={`Opsi ${String.fromCharCode(65 + i)}`} className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+                      <input name="opsi" required placeholder={`Opsi ${String.fromCharCode(65 + i)}`} className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                     </div>
                   ))}
                 </div>
               </div>
               <div className="flex flex-col gap-1.5 mb-3">
                 <label className="text-xs font-semibold">Kunci jawaban (Jawaban Singkat)</label>
-                <input name="kunciSingkat" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+                <input name="kunciSingkat" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
               </div>
-              <div id="pengurangan-minus-2" className="grid grid-cols-2 gap-3 mb-3 bg-paper border border-rule rounded-lg p-3" style={{ display: "none" }}>
+              <div id="pengurangan-minus-2" className="grid grid-cols-2 gap-3 mb-3 bg-paper-raised border border-rule rounded-lg p-3" style={{ display: "none" }}>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold">Mode potongan kalau salah</label>
                   <select name="penguranganMode" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
@@ -212,15 +210,19 @@ export default async function EditUjianPage({
               </div>
               <div id="durasi-soal-2" className="flex flex-col gap-1.5 mb-3" style={{ display: "none" }}>
                 <label className="text-xs font-semibold">Durasi pengerjaan soal ini (detik, opsional)</label>
-                <input name="durasiDetik" type="number" min="1" placeholder="mis. 120" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm w-40" />
+                <input name="durasiDetik" type="number" min="1" placeholder="mis. 120" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-40" />
               </div>
               <div className="flex flex-col gap-1.5 mb-4">
                 <label className="text-xs font-semibold">Poin</label>
-                <input name="poinDefault" type="number" defaultValue={20} className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm w-24" />
+                <input name="poinDefault" type="number" defaultValue={20} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-24" />
               </div>
-              <Button type="submit" size="sm">Tambah ke ujian</Button>
+              <div className="border-b border-rule my-3" />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">Tambah ke ujian</Button>
+                <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+              </div>
             </form>
-          </details>
+          </Drawer>
         </div>
 
         <div className="bg-paper-raised border border-rule rounded-xl p-5">

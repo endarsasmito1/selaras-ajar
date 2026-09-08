@@ -5,6 +5,8 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SoalEditor } from "@/components/ui/SoalEditor";
 
 export default async function BankSoalPage({
@@ -47,12 +49,11 @@ export default async function BankSoalPage({
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
 
       {semuaMapel.length > 0 && (
-        <details className="bg-paper-raised border border-rule rounded-xl p-5 mb-6">
-          <summary className="cursor-pointer font-semibold text-sm">+ Tambah soal baru</summary>
-          <form action="/api/soal" method="POST" className="mt-4" id="form-soal">
+        <Drawer triggerLabel="+ Tambah soal baru" eyebrow="Bank Soal" title="Tambah soal baru">
+          <form action="/api/soal" method="POST" id="form-soal">
             <div className="flex flex-col gap-1.5 mb-3">
               <label className="text-xs font-semibold">Mata pelajaran</label>
-              <select name="mapelId" required className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+              <select name="mapelId" required className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                 {semuaMapel.map((m) => (
                   <option key={m.id} value={m.id}>{m.nama}</option>
                 ))}
@@ -60,7 +61,7 @@ export default async function BankSoalPage({
             </div>
             <div className="flex flex-col gap-1.5 mb-3">
               <label className="text-xs font-semibold">Jenis soal</label>
-              <select name="jenis" id="jenis-select" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+              <select name="jenis" id="jenis-select" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                 <option value="PILIHAN_GANDA">Pilihan Ganda</option>
                 <option value="PILIHAN_GANDA_KOMPLEKS">Pilihan Ganda Kompleks (bisa &gt;1 jawaban benar)</option>
                 <option value="PILIHAN_GANDA_MINUS">Pilihan Ganda (Nilai Minus jika salah)</option>
@@ -80,7 +81,7 @@ export default async function BankSoalPage({
                   <div key={i} className="flex items-center gap-2">
                     <input type="radio" name="kunciJawaban" value={i} className="kunci-pg accent-[color:var(--primary)]" title="Tandai sebagai kunci jawaban (PG biasa)" />
                     <input type="checkbox" name="kunciJawabanMulti" value={i} className="kunci-pgk" style={{ display: "none" }} title="Centang sbg kunci jawaban (PG Kompleks)" />
-                    <input name="opsi" required placeholder={`Opsi ${String.fromCharCode(65 + i)}`} className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+                    <input name="opsi" required placeholder={`Opsi ${String.fromCharCode(65 + i)}`} className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                   </div>
                 ))}
               </div>
@@ -89,10 +90,10 @@ export default async function BankSoalPage({
 
             <div id="kunci-singkat" className="flex flex-col gap-1.5 mb-3" style={{ display: "none" }}>
               <label className="text-xs font-semibold">Kunci jawaban</label>
-              <input name="kunciSingkat" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" placeholder="mis. 43200" />
+              <input name="kunciSingkat" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" placeholder="mis. 43200" />
             </div>
 
-            <div id="pengurangan-minus" className="grid grid-cols-2 gap-3 mb-3 bg-paper border border-rule rounded-lg p-3" style={{ display: "none" }}>
+            <div id="pengurangan-minus" className="grid grid-cols-2 gap-3 mb-3 bg-paper-raised border border-rule rounded-lg p-3" style={{ display: "none" }}>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold">Mode potongan kalau salah</label>
                 <select name="penguranganMode" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
@@ -108,17 +109,17 @@ export default async function BankSoalPage({
 
             <div id="durasi-soal" className="flex flex-col gap-1.5 mb-3" style={{ display: "none" }}>
               <label className="text-xs font-semibold">Durasi pengerjaan soal ini (detik, opsional)</label>
-              <input name="durasiDetik" type="number" min="1" placeholder="mis. 120" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm w-40" />
+              <input name="durasiDetik" type="number" min="1" placeholder="mis. 120" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-40" />
             </div>
 
             <div className="grid md:grid-cols-3 gap-3 mb-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold">Topik</label>
-                <input name="topik" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" placeholder="mis. Pecahan" />
+                <input name="topik" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" placeholder="mis. Pecahan" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold">Tingkat kesulitan</label>
-                <select name="tingkatKesulitan" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+                <select name="tingkatKesulitan" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                   <option value="mudah">Mudah</option>
                   <option value="sedang">Sedang</option>
                   <option value="sulit">Sulit</option>
@@ -126,12 +127,16 @@ export default async function BankSoalPage({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold">Poin default</label>
-                <input name="poinDefault" type="number" defaultValue={10} className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+                <input name="poinDefault" type="number" defaultValue={10} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
-            <Button type="submit" size="sm">Simpan ke bank soal</Button>
+            <div className="border-b border-rule my-3" />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm">Simpan ke bank soal</Button>
+              <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+            </div>
           </form>
-        </details>
+        </Drawer>
       )}
 
       <div className="grid md:grid-cols-3 gap-3.5">
@@ -143,7 +148,7 @@ export default async function BankSoalPage({
             </Card>
           </a>
         ))}
-        {mapelUnik.length === 0 && <p className="text-sm text-ink-soft">Belum ada mapel yang diampu.</p>}
+        {mapelUnik.length === 0 && <EmptyState icon="❖" title="Belum ada mapel yang diampu" hint="Hubungi kepala sekolah untuk penugasan mengajar." />}
       </div>
 
       <script

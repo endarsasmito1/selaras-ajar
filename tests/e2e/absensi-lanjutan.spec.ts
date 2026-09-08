@@ -32,7 +32,9 @@ test.describe("Absensi lanjutan — catatan & tanggal/hari (3.5-3.6)", () => {
     const tanggal = db.absensi.findTanggalDenganStatusBeragam(kelas5B!.id as string);
     test.skip(!tanggal, "Tidak ada tanggal dgn status beragam di data seed kelas 5B saat ini");
     if (!tanggal) return;
-    await page.goto(`/guru/absensi?tab=riwayat&tanggal=${tanggal}`);
+    // `kelas=` wajib disertakan — tanpa itu halaman fallback ke kelas default guru (belum tentu
+    // 5B), padahal tanggal di atas dicari SPESIFIK utk data kelas 5B.
+    await page.goto(`/guru/absensi?kelas=${kelas5B!.id}&tab=riwayat&tanggal=${tanggal}`);
     const statusUnik = new Set(await page.locator("tbody td:nth-child(2)").allTextContents());
     expect(statusUnik.size).toBeGreaterThan(1);
   });
@@ -80,14 +82,21 @@ test.describe("Absensi lanjutan — datepicker & indikator izin pending (1.23)",
       keterangan: "Demam — uji indikator absensi",
     });
 
+    // Feedback teknis (Sep 2026) — badge inline "Izin diajukan — Sakit" per-baris murid sudah
+    // dipindah jadi kartu "Pengajuan izin menunggu" TERPISAH di atas tabel absensi (kolom Murid/
+    // Jenis/Keterangan/Aksi, lihat guru/absensi/page.tsx) — bukan lagi teks inline di tabel utama.
     await page.goto(`/guru/absensi?kelas=${kelas5BId}&tab=isi`);
-    await expect(page.getByText(/Izin diajukan — Sakit/)).toBeVisible();
-    await page.getByRole("button", { name: "Setujui" }).click();
+    await expect(page.getByText("Pengajuan izin menunggu")).toBeVisible();
+    const baris = page.locator("tr", { hasText: siswaDb.nama as string }).filter({ hasText: "Sakit" });
+    await expect(baris).toBeVisible();
+    await baris.getByRole("button", { name: "Setujui" }).click();
     await expect(page).toHaveURL(/\/guru\/absensi/);
 
     const updated = db.pengajuanIzin.findById(pengajuanId);
     expect(updated?.status).toBe("DISETUJUI");
-    // Setujui izin men-upsert Absensi (SAKIT) — badge "Izin diajukan" harus hilang setelah diputuskan.
-    await expect(page.getByText(/Izin diajukan — Sakit/)).not.toBeVisible();
+    // Baris SPESIFIK murid ini yg harus hilang — bukan asumsi seluruh kartu ikut lenyap, krn
+    // kelas 5B (data seed asli) bisa aja punya pengajuan izin MENUNGGU murid lain yang gak
+    // tersentuh aksi "Setujui" ini, dan kartunya tetap tampil selama masih ada baris lain.
+    await expect(page.locator("tr", { hasText: siswaDb.nama as string }).filter({ hasText: "Sakit" })).toHaveCount(0);
   });
 });

@@ -14,20 +14,22 @@ test.describe("Jadwal — guru tidak bisa bentrok dengan jadwalnya sendiri linta
     const hrefB = await kelasLinks.nth(1).getAttribute("href");
 
     await page.goto(hrefA!);
-    let tambahDetails = page.locator("details", { hasText: "+ Tambah sesi" }).first();
-    await tambahDetails.locator("summary").click();
-    await tambahDetails.locator('input[name="jamMulai"]').fill("06:05");
-    await tambahDetails.locator('input[name="jamSelesai"]').fill("06:35");
-    await tambahDetails.getByRole("button", { name: "Simpan sesi" }).click();
+    // Feedback teknis (Sep 2026) — form tambah sesi sekarang <Drawer> (native <dialog>), bukan
+    // <details>/<summary> lagi — trigger di-klik dulu, lalu interaksi discope ke `dialog[open]`.
+    await page.getByText("+ Tambah sesi", { exact: true }).first().click();
+    let dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="jamMulai"]').fill("06:05");
+    await dialog.locator('input[name="jamSelesai"]').fill("06:35");
+    await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
     await expect(page).not.toHaveURL(/error=/);
 
     // Coba isi jam yang sama (overlap) di kelas kedua — guru yang sama, hari yang sama.
     await page.goto(hrefB!);
-    tambahDetails = page.locator("details", { hasText: "+ Tambah sesi" }).first();
-    await tambahDetails.locator("summary").click();
-    await tambahDetails.locator('input[name="jamMulai"]').fill("06:05");
-    await tambahDetails.locator('input[name="jamSelesai"]').fill("06:35");
-    await tambahDetails.getByRole("button", { name: "Simpan sesi" }).click();
+    await page.getByText("+ Tambah sesi", { exact: true }).first().click();
+    dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="jamMulai"]').fill("06:05");
+    await dialog.locator('input[name="jamSelesai"]').fill("06:35");
+    await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
 
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Bentrok jadwal/)).toBeVisible();

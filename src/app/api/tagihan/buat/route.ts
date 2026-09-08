@@ -66,6 +66,6 @@ export async function POST(req: NextRequest) {
     })),
   });
 
-  url.search = `?tagihan_dibuat=${siswaTarget.length}`;
+  url.search = `?toast=${encodeURIComponent(`${siswaTarget.length} tagihan baru dibuat.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

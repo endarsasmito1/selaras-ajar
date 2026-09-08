@@ -61,6 +61,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  url.search += `&nilai_disimpan=${encodeURIComponent(judul)}`;
+  url.search += `&toast=${encodeURIComponent(`Nilai untuk "${judul}" tersimpan.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

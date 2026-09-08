@@ -7,6 +7,8 @@ import { LinkButton } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { StatCard } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { sanitizeSoalHtml } from "@/lib/sanitize-html";
@@ -31,7 +33,7 @@ export default async function HasilUjianPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; komentar_disimpan?: string; koreksi_dikonfirmasi?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -155,9 +157,8 @@ export default async function HasilUjianPage({
         </div>
       }
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.komentar_disimpan && <div className="mb-4"><Callout tone="info">Komentar tersimpan.</Callout></div>}
-      {sp.koreksi_dikonfirmasi && <div className="mb-4"><Callout tone="info">Koreksi dikonfirmasi — nilai & komentar sekarang tampil ke murid/ortu.</Callout></div>}
 
       {ujian.status === "PUBLISHED" && (
         <div className="bg-paper-raised border border-rule rounded-xl p-4 mb-5">
@@ -181,9 +182,8 @@ export default async function HasilUjianPage({
       </div>
 
       {kelasTargetOpsi.length > 0 && (
-        <details className="bg-paper-raised border border-rule rounded-xl p-4 mb-6">
-          <summary className="cursor-pointer font-semibold text-sm">↻ Duplikat ke kelas lain</summary>
-          <p className="text-xs text-ink-soft mt-1.5 mb-3">
+        <Drawer triggerLabel="↻ Duplikat ke kelas lain" eyebrow="Ujian" title="Duplikat ke kelas lain">
+          <p className="text-xs text-ink-soft mb-3">
             Bikin salinan ujian ini (soal sama) sbg draft baru — pilih 1 atau lebih kelas lain yang kamu ampu, opsional ganti judulnya dulu. Hasil/nilai ujian ini tak ikut tersalin/terpengaruh.
           </p>
           <form action="/api/ujian/duplikat" method="POST" className="flex flex-col gap-3">
@@ -193,12 +193,12 @@ export default async function HasilUjianPage({
               <input
                 name="judulBaru"
                 defaultValue={`${ujian.judul} (salinan)`}
-                className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm"
+                className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm"
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold">Kelas target (bisa pilih lebih dari satu)</label>
-              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto bg-paper border border-rule rounded-lg p-2.5">
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto bg-paper-raised border border-rule rounded-lg p-2.5">
                 {kelasTargetOpsi.map((k) => (
                   <label key={k.id} className="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="kelasTargetIds" value={k.id} />
@@ -211,7 +211,7 @@ export default async function HasilUjianPage({
               Duplikat
             </ConfirmSubmitButton>
           </form>
-        </details>
+        </Drawer>
       )}
 
       <h3 className="text-[11px] uppercase tracking-wider text-ink-soft font-bold mb-2.5">Ringkasan</h3>

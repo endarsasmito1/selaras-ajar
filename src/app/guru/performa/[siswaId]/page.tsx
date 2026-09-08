@@ -13,7 +13,9 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { PerformaSiswaView } from "@/components/PerformaSiswaView";
 import { Card } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { Drawer } from "@/components/ui/Drawer";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -86,7 +88,7 @@ export default async function PerformaMuridGuruPage({
 
           <Card className="mt-4">
             <h3 className="text-sm font-semibold mb-3">Prestasi & Penghargaan</h3>
-            {prestasi.length === 0 && <p className="text-xs text-ink-soft mb-3">Belum ada catatan prestasi.</p>}
+            {prestasi.length === 0 && <EmptyState icon="🏆" title="Belum ada catatan prestasi" />}
             <div className="flex flex-col gap-2 mb-3">
               {prestasi.map((p) => (
                 <div key={p.id} className="border-b border-rule last:border-0 pb-2">
@@ -96,22 +98,25 @@ export default async function PerformaMuridGuruPage({
                 </div>
               ))}
             </div>
-            <details>
-              <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah prestasi</summary>
-              <form action="/api/siswa/prestasi" method="POST" className="flex flex-col gap-2 mt-2">
+            <Drawer triggerLabel="+ Tambah prestasi" eyebrow="Performa Siswa" title="Tambah prestasi">
+              <form action="/api/siswa/prestasi" method="POST" className="flex flex-col gap-2">
                 <input type="hidden" name="siswaId" value={siswaId} />
                 <input type="hidden" name="kembaliKe" value={`/guru/performa/${siswaId}`} />
-                <input name="judul" required placeholder="mis. Juara 1 Lomba Cerdas Cermat" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-                <input name="tanggal" type="date" required className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-                <textarea name="keterangan" rows={2} placeholder="Keterangan (opsional)" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-                <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan</button>
+                <input name="judul" required placeholder="mis. Juara 1 Lomba Cerdas Cermat" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                <input name="tanggal" type="date" required className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                <textarea name="keterangan" rows={2} placeholder="Keterangan (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                <div className="border-b border-rule my-1" />
+                <div className="flex gap-3">
+                  <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan</button>
+                  <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
+                </div>
               </form>
-            </details>
+            </Drawer>
           </Card>
 
           <Card className="mt-4">
             <h3 className="text-sm font-semibold mb-3">Riwayat Asesmen Deskriptif (N-5)</h3>
-            {asesmen.length === 0 && <p className="text-xs text-ink-soft">Belum ada asesmen deskriptif.</p>}
+            {asesmen.length === 0 && <EmptyState icon="✒" title="Belum ada asesmen deskriptif" />}
             <div className="flex flex-col gap-2">
               {asesmen.map((a) => (
                 <div key={a.id} className="border-b border-rule last:border-0 pb-2">
@@ -125,7 +130,7 @@ export default async function PerformaMuridGuruPage({
           <Card className="mt-4">
             <h3 className="text-sm font-semibold mb-1">Catatan Guru</h3>
             <p className="text-xs text-ink-soft mb-3">Privat — hanya terlihat wali kelas, kepala sekolah, & orang tua. Murid tidak melihat ini.</p>
-            {catatan.length === 0 && <p className="text-xs text-ink-soft mb-3">Belum ada catatan.</p>}
+            {catatan.length === 0 && <EmptyState icon="📋" title="Belum ada catatan guru" />}
             <div className="flex flex-col gap-2 mb-3">
               {catatan.map((c) => (
                 <div key={c.id} className="bg-paper border border-rule rounded-lg p-3">
@@ -145,15 +150,18 @@ export default async function PerformaMuridGuruPage({
                 </div>
               ))}
             </div>
-            <details>
-              <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah catatan</summary>
-              <form action="/api/siswa/catatan" method="POST" className="flex flex-col gap-2 mt-2">
+            <Drawer triggerLabel="+ Tambah catatan" eyebrow="Performa Siswa" title="Tambah catatan guru">
+              <form action="/api/siswa/catatan" method="POST" className="flex flex-col gap-2">
                 <input type="hidden" name="siswaId" value={siswaId} />
-                <input name="mapelKonteks" placeholder="Konteks mapel (opsional)" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-                <textarea name="isi" required rows={2} placeholder="Tulis observasi tentang murid ini…" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-                <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan catatan</button>
+                <input name="mapelKonteks" placeholder="Konteks mapel (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                <textarea name="isi" required rows={2} placeholder="Tulis observasi tentang murid ini…" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                <div className="border-b border-rule my-1" />
+                <div className="flex gap-3">
+                  <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan catatan</button>
+                  <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
+                </div>
               </form>
-            </details>
+            </Drawer>
           </Card>
         </>
       )}

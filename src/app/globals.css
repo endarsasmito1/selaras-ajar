@@ -1,31 +1,64 @@
 @import "tailwindcss";
 
 :root {
-  /* Token warna soft — dari ui-design-system-selaras-ajar.md §2.1 */
-  --paper: #f5f3ea;
-  --paper-raised: #ece8da;
-  --paper-sunken: #e3decb;
-  --rule: #dbd5c3;
-  --ink: #34403a;
-  --ink-soft: #707b70;
+  /* Token warna — disamakan PERSIS ke `UI Redesign/prototype/assets/styles.css` (sumber
+     kebenaran desain, bukan dokumen `ui-design-system-selaras-ajar.md` yang lama dipakai
+     di sini sebelumnya — dua dokumen itu ternyata BEDA nilai, bukan cuma beda nama, utamanya
+     di grup netral/paper/ink/rule di bawah ini. Ditemukan lewat diff literal 2 stylesheet,
+     bukan asumsi "sama krn sama-sama soft-teal").
 
+     Netral / kertas */
+  --paper: #f6f4ec;
+  /* Kartu SENGAJA dibikin dekat putih biar kontras dari latar (bukan lebih gelap dari latar
+     kayak sebelumnya — itu kebalik dari yang dimaksud). */
+  --paper-raised: #fdfcf7;
+  --paper-sunken: #efe9d8;
+  --rule: #e8e2cf;
+  /* Divider HALUS di dalam kartu (baris tabel/list) — sengaja beda dari --rule (garis tepi
+     kartu itu sendiri) supaya ada 2 tingkat ketegasan garis, bukan cuma satu warna dipakai ulang. */
+  --rule-soft: #ede8d7;
+  --sidebar-rule: #ded6bd;
+  --topbar-rule: #e5dfcb;
+  --ink: #333f38;
+  --ink-soft: #8a9186;
+  /* Judul halaman/kartu & label ditonjolkan — sedikit lebih gelap dari --ink. */
+  --ink-heading: #2a352f;
+
+  /* Primer (teal) */
   --primary: #5c8f80;
   --primary-deep: #3d6c5f;
+  --primary-deeper: #2c5147;
   --primary-tint: #dce8e1;
 
+  /* Aksen (emas) */
   --accent: #d9ad6e;
   --accent-deep: #ad8248;
   --accent-tint: #f3e6cd;
+  --accent-tint-2: #eee0c1;
+  --accent-ink: #3a2c10;
 
+  /* Semantik */
   --success: #6e9e7b;
   --success-tint: #e1ebe1;
+  --success-text: #4c8a5c;
   --warning: #c08858;
   --warning-tint: #f1e1d1;
   --danger: #b4685a;
-  --danger-tint: #f3ddd8;
+  --danger-tint: #f1deda;
+  /* Khusus status "Izin" — beda hue dari primary/success (sama-sama hijau) biar gak ketuker. */
+  --info-blue: #5c7fa6;
+  --info-blue-tint: #e1e7ee;
 
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-sans: ui-sans-serif, "Segoe UI", Helvetica, Arial, sans-serif;
+  --shadow: 0 1px 2px rgba(60, 50, 20, 0.05), 0 4px 14px rgba(60, 50, 20, 0.05);
+  --shadow-lg: 0 12px 30px rgba(40, 35, 20, 0.14);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.22);
+  --backdrop: rgba(40, 35, 20, 0.35);
+
+  /* `--font-serif-loaded`/`--font-sans-loaded` disuntik next/font/google (layout.tsx) dari
+     variabel CSS Lora & Plus Jakarta Sans — persis webfont yang dipakai prototipe. Fallback
+     sistem tetap dipertahankan di belakangnya kalau font gagal dimuat. */
+  --font-serif: var(--font-serif-loaded), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-sans: var(--font-sans-loaded), ui-sans-serif, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 @theme inline {
@@ -33,23 +66,38 @@
   --color-paper-raised: var(--paper-raised);
   --color-paper-sunken: var(--paper-sunken);
   --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-sidebar-rule: var(--sidebar-rule);
+  --color-topbar-rule: var(--topbar-rule);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-ink-heading: var(--ink-heading);
 
   --color-primary: var(--primary);
   --color-primary-deep: var(--primary-deep);
+  --color-primary-deeper: var(--primary-deeper);
   --color-primary-tint: var(--primary-tint);
 
   --color-accent: var(--accent);
   --color-accent-deep: var(--accent-deep);
   --color-accent-tint: var(--accent-tint);
+  --color-accent-tint-2: var(--accent-tint-2);
+  --color-accent-ink: var(--accent-ink);
 
   --color-success: var(--success);
   --color-success-tint: var(--success-tint);
+  --color-success-text: var(--success-text);
   --color-warning: var(--warning);
   --color-warning-tint: var(--warning-tint);
   --color-danger: var(--danger);
   --color-danger-tint: var(--danger-tint);
+  --color-info-blue: var(--info-blue);
+  --color-info-blue-tint: var(--info-blue-tint);
+
+  --shadow-card: var(--shadow);
+  --shadow-card-lg: var(--shadow-lg);
+  --shadow-card-modal: var(--shadow-modal);
+  --color-backdrop: var(--backdrop);
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
@@ -64,8 +112,46 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-serif);
   font-weight: 600;
+  color: var(--ink-heading);
 }
 
 .tabnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* §7.1 — Drawer: panel geser dari kanan (Fase 4). `@starting-style` = animasi masuk murni CSS,
+   tanpa JS timing hacks; `allow-discrete` supaya transition tetap jalan walau properti berubah
+   dari/ke `display:none` (default UA stylesheet <dialog> tertutup). */
+dialog.sa-drawer {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: min(400px, 100vw);
+  max-width: 100vw;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 200ms ease, opacity 200ms ease, overlay 200ms ease allow-discrete, display 200ms ease allow-discrete;
+}
+
+dialog.sa-drawer::backdrop {
+  background: rgba(52, 64, 58, 0.25);
+  opacity: 1;
+  transition: opacity 200ms ease, overlay 200ms ease allow-discrete, display 200ms ease allow-discrete;
+}
+
+@starting-style {
+  dialog.sa-drawer[open] {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  dialog.sa-drawer[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.sa-drawer,
+  dialog.sa-drawer::backdrop {
+    transition: none;
+  }
 }

@@ -3,14 +3,16 @@ import { getSemuaTagihanTipe, getSemuaKelas, getDaftarSiswa } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_KEPSEK, NAV_KEUANGAN, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { TargetTagihanFields } from "./TargetTagihanFields";
 
 export default async function TipeTagihanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; tipe_dibuat?: string; tagihan_dibuat?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -39,9 +41,8 @@ export default async function TipeTagihanPage({
       pageSubtitle="Bukan cuma SPP — buku, seragam, study tour, dsb bisa ditagihkan lewat sini"
       headerAction={<LinkButton href="/keuangan" variant="ghost" size="sm">← Kembali ke Keuangan</LinkButton>}
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.tipe_dibuat && <div className="mb-4"><Callout>✓ Jenis tagihan &quot;{sp.tipe_dibuat}&quot; ditambahkan.</Callout></div>}
-      {sp.tagihan_dibuat && <div className="mb-4"><Callout>✓ {sp.tagihan_dibuat} tagihan baru dibuat.</Callout></div>}
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -50,7 +51,7 @@ export default async function TipeTagihanPage({
             {tipeList.map((t) => (
               <div key={t.id} className="text-sm border-b border-rule last:border-0 py-1.5">{t.nama}</div>
             ))}
-            {tipeList.length === 0 && <p className="text-xs text-ink-soft">Belum ada jenis tagihan.</p>}
+            {tipeList.length === 0 && <EmptyState icon="₽" title="Belum ada jenis tagihan" />}
           </div>
           <form action="/api/tagihan-tipe" method="POST" className="flex items-center gap-2">
             <input name="nama" required placeholder="mis. Study Tour Kelas 6" className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />

@@ -68,6 +68,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = `/guru/ujian/${salinan.id}/edit`;
-  url.search = "?ujian_dibuat=1";
+  url.search = `?toast=${encodeURIComponent("Ujian dibuat. Tersimpan otomatis sebagai draft — aman ditinggal kapan saja, lanjutkan susun soal & pengaturannya nanti.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

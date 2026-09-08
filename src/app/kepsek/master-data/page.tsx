@@ -6,21 +6,16 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
+import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const KOMPONEN = ["Ulangan Harian", "Tugas", "UTS", "UAS"];
 
 export default async function MasterDataPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    error?: string;
-    kelas_dibuat?: string;
-    kelas_diubah?: string;
-    mapel_dibuat?: string;
-    mapel_diubah?: string;
-    impor_kelas?: string;
-    impor_mapel?: string;
-  }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -46,13 +41,8 @@ export default async function MasterDataPage({
       pageSubtitle="Kelas & mapel jadi dasar penugasan guru (MG-2), jadwal, ujian, tugas — plus pembobotan/predikat/KKM yang menempel ke mapel di sini (F-18, 1.7)"
       lebarPenuh
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.kelas_dibuat && <div className="mb-4"><Callout>✓ Kelas &quot;{sp.kelas_dibuat}&quot; ditambahkan.</Callout></div>}
-      {sp.kelas_diubah && <div className="mb-4"><Callout>✓ Kelas &quot;{sp.kelas_diubah}&quot; diperbarui.</Callout></div>}
-      {sp.mapel_dibuat && <div className="mb-4"><Callout>✓ Mapel &quot;{sp.mapel_dibuat}&quot; ditambahkan.</Callout></div>}
-      {sp.mapel_diubah && <div className="mb-4"><Callout>✓ Mapel &quot;{sp.mapel_diubah}&quot; diperbarui.</Callout></div>}
-      {sp.impor_kelas && <div className="mb-4"><Callout>✓ Impor kelas selesai — {sp.impor_kelas} baris diproses.</Callout></div>}
-      {sp.impor_mapel && <div className="mb-4"><Callout>✓ Impor mapel selesai — {sp.impor_mapel} baris diproses.</Callout></div>}
 
       {!tahunAktif && (
         <div className="mb-4">
@@ -65,7 +55,9 @@ export default async function MasterDataPage({
           predikat & KKM tetap di bawah selebar penuh krn baris formnya sendiri sudah lebar.
           items-start (bukan default stretch) — tanpa ini card Mapel/Pembobotan yg lebih pendek
           dipaksa setinggi card Kelas (24 baris, plg tinggi), bikin elemen di dalamnya (mis. tombol
-          Simpan kurikulum) ketiban <details> lain saat scroll-into-view Playwright. */}
+          Simpan kurikulum) ketiban elemen lain saat scroll-into-view Playwright. Form
+          tambah/edit/impor di card ini sekarang pakai <Drawer> (bukan <details> lagi) — hindari
+          masalah scroll-into-view yang sama krn form-nya sudah pindah ke overlay top-layer. */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-5 items-start">
         <Card>
           <div className="flex items-center justify-between mb-3">
@@ -84,41 +76,48 @@ export default async function MasterDataPage({
                   <div className="text-[10px] uppercase tracking-wider text-ink-soft font-bold mb-1">Tingkat {tingkat}</div>
                   <div className="flex flex-col gap-1">
                     {kelasTingkat.map((k) => (
-                      <details key={k.id} className="border-b border-rule last:border-0 py-1.5">
-                        <summary className="cursor-pointer flex items-center justify-between text-sm">
-                          <span className="font-semibold">{k.nama}</span>
-                        </summary>
-                        <form action="/api/master-data/kelas/update" method="POST" className="mt-2 flex items-center gap-2">
-                          <input type="hidden" name="kelasId" value={k.id} />
-                          <input name="nama" defaultValue={k.nama} required className="flex-1 bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs" />
-                          <input type="number" name="tingkat" defaultValue={k.tingkat} required min={1} max={12} className="w-16 bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs" />
-                          <Button type="submit" size="sm" variant="ghost">Simpan</Button>
-                        </form>
-                      </details>
+                      <div key={k.id} className="border-b border-rule last:border-0 py-1.5">
+                        <Drawer triggerLabel={k.nama} triggerClassName="cursor-pointer text-sm font-semibold text-left w-full" eyebrow="Kelas" title={`Ubah kelas ${k.nama}`}>
+                          <form action="/api/master-data/kelas/update" method="POST" className="flex items-center gap-2">
+                            <input type="hidden" name="kelasId" value={k.id} />
+                            <input name="nama" defaultValue={k.nama} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                            <input type="number" name="tingkat" defaultValue={k.tingkat} required min={1} max={12} className="w-20 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                            <Button type="submit" size="sm">Simpan</Button>
+                          </form>
+                        </Drawer>
+                      </div>
                     ))}
                   </div>
                 </div>
               ))}
-            {kelasList.length === 0 && <p className="text-xs text-ink-soft py-2">Belum ada kelas.</p>}
+            {kelasList.length === 0 && <EmptyState icon="☰" title="Belum ada kelas" />}
           </div>
 
-          <details className="mb-3">
-            <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah kelas manual</summary>
-            <form action="/api/master-data/kelas" method="POST" className="mt-3 flex flex-col gap-2.5">
-              <input name="nama" required placeholder="Nama kelas, mis. 6C" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <input name="tingkat" required type="number" min={1} max={12} placeholder="Tingkat, mis. 6" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <Button type="submit" size="sm" className="self-start">Tambah kelas</Button>
+          <Drawer triggerLabel="+ Tambah kelas manual" eyebrow="Kelas" title="Tambah kelas manual">
+            <form action="/api/master-data/kelas" method="POST" className="flex flex-col gap-2.5">
+              <input name="nama" required placeholder="Nama kelas, mis. 6C" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="tingkat" required type="number" min={1} max={12} placeholder="Tingkat, mis. 6" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <div className="border-b border-rule my-1" />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">Tambah kelas</Button>
+                <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+              </div>
             </form>
-          </details>
+          </Drawer>
 
-          <details>
-            <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Impor kelas via CSV (nama,tingkat)</summary>
-            <form action="/api/master-data/kelas/impor" method="POST" encType="multipart/form-data" className="mt-3 flex flex-col gap-2.5">
-              <p className="text-xs text-ink-soft">Kolom: <code>nama,tingkat</code> — baris pertama header. Nama yang sudah ada akan dilewati (tak menduplikat).</p>
-              <input name="file" type="file" accept=".csv" required className="text-xs" />
-              <Button type="submit" size="sm" variant="ghost" className="self-start">Unggah & impor</Button>
-            </form>
-          </details>
+          <div className="mt-2">
+            <Drawer triggerLabel="+ Impor kelas via CSV (nama,tingkat)" eyebrow="Kelas" title="Impor kelas via CSV">
+              <form action="/api/master-data/kelas/impor" method="POST" encType="multipart/form-data" className="flex flex-col gap-2.5">
+                <p className="text-xs text-ink-soft">Kolom: <code>nama,tingkat</code> — baris pertama header. Nama yang sudah ada akan dilewati (tak menduplikat).</p>
+                <input name="file" type="file" accept=".csv" required className="text-xs" />
+                <div className="border-b border-rule my-1" />
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm" variant="ghost">Unggah & impor</Button>
+                  <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+                </div>
+              </form>
+            </Drawer>
+          </div>
         </Card>
 
         <Card>
@@ -148,39 +147,46 @@ export default async function MasterDataPage({
           )}
           <div className="flex flex-col gap-1 mb-4">
             {mapelList.map((m) => (
-              <details key={m.id} className="border-b border-rule last:border-0 py-1.5">
-                <summary className="cursor-pointer flex items-center justify-between text-sm">
-                  <span className="font-semibold">{m.nama}</span>
-                  <span className="text-ink-soft tabnum text-xs">KKM {m.kkm}</span>
-                </summary>
-                <form action="/api/master-data/mapel/update" method="POST" className="mt-2 flex items-center gap-2">
-                  <input type="hidden" name="mapelId" value={m.id} />
-                  <input name="nama" defaultValue={m.nama} required className="flex-1 bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs" />
-                  <input type="number" name="kkm" defaultValue={m.kkm} required min={0} max={100} className="w-16 bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs" />
-                  <Button type="submit" size="sm" variant="ghost">Simpan</Button>
-                </form>
-              </details>
+              <div key={m.id} className="border-b border-rule last:border-0 py-1.5 flex items-center justify-between gap-2">
+                <Drawer triggerLabel={m.nama} triggerClassName="cursor-pointer text-sm font-semibold text-left" eyebrow="Mata Pelajaran" title={`Ubah mapel ${m.nama}`}>
+                  <form action="/api/master-data/mapel/update" method="POST" className="flex items-center gap-2">
+                    <input type="hidden" name="mapelId" value={m.id} />
+                    <input name="nama" defaultValue={m.nama} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                    <input type="number" name="kkm" defaultValue={m.kkm} required min={0} max={100} className="w-20 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                    <Button type="submit" size="sm">Simpan</Button>
+                  </form>
+                </Drawer>
+                <span className="text-ink-soft tabnum text-xs shrink-0">KKM {m.kkm}</span>
+              </div>
             ))}
-            {mapelList.length === 0 && <p className="text-xs text-ink-soft py-2">Belum ada mapel.</p>}
+            {mapelList.length === 0 && <EmptyState icon="▤" title="Belum ada mapel" />}
           </div>
 
-          <details className="mb-3">
-            <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah mapel manual</summary>
-            <form action="/api/master-data/mapel" method="POST" className="mt-3 flex flex-col gap-2.5">
-              <input name="nama" required placeholder="Nama mapel, mis. Prakarya" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <input name="kkm" type="number" min={0} max={100} defaultValue={70} placeholder="KKM" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-              <Button type="submit" size="sm" className="self-start">Tambah mapel</Button>
+          <Drawer triggerLabel="+ Tambah mapel manual" eyebrow="Mata Pelajaran" title="Tambah mapel manual">
+            <form action="/api/master-data/mapel" method="POST" className="flex flex-col gap-2.5">
+              <input name="nama" required placeholder="Nama mapel, mis. Prakarya" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <input name="kkm" type="number" min={0} max={100} defaultValue={70} placeholder="KKM" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+              <div className="border-b border-rule my-1" />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">Tambah mapel</Button>
+                <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+              </div>
             </form>
-          </details>
+          </Drawer>
 
-          <details>
-            <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Impor mapel via CSV (nama,kkm)</summary>
-            <form action="/api/master-data/mapel/impor" method="POST" encType="multipart/form-data" className="mt-3 flex flex-col gap-2.5">
-              <p className="text-xs text-ink-soft">Kolom: <code>nama,kkm</code> — baris pertama header, kkm opsional (default 70). Nama yang sudah ada akan dilewati.</p>
-              <input name="file" type="file" accept=".csv" required className="text-xs" />
-              <Button type="submit" size="sm" variant="ghost" className="self-start">Unggah & impor</Button>
-            </form>
-          </details>
+          <div className="mt-2">
+            <Drawer triggerLabel="+ Impor mapel via CSV (nama,kkm)" eyebrow="Mata Pelajaran" title="Impor mapel via CSV">
+              <form action="/api/master-data/mapel/impor" method="POST" encType="multipart/form-data" className="flex flex-col gap-2.5">
+                <p className="text-xs text-ink-soft">Kolom: <code>nama,kkm</code> — baris pertama header, kkm opsional (default 70). Nama yang sudah ada akan dilewati.</p>
+                <input name="file" type="file" accept=".csv" required className="text-xs" />
+                <div className="border-b border-rule my-1" />
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm" variant="ghost">Unggah & impor</Button>
+                  <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+                </div>
+              </form>
+            </Drawer>
+          </div>
         </Card>
       </div>
 
@@ -191,22 +197,26 @@ export default async function MasterDataPage({
             const bobotMap = new Map(m.bobot.map((b) => [b.komponen, b.persentase]));
             const total = KOMPONEN.reduce((s, k) => s + (bobotMap.get(k) ?? 0), 0);
             return (
-              <details key={m.id} className="mb-3 border-t border-rule pt-3 first:border-0 first:pt-0">
-                <summary className="cursor-pointer text-sm font-semibold">
-                  {m.nama} <span className={"font-normal text-xs " + (total === 100 ? "text-ink-soft" : "text-warning")}>({total}%{total !== 100 ? " — belum 100%" : ""})</span>
-                </summary>
-                <form action="/api/nilai-config/bobot" method="POST" className="mt-3 flex flex-col gap-2.5">
-                  <input type="hidden" name="mapelId" value={m.id} />
-                  {KOMPONEN.map((k) => (
-                    <div key={k} className="flex items-center gap-3">
-                      <span className="text-xs w-32">{k}</span>
-                      <input type="number" name={`bobot_${k}`} defaultValue={bobotMap.get(k) ?? 0} min={0} max={100} className="w-20 bg-paper border border-rule rounded-md px-2 py-1.5 text-sm tabnum" />
-                      <span className="text-xs text-ink-soft">%</span>
+              <div key={m.id} className="mb-1 border-t border-rule pt-3 first:border-0 first:pt-0 flex items-center justify-between gap-2">
+                <Drawer triggerLabel={m.nama} triggerClassName="cursor-pointer text-sm font-semibold" eyebrow="Pembobotan Nilai" title={`Bobot komponen — ${m.nama}`}>
+                  <form action="/api/nilai-config/bobot" method="POST" className="flex flex-col gap-2.5">
+                    <input type="hidden" name="mapelId" value={m.id} />
+                    {KOMPONEN.map((k) => (
+                      <div key={k} className="flex items-center gap-3">
+                        <span className="text-xs w-32">{k}</span>
+                        <input type="number" name={`bobot_${k}`} defaultValue={bobotMap.get(k) ?? 0} min={0} max={100} className="w-20 bg-paper-raised border border-rule rounded-md px-2 py-1.5 text-sm tabnum" />
+                        <span className="text-xs text-ink-soft">%</span>
+                      </div>
+                    ))}
+                    <div className="border-b border-rule my-1" />
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm">Simpan bobot {m.nama}</Button>
+                      <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                     </div>
-                  ))}
-                  <Button type="submit" size="sm" className="self-start mt-1">Simpan bobot {m.nama}</Button>
-                </form>
-              </details>
+                  </form>
+                </Drawer>
+                <span className={"font-normal text-xs shrink-0 " + (total === 100 ? "text-ink-soft" : "text-warning")}>{total}%{total !== 100 ? " — belum 100%" : ""}</span>
+              </div>
             );
           })}
         </Card>

@@ -3,6 +3,8 @@ import { getSiswaByAkun, getMapelUntukKelas, getTanyaJawabKelas } from "@/lib/da
 import { AppShell } from "@/components/AppShell";
 import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
 import { TanyaJawabPanel } from "@/components/TanyaJawabPanel";
+import { tabClass } from "@/lib/tab-style";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function TanyaJawabMuridPage({
   searchParams,
@@ -32,18 +34,9 @@ export default async function TanyaJawabMuridPage({
       pageSubtitle={`Kelas ${siswa.kelas.nama}${mapelAktif ? ` · ${mapelAktif.nama}` : ""}`}
     >
       {mapelUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-1 border-b border-rule mb-5" role="tablist">
           {mapelUnik.map((m) => (
-            <a
-              key={m.id}
-              href={`/murid/tanya-jawab?mapel=${m.id}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (m.id === mapelAktif?.id
-                  ? "bg-primary text-white border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={m.id} href={`/murid/tanya-jawab?mapel=${m.id}`} role="tab" aria-selected={m.id === mapelAktif?.id} className={tabClass(m.id === mapelAktif?.id)}>
               {m.nama}
             </a>
           ))}
@@ -53,7 +46,7 @@ export default async function TanyaJawabMuridPage({
       {mapelAktif ? (
         <TanyaJawabPanel pertanyaan={pertanyaan} kelasId={siswa.kelasId} mapelId={mapelAktif.id} canModerate={false} />
       ) : (
-        <p className="text-sm text-ink-soft">Belum ada mata pelajaran untuk kelasmu.</p>
+        <EmptyState icon="💬" title="Belum ada mata pelajaran untuk kelasmu" />
       )}
     </AppShell>
   );

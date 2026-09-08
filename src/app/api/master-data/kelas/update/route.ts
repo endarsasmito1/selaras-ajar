@@ -37,6 +37,6 @@ export async function POST(req: NextRequest) {
 
   await prisma.kelas.update({ where: { id: kelasId }, data: { nama, tingkat } });
 
-  url.search = `?kelas_diubah=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Kelas "${nama}" diperbarui.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

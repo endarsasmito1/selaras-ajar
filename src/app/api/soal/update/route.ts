@@ -85,6 +85,6 @@ export async function POST(req: NextRequest) {
 
   const url = req.nextUrl.clone();
   url.pathname = `/guru/bank-soal/mapel/${updated.mapelId}`;
-  url.search = "?soal_diubah=1";
+  url.search = `?toast=${encodeURIComponent("Soal berhasil diperbarui.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

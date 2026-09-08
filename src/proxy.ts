@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { getSessionSecretKey } from "@/lib/session-secret";
 
 const COOKIE_NAME = "selaras_session";
-const secretKey = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "dev-secret-ganti-di-produksi-selaras-ajar"
-);
 
 const HOME_BY_ROLE: Record<string, string> = {
   SUPERADMIN: "/superadmin",
@@ -19,6 +17,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 // Urutan penting — .find() pakai match pertama, jadi prefix spesifik harus didahulukan
 // dari catch-all-nya. Lihat catatan yang sama di src/lib/auth.ts (duplikat sengaja, edge-safe).
 const ROLE_BY_PATH_PREFIX: { prefix: string; roles: string[] }[] = [
+  { prefix: "/notifikasi", roles: ["SUPERADMIN", "KEPALA_SEKOLAH", "BENDAHARA", "TU", "GURU", "ORANG_TUA", "MURID"] },
   { prefix: "/superadmin", roles: ["SUPERADMIN"] },
   { prefix: "/kepsek/siswa", roles: ["KEPALA_SEKOLAH", "TU"] },
   { prefix: "/kepsek/guru", roles: ["KEPALA_SEKOLAH", "TU"] },
@@ -49,7 +48,7 @@ export async function proxy(req: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token, secretKey);
+    const { payload } = await jwtVerify(token, getSessionSecretKey());
     const peran = payload.peran as string;
 
     if (!matched.roles.includes(peran)) {
@@ -67,5 +66,13 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/superadmin/:path*", "/kepsek/:path*", "/keuangan/:path*", "/guru/:path*", "/ortu/:path*", "/murid/:path*"],
+  matcher: [
+    "/notifikasi/:path*",
+    "/superadmin/:path*",
+    "/kepsek/:path*",
+    "/keuangan/:path*",
+    "/guru/:path*",
+    "/ortu/:path*",
+    "/murid/:path*",
+  ],
 };

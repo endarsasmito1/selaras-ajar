@@ -3,11 +3,9 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Peran } from "@/generated/prisma/client";
+import { getSessionSecretKey } from "@/lib/session-secret";
 
 const COOKIE_NAME = "selaras_session";
-const secretKey = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "dev-secret-ganti-di-produksi-selaras-ajar"
-);
 
 export type SessionPayload = {
   userId: string;
@@ -31,7 +29,7 @@ export async function createSession(payload: SessionPayload) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(secretKey);
+    .sign(getSessionSecretKey());
 
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
@@ -53,7 +51,7 @@ export async function getSession(): Promise<SessionPayload | null> {
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secretKey);
+    const { payload } = await jwtVerify(token, getSessionSecretKey());
     return payload as unknown as SessionPayload;
   } catch {
     return null;
@@ -117,6 +115,9 @@ export const HOME_BY_ROLE: Record<Peran, string> = {
 // Peta prefix rute -> peran yang boleh akses. Urutan penting — dicocokkan lewat .find(),
 // yang pertama cocok yang menang, jadi prefix lebih spesifik HARUS didahulukan dari catch-all-nya.
 export const ROLE_BY_PATH_PREFIX: { prefix: string; roles: Peran[] }[] = [
+  // Halaman "Semua Notifikasi" (dari bell topbar) dipakai bersama semua peran, gak punya
+  // folder role sendiri — lihat notifikasi-selaras-ajar.md §10 & AppShell/NotifBell.
+  { prefix: "/notifikasi", roles: ["SUPERADMIN", "KEPALA_SEKOLAH", "BENDAHARA", "TU", "GURU", "ORANG_TUA", "MURID"] },
   { prefix: "/superadmin", roles: ["SUPERADMIN"] },
   // TU (1.6): administrasi data saja — beberapa subpath /kepsek/* dibuka juga untuk TU,
   // reuse halaman yang sama dengan kepsek (bukan duplikat halaman). Harus didahulukan dari

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_ORTU, ROLE_LABEL } from "@/lib/nav";
 import { PerformaSiswaView } from "@/components/PerformaSiswaView";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Callout } from "@/components/ui/Callout";
 import { formatTanggal } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ export default async function PerformaMuridOrtuPage({ params }: { params: Promis
 
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-3">Prestasi & Penghargaan</h3>
-        {prestasi.length === 0 && <p className="text-xs text-ink-soft">Belum ada catatan prestasi.</p>}
+        {prestasi.length === 0 && <EmptyState icon="🏆" title="Belum ada catatan prestasi" />}
         <div className="flex flex-col gap-2">
           {prestasi.map((p) => (
             <div key={p.id} className="border-b border-rule last:border-0 pb-2">
@@ -65,7 +66,7 @@ export default async function PerformaMuridOrtuPage({ params }: { params: Promis
         <p className="text-xs text-ink-soft mb-3">
           Gabungan catatan dari semua guru yang mengajar {performa.siswa.nama} — bahan evaluasi & pembelajaran, bukan untuk anak lihat.
         </p>
-        {catatan.length === 0 && <p className="text-xs text-ink-soft">Belum ada catatan dari guru.</p>}
+        {catatan.length === 0 && <EmptyState icon="📋" title="Belum ada catatan dari guru" />}
         <div className="flex flex-col gap-2">
           {catatan.map((c) => (
             <div key={c.id} className="bg-paper border border-rule rounded-lg p-3">

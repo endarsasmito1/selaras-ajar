@@ -11,7 +11,15 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const ids = formData.getAll("scaleId") as string[];
 
+  // Tenant-scoping: scaleId mentah dari form, tanpa cek ini KEPSEK/TU sekolah lain bisa
+  // nimpa band nilai (GradeScale) sekolah lain kalau kebetulan/sengaja tau id-nya.
+  const scaleMilikSekolah = ids.length
+    ? await prisma.gradeScale.findMany({ where: { id: { in: ids }, sekolahId: session.sekolahId }, select: { id: true } })
+    : [];
+  const scaleIdValid = new Set(scaleMilikSekolah.map((s) => s.id));
+
   for (const scaleId of ids) {
+    if (!scaleIdValid.has(scaleId)) continue;
     const min = Number(formData.get(`min_${scaleId}`));
     const max = Number(formData.get(`max_${scaleId}`));
     const label = String(formData.get(`label_${scaleId}`));

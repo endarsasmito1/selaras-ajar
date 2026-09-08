@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { DiskusiPanel } from "@/components/DiskusiPanel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { chipClass } from "@/lib/tab-style";
 import { formatTanggal } from "@/lib/utils";
 import { toEmbedVideo } from "@/lib/video-embed";
 
@@ -52,18 +54,9 @@ export default async function MateriPage({
       pageSubtitle={`Kelas ${kelasAktif.nama}`}
     >
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-5" role="tablist">
           {kelasUnik.map((k) => (
-            <a
-              key={k.id}
-              href={`/guru/materi?kelas=${k.id}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (k.id === kelasAktif.id
-                  ? "bg-primary text-white border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={k.id} href={`/guru/materi?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={chipClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}
@@ -208,11 +201,27 @@ export default async function MateriPage({
         }}
       />
 
-      <div className="flex flex-col gap-2.5">
-        {materi.length === 0 && <p className="text-sm text-ink-soft">Belum ada materi.</p>}
-        {materi.map((m) => (
-          <MateriRow key={m.id} materi={m} penggunaId={session.userId} />
-        ))}
+      {/* Padanan pengelompokan per-mapel prototipe (guru/materi.html: "📚 Matematika (4 materi)")
+          — sebelumnya semua materi lintas mapel ditumpuk flat 1 daftar, gak ada pengelompokan
+          sama sekali (padahal 1 guru bisa mengampu >1 mapel di kelas yang sama). */}
+      {materi.length === 0 && <EmptyState icon="▢" title="Belum ada materi" hint="Tambahkan materi belajar lewat form di atas." />}
+      <div className="flex flex-col gap-3">
+        {mapelUnikUntukKelas
+          .map((mapel) => ({ mapel, list: materi.filter((m) => m.mapelId === mapel.id) }))
+          .filter(({ list }) => list.length > 0)
+          .map(({ mapel, list }, i) => (
+            <details key={mapel.id} open={i === 0} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5">
+              <summary className="cursor-pointer font-semibold text-sm flex items-center gap-2">
+                📚 {mapel.nama}
+                <span className="bg-paper-sunken text-ink-soft text-[11px] font-bold px-2 py-0.5 rounded-full">{list.length} materi</span>
+              </summary>
+              <div className="flex flex-col gap-2.5 mt-3">
+                {list.map((m) => (
+                  <MateriRow key={m.id} materi={m} penggunaId={session.userId} />
+                ))}
+              </div>
+            </details>
+          ))}
       </div>
     </AppShell>
   );

@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const mapelNama = String(formData.get("mapelNama") ?? "").trim();
+  const jenjang = String(formData.get("jenjang") ?? "").trim();
   const rekomendasiKelas = String(formData.get("rekomendasiKelas") ?? "").trim();
   const jenis = String(formData.get("jenis") ?? "");
   const pertanyaan = String(formData.get("pertanyaan") ?? "").trim();
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest) {
   const url = req.nextUrl.clone();
   url.pathname = "/superadmin/bank-soal";
 
-  if (!mapelNama || !pertanyaan) {
-    url.search = `?error=${encodeURIComponent("Mapel & pertanyaan wajib diisi")}`;
+  if (!mapelNama || !jenjang || !pertanyaan) {
+    url.search = `?error=${encodeURIComponent("Mapel, jenjang, & pertanyaan wajib diisi")}`;
     return NextResponse.redirect(url, { status: 303 });
   }
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       sekolahId: null,
       mapelId: null,
       mapelNama,
+      jenjang,
       rekomendasiKelas: rekomendasiKelas || null,
       dibuatOlehId: session.userId,
       jenis: jenis as "PILIHAN_GANDA" | "PILIHAN_GANDA_KOMPLEKS" | "PILIHAN_GANDA_MINUS" | "JAWABAN_SINGKAT" | "ESAI",
@@ -82,6 +84,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  url.search = "?soal_dibuat=1";
+  url.pathname = `/superadmin/bank-soal/${encodeURIComponent(jenjang)}/${encodeURIComponent(mapelNama)}`;
+  url.search = `?toast=${encodeURIComponent("Soal ditambahkan ke bank soal terpusat.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

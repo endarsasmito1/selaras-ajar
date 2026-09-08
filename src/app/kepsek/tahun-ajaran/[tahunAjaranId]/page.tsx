@@ -3,6 +3,7 @@ import { getDetailTahunAjaran } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead, StatCard } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { formatTanggal } from "@/lib/utils";
@@ -70,7 +71,7 @@ export default async function DetailTahunAjaranPage({ params }: { params: Promis
       <Card className="mb-6">
         <CardHead title="Guru pengampu" subtitle="Semua guru yang mengajar pada tahun ajaran ini, lintas kelas & mapel" />
         {guruList.length === 0 ? (
-          <p className="text-sm text-ink-soft">Belum ada penugasan guru tercatat.</p>
+          <EmptyState icon="◑" title="Belum ada penugasan guru tercatat" />
         ) : (
           <div className="flex flex-col gap-1.5">
             {guruList.map((g) => (

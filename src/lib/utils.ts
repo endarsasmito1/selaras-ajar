@@ -34,6 +34,20 @@ export function toDateOnlyUTC(d: Date | string): Date {
   return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
 }
 
+/** Padanan `SA_NOTIF_ENGINE.waktuRelatif` di prototipe (assets/notif.js) — dipakai bell & halaman
+ * "Semua Notifikasi". Ambang kasar krn cuma buat sekilas lihat, bukan audit presisi. */
+export function waktuRelatif(d: Date | string): string {
+  const detik = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
+  if (detik < 60) return "Baru saja";
+  const menit = Math.floor(detik / 60);
+  if (menit < 60) return `${menit} menit lalu`;
+  const jam = Math.floor(menit / 60);
+  if (jam < 24) return `${jam} jam lalu`;
+  const hari = Math.floor(jam / 24);
+  if (hari < 7) return `${hari} hari lalu`;
+  return formatTanggal(d);
+}
+
 /**
  * 1.21 — salam dinamis berdasar jam sekarang + honorifik dari jenisKelamin (opsional, fallback
  * tanpa honorifik kalau akun belum mengisinya — jangan asumsikan "Pak" default, itu bisa salah).

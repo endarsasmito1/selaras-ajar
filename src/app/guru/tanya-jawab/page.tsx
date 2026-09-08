@@ -3,6 +3,9 @@ import { getKelasDiampu, getTanyaJawabKelas } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { TanyaJawabPanel } from "@/components/TanyaJawabPanel";
+import { tabClass, chipClass } from "@/lib/tab-style";
+import { Callout } from "@/components/ui/Callout";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function TanyaJawabGuruPage({
   searchParams,
@@ -27,7 +30,7 @@ export default async function TanyaJawabGuruPage({
         userRoleLabel={ROLE_LABEL[session.peran]}
         pageTitle="Tanya Jawab Kelas"
       >
-        <p className="text-sm text-ink-soft">Belum ada kelas yang diampu.</p>
+        <Callout tone="warn">Belum ada kelas yang diampu.</Callout>
       </AppShell>
     );
   }
@@ -49,18 +52,9 @@ export default async function TanyaJawabGuruPage({
       pageSubtitle={`Kelas ${kelasAktif.nama}${mapelAktif ? ` · ${mapelAktif.nama}` : ""}`}
     >
       {kelasUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-2 mb-4" role="tablist">
           {kelasUnik.map((k) => (
-            <a
-              key={k.id}
-              href={`/guru/tanya-jawab?kelas=${k.id}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (k.id === kelasAktif.id
-                  ? "bg-primary text-white border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={k.id} href={`/guru/tanya-jawab?kelas=${k.id}`} role="tab" aria-selected={k.id === kelasAktif.id} className={chipClass(k.id === kelasAktif.id)}>
               Kelas {k.nama}
             </a>
           ))}
@@ -68,18 +62,9 @@ export default async function TanyaJawabGuruPage({
       )}
 
       {mapelUnik.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-1 border-b border-rule mb-5" role="tablist">
           {mapelUnik.map((m) => (
-            <a
-              key={m.id}
-              href={`/guru/tanya-jawab?kelas=${kelasAktif.id}&mapel=${m.id}`}
-              className={
-                "text-xs px-3 py-1.5 rounded-full border " +
-                (m.id === mapelAktif?.id
-                  ? "bg-primary-tint text-primary-deep border-primary font-semibold"
-                  : "border-rule text-ink-soft hover:bg-paper-raised")
-              }
-            >
+            <a key={m.id} href={`/guru/tanya-jawab?kelas=${kelasAktif.id}&mapel=${m.id}`} role="tab" aria-selected={m.id === mapelAktif?.id} className={tabClass(m.id === mapelAktif?.id)}>
               {m.nama}
             </a>
           ))}
@@ -89,7 +74,7 @@ export default async function TanyaJawabGuruPage({
       {mapelAktif ? (
         <TanyaJawabPanel pertanyaan={pertanyaan} kelasId={kelasAktif.id} mapelId={mapelAktif.id} canModerate />
       ) : (
-        <p className="text-sm text-ink-soft">Belum ada mata pelajaran yang diampu di kelas ini.</p>
+        <EmptyState icon="💬" title="Belum ada mata pelajaran yang diampu di kelas ini" />
       )}
     </AppShell>
   );

@@ -4,7 +4,9 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
+import { Drawer } from "@/components/ui/Drawer";
 import { Callout } from "@/components/ui/Callout";
+import { Stepper } from "@/components/ui/Stepper";
 import { notFound } from "next/navigation";
 
 function bumpNamaKelas(nama: string, tingkatBaru: number) {
@@ -44,9 +46,10 @@ export default async function TinjauKenaikanKelasPage({
       userName={session.nama}
       userRoleLabel={ROLE_LABEL[session.peran]}
       pageTitle={`Tinjau Kenaikan Kelas — ${tahunLama.label} → ${tahunBaru.label}`}
-      pageSubtitle="Langkah 2/2 — cek/ubah rombel tujuan tiap siswa sebelum dijalankan. Belum ada yang berubah di data sampai kamu klik tombol di bawah."
+      pageSubtitle="Cek/ubah rombel tujuan tiap siswa sebelum dijalankan. Belum ada yang berubah di data sampai kamu klik tombol di bawah."
       headerAction={<LinkButton href="/kepsek/tahun-ajaran" variant="ghost" size="sm">Batalkan</LinkButton>}
     >
+      <Stepper steps={["Tahun Ajaran Baru", "Tinjau Rombel Tujuan"]} activeIndex={1} />
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
 
       {/* Form kecil "tambah rombel" dirender terpisah (bukan nested) dari form besar "Jalankan
@@ -70,14 +73,13 @@ export default async function TinjauKenaikanKelasPage({
                 <h3 className="text-sm font-semibold">
                   Kelas {k.nama} <span className="text-ink-soft font-normal">({k.siswa.length} siswa)</span>
                 </h3>
-                <details>
-                  <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah rombel tujuan lain (pecah kelas ini)</summary>
-                  <div className="mt-2 flex items-center gap-2">
-                    <input form={`tambah-kelas-${k.id}`} name="nama" required placeholder={`mis. ${bumpNamaKelas(k.nama, k.tingkat + 1)}C`} className="bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs w-32" />
-                    <input form={`tambah-kelas-${k.id}`} type="number" name="tingkat" defaultValue={k.tingkat + 1} className="bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs w-16" />
-                    <Button form={`tambah-kelas-${k.id}`} type="submit" size="sm" variant="ghost">Tambah</Button>
+                <Drawer triggerLabel="+ Tambah rombel tujuan lain" eyebrow="Kenaikan Kelas" title={`Pecah kelas ${k.nama} — tambah rombel tujuan lain`}>
+                  <div className="flex items-center gap-2">
+                    <input form={`tambah-kelas-${k.id}`} name="nama" required placeholder={`mis. ${bumpNamaKelas(k.nama, k.tingkat + 1)}C`} className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                    <input form={`tambah-kelas-${k.id}`} type="number" name="tingkat" defaultValue={k.tingkat + 1} className="w-20 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                    <Button form={`tambah-kelas-${k.id}`} type="submit" size="sm">Tambah</Button>
                   </div>
-                </details>
+                </Drawer>
               </div>
 
               <div className="flex flex-col gap-1.5">

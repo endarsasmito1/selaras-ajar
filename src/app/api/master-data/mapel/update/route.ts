@@ -29,6 +29,6 @@ export async function POST(req: NextRequest) {
 
   await prisma.mataPelajaran.update({ where: { id: mapelId }, data: { nama, kkm } });
 
-  url.search = `?mapel_diubah=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Mapel "${nama}" diperbarui.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

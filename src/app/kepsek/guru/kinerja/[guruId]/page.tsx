@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead, StatCard } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -120,7 +122,7 @@ export default async function KinerjaGuruDetailPage({
       <Card className="mt-4">
         <CardHead title="Catatan supervisi" subtitle="Penilaian kualitatif — hal yang tak terukur angka" />
         <div className="flex flex-col gap-2 mb-4">
-          {kinerja.catatanSupervisi.length === 0 && <p className="text-xs text-ink-soft">Belum ada catatan.</p>}
+          {kinerja.catatanSupervisi.length === 0 && <EmptyState icon="📋" title="Belum ada catatan supervisi" />}
           {kinerja.catatanSupervisi.map((c) => (
             <div key={c.id} className="bg-paper border border-rule rounded-lg p-3 text-sm">
               <p>{c.catatan}</p>
@@ -147,11 +149,12 @@ export default async function KinerjaGuruDetailPage({
         </div>
         <form method="GET" className="flex items-center gap-1.5 mb-3">
           <input type="hidden" name="tahun" value={tahunDipilih} />
-          <input
+          <SearchInput
             name="q"
             defaultValue={sp.q ?? ""}
             placeholder="Cari nama murid…"
-            className="flex-1 bg-paper border border-rule rounded-lg px-3 py-1.5 text-xs max-w-xs"
+            className="flex-1 bg-paper py-1.5 max-w-xs"
+            inputClassName="text-xs"
           />
           <Button type="submit" size="sm" variant="ghost">Cari</Button>
         </form>

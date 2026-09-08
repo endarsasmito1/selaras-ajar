@@ -31,6 +31,6 @@ export async function POST(req: NextRequest) {
     data: { sekolahId: session.sekolahId, nama, kkm },
   });
 
-  url.search = `?mapel_dibuat=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Mapel "${nama}" ditambahkan.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

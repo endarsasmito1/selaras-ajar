@@ -37,6 +37,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  url.search = `?keluar=${encodeURIComponent(siswa.nama)}`;
+  url.search = `?toast=${encodeURIComponent(`${siswa.nama} dimutasi keluar — datanya tersimpan di Riwayat Siswa.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

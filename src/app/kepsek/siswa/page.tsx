@@ -5,14 +5,17 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Card } from "@/components/ui/Card";
-import { PengumumanWidget } from "@/components/PengumumanWidget";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { PengumumanNotifCard } from "@/components/PengumumanWidget";
 import { HasilPencarianTable } from "./HasilPencarianTable";
 
 export default async function DataSiswaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; impor_dibuat?: string; impor_diperbarui?: string; siswa_diubah?: string }>;
+  searchParams: Promise<{ q?: string; impor_dibuat?: string; impor_diperbarui?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -35,21 +38,22 @@ export default async function DataSiswaPage({
         </div>
       }
     >
+      <ToastFromQuery />
       {params.impor_dibuat !== undefined && (
         <Callout>
           ✓ Impor selesai — {params.impor_dibuat} siswa baru dibuat, {params.impor_diperbarui} siswa diperbarui. Data hasil impor tetap bisa diedit satu per satu.
         </Callout>
       )}
-      {params.siswa_diubah && <div className="mb-4"><Callout>✓ Data siswa &quot;{params.siswa_diubah}&quot; diperbarui.</Callout></div>}
 
-      {session.peran === "TU" && <div className="mb-5"><PengumumanWidget sekolahId={session.sekolahId} /></div>}
+      {session.peran === "TU" && <div className="mb-5"><PengumumanNotifCard sekolahId={session.sekolahId} /></div>}
 
       <form method="GET" className="mb-5">
-        <input
+        <SearchInput
           name="q"
           defaultValue={params.q}
           placeholder="Cari nama, NISN, atau kelas… (mengabaikan hierarki kelas)"
-          className="bg-paper-raised border border-rule rounded-lg px-3.5 py-2 text-sm w-80"
+          className="py-2 w-80"
+          inputClassName="text-sm"
         />
       </form>
 
@@ -73,7 +77,7 @@ async function DaftarKelas({ sekolahId }: { sekolahId: string }) {
           </Card>
         </a>
       ))}
-      {hierarki.length === 0 && <p className="text-sm text-ink-soft">Belum ada kelas.</p>}
+      {hierarki.length === 0 && <EmptyState icon="☰" title="Belum ada kelas" />}
     </div>
   );
 }

@@ -8,7 +8,6 @@ const DEMO_ACCOUNTS = [
   { email: "rina@selarasajar.demo", label: "Bu Rina", role: "Guru · Wali Kelas 5B", icon: "👩‍🏫" },
   { email: "fauzan@selarasajar.demo", label: "Bpk. Fauzan", role: "Orang Tua (wali Ahmad Fauzi)", icon: "👨‍👩‍👧" },
   { email: "ahmad@selarasajar.demo", label: "Ahmad Fauzi", role: "Murid · Kelas 5B", icon: "🎒" },
-  { email: "admin@selarasajar.id", label: "Admin Platform", role: "Superadmin Selaras Ajar", icon: "🛡" },
 ];
 
 export default async function LoginPage({
@@ -35,7 +34,12 @@ export default async function LoginPage({
             Sistem sekolah yang selaras — untuk kepala sekolah, guru, orang tua, dan murid.
           </p>
 
-          {params.error && (
+          {params.error === "locked" && (
+            <div className="bg-warning-tint text-warning text-sm rounded-lg px-4 py-3 mb-4">
+              Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit.
+            </div>
+          )}
+          {params.error && params.error !== "locked" && (
             <div className="bg-warning-tint text-warning text-sm rounded-lg px-4 py-3 mb-4">
               Email atau kata sandi salah. Coba lagi.
             </div>

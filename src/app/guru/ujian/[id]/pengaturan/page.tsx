@@ -5,6 +5,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ModeHasilField } from "@/components/ModeHasilField";
+import { Switch } from "@/components/ui/Switch";
 import { notFound } from "next/navigation";
 
 function toLocalInput(d: Date | null | undefined) {
@@ -40,7 +41,7 @@ export default async function PengaturanUjianPage({ params }: { params: Promise<
         <div className="flex flex-col gap-1.5 mb-4">
           <label className="text-xs font-semibold">Judul ujian</label>
           <input name="judul" defaultValue={ujian.judul} required className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" />
-          <p className="text-[11px] text-ink-soft">Bisa diubah kapan saja, mis. setelah "Duplikat ke kelas lain" masih otomatis dikasih akhiran "(salinan)".</p>
+          <p className="text-[11px] text-ink-soft">Bisa diubah kapan saja, mis. setelah &quot;Duplikat ke kelas lain&quot; masih otomatis dikasih akhiran &quot;(salinan)&quot;.</p>
         </div>
 
         <div className="flex flex-col gap-1.5 mb-4">
@@ -75,19 +76,15 @@ export default async function PengaturanUjianPage({ params }: { params: Promise<
           <input type="number" name="durasiMenit" defaultValue={ujian.durasiMenit ?? ""} placeholder="mis. 60" className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm w-40" />
         </div>
 
-        <div className="flex flex-col gap-3 mb-5">
-          <label className="flex items-center gap-2.5 text-sm">
-            <input type="checkbox" name="acakSoal" defaultChecked={ujian.acakSoal} />
-            Acak urutan soal per murid
-          </label>
-          <label className="flex items-center gap-2.5 text-sm">
-            <input type="checkbox" name="acakJawaban" defaultChecked={ujian.acakJawaban} />
-            Acak urutan pilihan jawaban (PG) per murid
-          </label>
-          <label className="flex items-center gap-2.5 text-sm">
-            <input type="checkbox" name="sekaliAkses" defaultChecked={ujian.sekaliAkses} />
-            Sekali akses — tak bisa diulang (otomatis nonaktif untuk mode Latihan)
-          </label>
+        <div className="flex flex-col gap-3.5 mb-5">
+          <Switch name="acakSoal" defaultChecked={ujian.acakSoal} label="Acak urutan soal per murid" />
+          <Switch name="acakJawaban" defaultChecked={ujian.acakJawaban} label="Acak urutan pilihan jawaban (PG) per murid" />
+          <Switch
+            name="sekaliAkses"
+            defaultChecked={ujian.sekaliAkses}
+            label="Sekali akses"
+            hint="Tak bisa diulang (otomatis nonaktif untuk mode Latihan)"
+          />
         </div>
 
         <div className="flex flex-col gap-1.5 mb-5">

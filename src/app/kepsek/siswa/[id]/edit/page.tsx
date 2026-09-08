@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Switch } from "@/components/ui/Switch";
 import { notFound } from "next/navigation";
 
 export default async function EditSiswaPage({
@@ -73,10 +74,9 @@ export default async function EditSiswaPage({
             <input name="alamat" defaultValue={siswa.alamat ?? ""} className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" />
           </div>
         </div>
-        <label className="flex items-center gap-2.5 text-sm mb-5">
-          <input type="checkbox" name="aktif" defaultChecked={siswa.aktif} />
-          Siswa aktif
-        </label>
+        <div className="mb-5">
+          <Switch name="aktif" defaultChecked={siswa.aktif} label="Siswa aktif" />
+        </div>
         {siswa.wali[0] && (
           <p className="text-xs text-ink-soft mb-4">Wali: {siswa.wali[0].pengguna.nama} ({siswa.wali[0].hubungan})</p>
         )}

@@ -43,7 +43,9 @@ export function SekolahMapView({ sekolahList }: { sekolahList: SekolahTitik[] })
   const center: [number, number] = [sekolahList[0].latitude, sekolahList[0].longitude];
 
   return (
-    <div className="border border-rule rounded-xl overflow-hidden" style={{ height: 480 }}>
+    // relative + z-0 sengaja: bikin stacking context baru biar z-index internal Leaflet (kontrol
+    // zoom dkk. bisa sampai 1000) gak nembus di atas dropdown/menu di luar peta (mis. AccountMenu).
+    <div className="relative z-0 border border-rule rounded-xl overflow-hidden" style={{ height: 480 }}>
       <MapContainer center={center} zoom={5} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

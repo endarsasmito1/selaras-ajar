@@ -36,6 +36,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  url.search = `?kurikulum_dibuat=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Kurikulum "${nama}" ditambahkan.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

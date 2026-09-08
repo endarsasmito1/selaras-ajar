@@ -6,6 +6,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { formatRupiah } from "@/lib/utils";
 
 const PER_HALAMAN = 20;
@@ -42,11 +43,12 @@ export default async function RiwayatPembayaranPage({
       lebarPenuh
     >
       <form method="GET" className="mb-5 flex flex-wrap items-center gap-2">
-        <input
+        <SearchInput
           name="cari"
           defaultValue={sp.cari ?? ""}
           placeholder="Cari nama siswa…"
-          className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm w-56"
+          className="py-2 w-56"
+          inputClassName="text-sm"
         />
         <select name="status" defaultValue={status} className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
           <option value="SEMUA">Semua status</option>

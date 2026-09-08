@@ -42,6 +42,6 @@ export async function POST(req: NextRequest) {
     data: { penggunaId: pengguna.id, nip: nip || null, mapelUtama: mapelUtama || null },
   });
 
-  url.search = `?guru_dibuat=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Guru "${nama}" ditambahkan — password sementara selaras123.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

@@ -120,6 +120,9 @@ const NAMA_KEPSEK_LAIN = [
 async function main() {
   console.log("🌱 Membersihkan data lama...");
   await prisma.apiKey.deleteMany();
+  // Feedback teknis (Sep 2026) — Notifikasi (ditambah belakangan, 6 Sep 2026) kelewat gak pernah
+  // dibersihkan di sini sama sekali, bikin reseed ke-2+ gagal FK constraint pas hapus Pengguna.
+  await prisma.notifikasi.deleteMany();
   await prisma.komentarKonten.deleteMany();
   await prisma.tanyaJawabKelas.deleteMany();
   await prisma.projekPenilaian.deleteMany();
@@ -169,6 +172,11 @@ async function main() {
   await prisma.sekolah.updateMany({ data: { kurikulumId: null } });
   await prisma.kurikulumMapel.deleteMany();
   await prisma.kurikulum.deleteMany();
+  // Feedback teknis (Sep 2026) — pola sama kayak kurikulumId di atas: Kelas.waliKelasId nunjuk ke
+  // Pengguna, tapi kelas.deleteMany() ada di bawah sini (dipertahankan supaya urutan siswa/absensi/
+  // nilai/dst yg bergantung ke Kelas gak berubah) — jadi di-NULL-kan dulu di sini, bukan pindahin
+  // urutan hapus Kelas. Sebelum ini, reseed KEDUA+ (setelah wali kelas ke-assign) selalu gagal FK.
+  await prisma.kelas.updateMany({ data: { waliKelasId: null } });
   await prisma.pengguna.deleteMany();
   await prisma.mataPelajaran.deleteMany();
   await prisma.kelas.deleteMany();
@@ -1579,13 +1587,22 @@ async function main() {
   // guru penuh, bank superadmin kosong). Sekarang superadmin ikut punya bank soal "siap pakai" per
   // mapel, dicocokkan by mapelNama (bukan mapelId, krn lintas sekolah) — muncul ke SEMUA guru di
   // getBankSoal() dgn label "Dari Selaras Ajar", terpisah dari soal privat masing-masing sekolah.
+  // 1.24 — sekarang benar-benar lintas JENJANG (bukan cuma "Semua jenjang" via teks bebas):
+  // mapel yang sama (mis. Matematika) punya soal terpisah tiap SD/SMP/SMA/SMK, isinya juga
+  // konten baru per tingkat (bukan alias/duplikat soal SD), biar breakdown jenjang di halaman
+  // superadmin/bank-soal beneran punya isi tiap section.
   console.log("📝 Membuat bank soal global superadmin (visible ke semua guru, label 'Dari Selaras Ajar')...");
+
+  type SoalTemplate = { jenis: "PILIHAN_GANDA" | "JAWABAN_SINGKAT" | "ESAI"; pertanyaan: string; opsi?: string[]; kunci?: string; topik: string };
+
+  // Soal inti SD — dipindah dari sebelumnya (dulu tanpa jenjang eksplisit).
   for (const [mapelNamaGlobal, list] of Object.entries(soalTemplatePerMapel)) {
     for (const t of list) {
       await prisma.soal.create({
         data: {
           sekolahId: null,
           mapelNama: mapelNamaGlobal,
+          jenjang: "SD",
           dibuatOlehId: superadmin.id,
           jenis: t.jenis,
           pertanyaan: t.pertanyaan,
@@ -1594,54 +1611,183 @@ async function main() {
           topik: t.topik,
           tingkatKesulitan: "sedang",
           poinDefault: 20,
-          rekomendasiKelas: "Semua jenjang",
         },
       });
     }
   }
-  // IPA (dipakai sekolah jenjang SMP, beda nama dari IPAS-nya SD) — alias subset soal IPAS di atas.
-  for (const t of soalTemplatePerMapel.IPAS.slice(0, 4)) {
-    await prisma.soal.create({
-      data: {
-        sekolahId: null,
-        mapelNama: "IPA",
-        dibuatOlehId: superadmin.id,
-        jenis: t.jenis,
-        pertanyaan: t.pertanyaan,
-        opsi: t.opsi ? JSON.stringify(t.opsi) : null,
-        kunciJawaban: t.kunci ?? null,
-        topik: t.topik,
-        tingkatKesulitan: "sedang",
-        poinDefault: 20,
-        rekomendasiKelas: "SMP semua kelas",
-      },
-    });
+
+  // Soal inti SMP/SMA/SMK — konten baru per tingkat, bukan alias soal SD.
+  const soalGlobalTambahan: Record<string, Record<string, SoalTemplate[]>> = {
+    SMP: {
+      Matematika: [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Bentuk sederhana dari 3x + 5x adalah…", opsi: ["15x", "8x", "8x²", "15x²"], kunci: "1", topik: "Aljabar" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Penyelesaian dari persamaan 2x + 4 = 12 adalah…", opsi: ["4", "6", "8", "16"], kunci: "0", topik: "Persamaan Linear" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Himpunan bagian dari {1,2,3} yang punya tepat 2 anggota ada berapa banyak?", kunci: "3", topik: "Himpunan" },
+        { jenis: "ESAI", pertanyaan: "Jelaskan langkah menyelesaikan persamaan linear satu variabel 3x − 7 = 11, sertakan hasil akhirnya.", topik: "Persamaan Linear" },
+      ],
+      "Bahasa Indonesia": [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Teks yang menggambarkan suatu objek secara rinci disebut teks…", opsi: ["Narasi", "Deskripsi", "Eksposisi", "Prosedur"], kunci: "1", topik: "Teks Deskripsi" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Majas yang membandingkan dua hal secara langsung disebut…", opsi: ["Metafora", "Personifikasi", "Hiperbola", "Ironi"], kunci: "0", topik: "Majas" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Unsur intrinsik yang menunjukkan tempat & waktu kejadian dalam cerita disebut?", kunci: "Latar", topik: "Teks Narasi" },
+        { jenis: "ESAI", pertanyaan: "Tulis sebuah paragraf deskripsi singkat tentang suasana kelasmu.", topik: "Teks Deskripsi" },
+      ],
+      "Bahasa Inggris": [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "\"She ___ playing basketball now.\" Kata yang tepat adalah…", opsi: ["is", "are", "am", "be"], kunci: "0", topik: "Present Continuous" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Comparative form of 'big' is…", opsi: ["bigger", "biggest", "more big", "most big"], kunci: "0", topik: "Comparative Degree" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Change into past tense: 'I go to school.'", kunci: "I went to school.", topik: "Recount Text" },
+        { jenis: "ESAI", pertanyaan: "Write 3 sentences describing your best friend.", topik: "Descriptive Text" },
+      ],
+      IPA: [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Organ yang menyaring darah dan mengeluarkan zat sisa berupa urine adalah…", opsi: ["Hati", "Ginjal", "Paru-paru", "Usus"], kunci: "1", topik: "Sistem Ekskresi" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Kelompok hewan yang berkembang biak dengan bertelur disebut…", opsi: ["Vivipar", "Ovipar", "Ovovivipar", "Vegetatif"], kunci: "1", topik: "Klasifikasi Makhluk Hidup" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Planet terdekat dengan matahari adalah?", kunci: "Merkurius", topik: "Tata Surya" },
+        { jenis: "ESAI", pertanyaan: "Jelaskan perbedaan rangkaian listrik seri dan paralel.", topik: "Listrik & Magnet" },
+      ],
+    },
+    SMA: {
+      Matematika: [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Nilai dari sin 30° + cos 60° adalah…", opsi: ["1", "0.5", "1.5", "2"], kunci: "0", topik: "Trigonometri" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Turunan dari f(x) = x² + 3x adalah…", opsi: ["2x + 3", "x + 3", "2x", "x²"], kunci: "0", topik: "Turunan" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Berapa nilai limit dari (x²−1)/(x−1) untuk x mendekati 1?", kunci: "2", topik: "Limit Fungsi" },
+        { jenis: "ESAI", pertanyaan: "Jelaskan cara mencari determinan matriks ordo 2×2, beri contoh perhitungannya.", topik: "Matriks" },
+      ],
+      "Bahasa Indonesia": [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Teks yang bertujuan meyakinkan pembaca dengan argumen disebut teks…", opsi: ["Eksposisi", "Deskripsi", "Narasi", "Anekdot"], kunci: "0", topik: "Teks Eksposisi" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Bagian karya ilmiah yang berisi rangkuman temuan disebut…", opsi: ["Pendahuluan", "Kesimpulan", "Daftar Pustaka", "Abstrak"], kunci: "1", topik: "Karya Ilmiah" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Kegiatan mengulas kelebihan & kekurangan sebuah buku disebut?", kunci: "Resensi", topik: "Resensi" },
+        { jenis: "ESAI", pertanyaan: "Analisis makna kiasan pada larik puisi 'Angin membawa lara ke ujung senja' menurut pemahamanmu.", topik: "Analisis Puisi" },
+      ],
+      "Bahasa Inggris": [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "\"If it rains, I ___ stay home.\" Kata yang tepat adalah…", opsi: ["will", "would", "was", "did"], kunci: "0", topik: "Conditional Sentence" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Passive form of 'They built the house' is…", opsi: ["The house built them", "The house was built by them", "The house is build by them", "The house building by them"], kunci: "1", topik: "Passive Voice" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "What text type aims to persuade readers with arguments? (Analytical ___)", kunci: "Exposition", topik: "Analytical Exposition" },
+        { jenis: "ESAI", pertanyaan: "Write a short narrative paragraph (4-5 sentences) about an unforgettable experience.", topik: "Narrative Text" },
+      ],
+    },
+    SMK: {
+      Matematika: [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Sebuah barang dijual dengan untung 20% dari harga beli Rp50.000. Berapa harga jualnya?", opsi: ["Rp60.000", "Rp55.000", "Rp70.000", "Rp45.000"], kunci: "0", topik: "Aritmetika Sosial" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Bunga tunggal 10% per tahun dari modal Rp1.000.000 selama 2 tahun adalah…", opsi: ["Rp100.000", "Rp200.000", "Rp1.100.000", "Rp1.200.000"], kunci: "1", topik: "Bunga & Anuitas" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Modus dari data 5, 6, 6, 7, 8, 6, 9 adalah?", kunci: "6", topik: "Statistika Terapan" },
+        { jenis: "ESAI", pertanyaan: "Seorang pekerja mendapat gaji pokok Rp2.500.000 dan tunjangan 15%. Hitung total gaji yang diterima beserta caranya.", topik: "Aritmetika Sosial" },
+      ],
+      "Bahasa Indonesia": [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Bagian pembuka pada surat resmi biasanya berisi…", opsi: ["Salam penutup", "Tanggal & perihal", "Tanda tangan", "Lampiran"], kunci: "1", topik: "Surat Resmi" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "Laporan kerja yang baik harus bersifat…", opsi: ["Subjektif", "Objektif & faktual", "Berlebihan", "Naratif"], kunci: "1", topik: "Laporan Kerja" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "Teks yang berisi langkah-langkah melakukan sesuatu disebut teks?", kunci: "Prosedur", topik: "Teks Prosedur" },
+        { jenis: "ESAI", pertanyaan: "Buatlah contoh singkat email formal untuk mengajukan izin tidak masuk kerja.", topik: "Korespondensi" },
+      ],
+      "Bahasa Inggris": [
+        { jenis: "PILIHAN_GANDA", pertanyaan: "In a formal email, 'Best regards' is used as…", opsi: ["Opening", "Closing", "Subject", "Attachment"], kunci: "1", topik: "Formal Email" },
+        { jenis: "PILIHAN_GANDA", pertanyaan: "A job application letter should highlight…", opsi: ["Personal problems", "Relevant skills & experience", "Family background", "Hobbies only"], kunci: "1", topik: "Job Application Letter" },
+        { jenis: "JAWABAN_SINGKAT", pertanyaan: "What do you call a document listing your qualifications and work history?", kunci: "CV", topik: "Job Application Letter" },
+        { jenis: "ESAI", pertanyaan: "Write a short formal email requesting a meeting with your supervisor.", topik: "Formal Email" },
+      ],
+    },
+  };
+  for (const [jenjangBaru, perMapel] of Object.entries(soalGlobalTambahan)) {
+    for (const [mapelNamaGlobal, list] of Object.entries(perMapel)) {
+      for (const t of list) {
+        await prisma.soal.create({
+          data: {
+            sekolahId: null,
+            mapelNama: mapelNamaGlobal,
+            jenjang: jenjangBaru,
+            dibuatOlehId: superadmin.id,
+            jenis: t.jenis,
+            pertanyaan: t.pertanyaan,
+            opsi: t.opsi ? JSON.stringify(t.opsi) : null,
+            kunciJawaban: t.kunci ?? null,
+            topik: t.topik,
+            tingkatKesulitan: "sedang",
+            poinDefault: 20,
+          },
+        });
+      }
+    }
   }
-  // Volume tambahan per mapel (pola sama filler bank soal sekolah utama di atas) supaya bank
-  // global benar-benar "siap pakai" (bukan cuma segelintir contoh).
-  for (const [mapelNamaGlobal, topikList] of Object.entries(topikPerMapel)) {
-    for (let i = 0; i < 15; i++) {
-      const topik = topikList[i % topikList.length];
-      await prisma.soal.create({
-        data: {
-          sekolahId: null,
-          mapelNama: mapelNamaGlobal,
-          dibuatOlehId: superadmin.id,
-          jenis: "PILIHAN_GANDA",
-          pertanyaan: `[Bank Soal Selaras Ajar] Latihan ${topik} — variasi ${i + 1}`,
-          opsi: JSON.stringify([
-            `Berkaitan langsung dengan ${topik}`,
-            "Tidak relevan dengan topik ini",
-            "Hanya berlaku pada topik lain",
-            "Bukan bagian dari pelajaran ini",
-          ]),
-          kunciJawaban: "0",
-          topik,
-          tingkatKesulitan: ["mudah", "sedang", "sulit"][i % 3],
-          poinDefault: 10,
-          rekomendasiKelas: "Semua jenjang",
-        },
-      });
+
+  // Volume tambahan per kelompok (jenjang+mapel) — stem & distraktor DIROTASI (bukan template
+  // kaku berulang kayak sebelumnya), posisi kunci jawaban juga divariasikan (dulu selalu index 0).
+  const STEM_TEMPLATES_GLOBAL: ((topik: string) => string)[] = [
+    (topik) => `Manakah pernyataan yang paling tepat terkait ${topik}?`,
+    (topik) => `Berikut ini yang termasuk contoh penerapan ${topik} adalah…`,
+    (topik) => `Konsep ${topik} paling tepat digambarkan oleh pernyataan…`,
+    (topik) => `Dalam pembahasan ${topik}, pernyataan yang benar adalah…`,
+    (topik) => `Perhatikan pernyataan berikut. Manakah yang tepat mengenai ${topik}?`,
+  ];
+  const OPSI_BENAR_TEMPLATES_GLOBAL: ((topik: string) => string)[] = [
+    (topik) => `Merupakan bagian utama dari materi ${topik}`,
+    (topik) => `Sesuai dengan penerapan ${topik} yang benar`,
+    (topik) => `Mencerminkan prinsip dasar ${topik}`,
+  ];
+  const OPSI_SALAH_LIST_GLOBAL = [
+    "Tidak berkaitan dengan materi ini",
+    "Merupakan konsep dari mata pelajaran lain",
+    "Bertentangan dengan prinsip yang dipelajari",
+    "Hanya berlaku pada kondisi yang sangat khusus",
+    "Bukan termasuk cakupan kurikulum tingkat ini",
+    "Merupakan miskonsepsi yang umum terjadi",
+  ];
+  function buatSoalVariasiGlobal(topik: string, index: number) {
+    const posisiBenar = index % 4;
+    const salahDipakai: string[] = [];
+    for (let k = 0; salahDipakai.length < 3; k++) {
+      const kandidat = OPSI_SALAH_LIST_GLOBAL[(index + k) % OPSI_SALAH_LIST_GLOBAL.length];
+      if (!salahDipakai.includes(kandidat)) salahDipakai.push(kandidat);
+    }
+    const opsi = [...salahDipakai];
+    opsi.splice(posisiBenar, 0, OPSI_BENAR_TEMPLATES_GLOBAL[index % OPSI_BENAR_TEMPLATES_GLOBAL.length](topik));
+    return {
+      pertanyaan: STEM_TEMPLATES_GLOBAL[index % STEM_TEMPLATES_GLOBAL.length](topik),
+      opsi,
+      kunci: String(posisiBenar),
+      tingkatKesulitan: ["mudah", "sedang", "sulit"][index % 3],
+    };
+  }
+
+  const topikPerMapelJenjang: Record<string, Record<string, string[]>> = {
+    SD: topikPerMapel,
+    SMP: {
+      Matematika: ["Aljabar", "Persamaan Linear", "Himpunan", "Perbandingan", "Bangun Ruang"],
+      "Bahasa Indonesia": ["Teks Deskripsi", "Teks Narasi", "Puisi", "Struktur Kalimat", "Majas"],
+      "Bahasa Inggris": ["Present Continuous", "Descriptive Text", "Recount Text", "Vocabulary", "Comparative Degree"],
+      IPA: ["Sistem Ekskresi", "Klasifikasi Makhluk Hidup", "Zat & Perubahannya", "Tata Surya", "Listrik & Magnet"],
+    },
+    SMA: {
+      Matematika: ["Trigonometri", "Limit Fungsi", "Matriks", "Turunan", "Program Linear"],
+      "Bahasa Indonesia": ["Teks Eksposisi", "Karya Ilmiah", "Analisis Puisi", "Debat", "Resensi"],
+      "Bahasa Inggris": ["Narrative Text", "Conditional Sentence", "Passive Voice", "Analytical Exposition", "Report Text"],
+    },
+    SMK: {
+      Matematika: ["Aritmetika Sosial", "Statistika Terapan", "Bunga & Anuitas", "Trigonometri Terapan", "Vektor"],
+      "Bahasa Indonesia": ["Surat Resmi", "Laporan Kerja", "Presentasi Bisnis", "Teks Prosedur", "Korespondensi"],
+      "Bahasa Inggris": ["Business English", "Job Application Letter", "Workplace Vocabulary", "Procedure Text", "Formal Email"],
+    },
+  };
+  const TARGET_PER_KELOMPOK_GLOBAL = 12;
+  for (const [jenjangX, perMapelTopik] of Object.entries(topikPerMapelJenjang)) {
+    for (const [mapelNamaGlobal, topikList] of Object.entries(perMapelTopik)) {
+      const jumlahAda = await prisma.soal.count({ where: { sekolahId: null, jenjang: jenjangX, mapelNama: mapelNamaGlobal } });
+      for (let i = jumlahAda; i < TARGET_PER_KELOMPOK_GLOBAL; i++) {
+        const topik = topikList[i % topikList.length];
+        const v = buatSoalVariasiGlobal(topik, i);
+        await prisma.soal.create({
+          data: {
+            sekolahId: null,
+            mapelNama: mapelNamaGlobal,
+            jenjang: jenjangX,
+            dibuatOlehId: superadmin.id,
+            jenis: "PILIHAN_GANDA",
+            pertanyaan: v.pertanyaan,
+            opsi: JSON.stringify(v.opsi),
+            kunciJawaban: v.kunci,
+            topik,
+            tingkatKesulitan: v.tingkatKesulitan,
+            poinDefault: 10,
+          },
+        });
+      }
     }
   }
 

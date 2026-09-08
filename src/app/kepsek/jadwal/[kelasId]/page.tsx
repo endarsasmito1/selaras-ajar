@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Callout } from "@/components/ui/Callout";
-import { LinkButton } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { Drawer } from "@/components/ui/Drawer";
 import { notFound } from "next/navigation";
 
 const HARI = ["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -48,13 +49,14 @@ export default async function JadwalKelasPage({
       pageTitle={`Jadwal Kelas ${kelas.nama}`}
       pageSubtitle={`${tahunAktif.label} — Semester ${tahunAktif.semester} · jam asli, bebas per sesi, diurutkan dari paling awal (1.7)`}
       headerAction={<LinkButton href="/kepsek/jadwal" variant="ghost" size="sm">← Semua kelas</LinkButton>}
+      lebarPenuh
     >
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
       {penugasan.length === 0 && (
         <Callout tone="warn">Belum ada guru ditugaskan ke kelas ini — tetapkan penugasan guru dulu di menu Data Guru.</Callout>
       )}
 
-      <div className="grid md:grid-cols-3 gap-3.5 mt-4">
+      <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-3.5 mt-4">
         {HARI.slice(1).map((h, i) => {
           const hari = i + 1;
           const sesiHari = entries.filter((e) => e.hari === hari).sort((a, b) => a.jamMulai.localeCompare(b.jamMulai));
@@ -68,21 +70,24 @@ export default async function JadwalKelasPage({
                     <div className="font-semibold text-primary-deep">{entry.mapel.nama}</div>
                     <div className="text-ink-soft">{entry.guru.pengguna.nama}</div>
                     <div className="flex items-center gap-2 mt-1">
-                      <details>
-                        <summary className="cursor-pointer text-primary-deep text-[10px] font-semibold">Edit jam</summary>
-                        <form action="/api/jadwal" method="POST" className="mt-1.5 flex flex-col gap-1.5 bg-paper-raised border border-rule rounded-lg p-2">
+                      <Drawer triggerLabel="Edit jam" triggerClassName="cursor-pointer text-primary-deep text-[10px] font-semibold" eyebrow="Jadwal" title="Edit jam sesi">
+                        <form action="/api/jadwal" method="POST" className="flex flex-col gap-2">
                           <input type="hidden" name="entryId" value={entry.id} />
                           <input type="hidden" name="kelasId" value={kelasId} />
                           <input type="hidden" name="hari" value={hari} />
                           <input type="hidden" name="tahunAjaranId" value={tahunAktif.id} />
                           <input type="hidden" name="penugasan" value={`${entry.mapelId}|${entry.guruId}`} />
-                          <div className="flex gap-1.5">
-                            <input type="time" name="jamMulai" defaultValue={entry.jamMulai} required className="flex-1 bg-paper border border-rule rounded px-1.5 py-1 text-[11px]" />
-                            <input type="time" name="jamSelesai" defaultValue={entry.jamSelesai} required className="flex-1 bg-paper border border-rule rounded px-1.5 py-1 text-[11px]" />
+                          <div className="flex gap-2">
+                            <input type="time" name="jamMulai" defaultValue={entry.jamMulai} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                            <input type="time" name="jamSelesai" defaultValue={entry.jamSelesai} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                           </div>
-                          <button type="submit" className="text-primary-deep font-semibold text-[10px] self-start">Simpan perubahan</button>
+                          <div className="border-b border-rule my-1" />
+                          <div className="flex gap-2">
+                            <Button type="submit" size="sm">Simpan perubahan</Button>
+                            <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+                          </div>
                         </form>
-                      </details>
+                      </Drawer>
                       <form action="/api/jadwal/hapus" method="POST">
                         <input type="hidden" name="jadwalEntryId" value={entry.id} />
                         <input type="hidden" name="kelasId" value={kelasId} />
@@ -95,24 +100,29 @@ export default async function JadwalKelasPage({
               </div>
 
               {penugasan.length > 0 && (
-                <details className="mt-2.5">
-                  <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah sesi</summary>
-                  <form action="/api/jadwal" method="POST" className="mt-2 flex flex-col gap-1.5">
-                    <input type="hidden" name="kelasId" value={kelasId} />
-                    <input type="hidden" name="hari" value={hari} />
-                    <input type="hidden" name="tahunAjaranId" value={tahunAktif.id} />
-                    <div className="flex gap-1.5">
-                      <input type="time" name="jamMulai" required className="flex-1 bg-paper border border-rule rounded px-2 py-1 text-xs" />
-                      <input type="time" name="jamSelesai" required className="flex-1 bg-paper border border-rule rounded px-2 py-1 text-xs" />
-                    </div>
-                    <select name="penugasan" className="bg-paper border border-rule rounded px-2 py-1 text-xs">
-                      {penugasan.map((p) => (
-                        <option key={p.id} value={`${p.mapelId}|${p.guruId}`}>{p.mapel.nama} — {p.guru.pengguna.nama}</option>
-                      ))}
-                    </select>
-                    <button type="submit" className="text-primary-deep font-semibold text-xs self-start">Simpan sesi</button>
-                  </form>
-                </details>
+                <div className="mt-2.5">
+                  <Drawer triggerLabel="+ Tambah sesi" triggerClassName="cursor-pointer text-xs font-semibold text-primary-deep" eyebrow="Jadwal" title={`Tambah sesi — ${h}`}>
+                    <form action="/api/jadwal" method="POST" className="flex flex-col gap-2">
+                      <input type="hidden" name="kelasId" value={kelasId} />
+                      <input type="hidden" name="hari" value={hari} />
+                      <input type="hidden" name="tahunAjaranId" value={tahunAktif.id} />
+                      <div className="flex gap-2">
+                        <input type="time" name="jamMulai" required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                        <input type="time" name="jamSelesai" required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                      </div>
+                      <select name="penugasan" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
+                        {penugasan.map((p) => (
+                          <option key={p.id} value={`${p.mapelId}|${p.guruId}`}>{p.mapel.nama} — {p.guru.pengguna.nama}</option>
+                        ))}
+                      </select>
+                      <div className="border-b border-rule my-1" />
+                      <div className="flex gap-2">
+                        <Button type="submit" size="sm">Simpan sesi</Button>
+                        <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+                      </div>
+                    </form>
+                  </Drawer>
+                </div>
               )}
             </div>
           );

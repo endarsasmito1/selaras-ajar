@@ -5,6 +5,7 @@ import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
+import { Stepper } from "@/components/ui/Stepper";
 
 export default async function ImporSoalPreviewPage({
   searchParams,
@@ -39,6 +40,7 @@ export default async function ImporSoalPreviewPage({
       pageTitle="Pratinjau Impor Soal"
       pageSubtitle="Tinjau sebelum disimpan ke bank soal"
     >
+      <Stepper steps={["Pilih", "Unggah", "Periksa", "Simpan"]} activeIndex={2} />
       <div className="flex gap-2 mb-4 flex-wrap">
         <Pill tone="ok">{batch.valid.length} baris valid</Pill>
         {batch.bermasalah.length > 0 && <Pill tone="danger">{batch.bermasalah.length} bermasalah</Pill>}

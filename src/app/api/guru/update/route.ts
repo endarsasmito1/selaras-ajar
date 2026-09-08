@@ -40,6 +40,6 @@ export async function POST(req: NextRequest) {
   });
 
   url.pathname = "/kepsek/guru";
-  url.search = `?guru_diubah=${encodeURIComponent(nama)}`;
+  url.search = `?toast=${encodeURIComponent(`Data guru "${nama}" diperbarui.`)}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

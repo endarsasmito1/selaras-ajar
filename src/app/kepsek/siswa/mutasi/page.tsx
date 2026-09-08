@@ -5,15 +5,17 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
+import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Pagination } from "@/components/ui/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 const SISWA_PER_HALAMAN = 25;
 
 export default async function MutasiSiswaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; keluar?: string; masuk?: string; q?: string; halaman?: string }>;
+  searchParams: Promise<{ error?: string; q?: string; halaman?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -44,9 +46,8 @@ export default async function MutasiSiswaPage({
       pageSubtitle="Catat siswa pindah masuk atau keluar"
       headerAction={<LinkButton href="/kepsek/siswa/riwayat" variant="ghost" size="sm">Riwayat Siswa (lulus/keluar) →</LinkButton>}
     >
+      <ToastFromQuery />
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
-      {sp.keluar && <div className="mb-4"><Callout>✓ {sp.keluar} dimutasi keluar — datanya tersimpan di Riwayat Siswa.</Callout></div>}
-      {sp.masuk && <div className="mb-4"><Callout>✓ {sp.masuk} ditambahkan sebagai siswa aktif.</Callout></div>}
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -82,11 +83,12 @@ export default async function MutasiSiswaPage({
         <Card>
           <CardHead title="Siswa pindah keluar" subtitle="Wajib isi keterangan & tanggal — dikonfirmasi lewat popup" />
           <form method="GET" className="flex items-center gap-1.5 mb-3">
-            <input
+            <SearchInput
               name="q"
               defaultValue={sp.q ?? ""}
               placeholder="Cari nama siswa…"
-              className="flex-1 bg-paper border border-rule rounded-lg px-3 py-1.5 text-xs"
+              className="flex-1 bg-paper py-1.5"
+              inputClassName="text-xs"
             />
             <Button type="submit" size="sm" variant="ghost">Cari</Button>
           </form>

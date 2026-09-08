@@ -3,6 +3,7 @@ import { getProjekList } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { LinkButton } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal } from "@/lib/utils";
 
 export default async function ProjekListPage() {
@@ -22,7 +23,7 @@ export default async function ProjekListPage() {
       headerAction={<LinkButton href="/guru/projek/baru" size="sm">+ Buat Projek</LinkButton>}
     >
       <div className="flex flex-col gap-2.5">
-        {projekList.length === 0 && <p className="text-sm text-ink-soft">Belum ada projek dibuat.</p>}
+        {projekList.length === 0 && <EmptyState icon="✦" title="Belum ada projek dibuat" hint='Klik "+ Buat Projek" di atas untuk mulai.' />}
         {projekList.map((p) => {
           const dimensi: string[] = JSON.parse(p.dimensiP5);
           return (

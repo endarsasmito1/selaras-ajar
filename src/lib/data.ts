@@ -523,8 +523,14 @@ export async function getRiwayatAbsensi(
   if (filter.siswaId) where.siswaId = filter.siswaId;
   if (filter.tanggalMulai || filter.tanggalSelesai) {
     where.tanggal = {};
+    // Feedback teknis (Sep 2026) — string tanggal-polos ("YYYY-MM-DD") di-parse UTC oleh spec JS,
+    // tapi begitu ditempel jam TANPA suffix "Z" ("...T23:59:59"), parsing-nya jatuh ke timezone
+    // LOKAL proses Node, bukan UTC — beda dari absensi.tanggal yang selalu disimpan UTC (lihat
+    // toDateOnlyUTC() di lib/utils.ts). Di server ber-TZ non-UTC (mis. Asia/Jakarta, +7), batas
+    // atas ini jadi mundur beberapa jam dari yang dimaksud, diam-diam melewatkan baris absensi yg
+    // dicatat menjelang akhir hari. "Z" eksplisit di sini bikin kedua batas konsisten UTC.
     if (filter.tanggalMulai) where.tanggal.gte = new Date(filter.tanggalMulai);
-    if (filter.tanggalSelesai) where.tanggal.lte = new Date(filter.tanggalSelesai + "T23:59:59");
+    if (filter.tanggalSelesai) where.tanggal.lte = new Date(filter.tanggalSelesai + "T23:59:59.999Z");
   }
   return prisma.absensi.findMany({
     where,
@@ -701,6 +707,12 @@ export async function getSoalById(soalId: string, sekolahId?: string) {
   return prisma.soal.findFirst({ where: { id: soalId, ...(sekolahId ? { sekolahId } : {}) } });
 }
 
+/** Scoped eksplisit ke sekolahId null (soal global/bank soal terpusat) — dipakai halaman edit
+ * superadmin, biar gak lewat cek `getSoalById(id)` tanpa filter yang bisa kena soal sekolah lain. */
+export async function getSoalGlobalById(soalId: string) {
+  return prisma.soal.findFirst({ where: { id: soalId, sekolahId: null } });
+}
+
 // ---------- UJIAN / CBT — GURU ----------
 
 /** U-1 (1.6): kelas card untuk halaman utama Ujian guru — jumlah ujian per kelas, list muncul saat kartu diklik. */
@@ -838,7 +850,7 @@ export async function getPengerjaan(pengerjaanId: string) {
 }
 
 export async function getDashboardMurid(siswaId: string, kelasId: string) {
-  const [nilai, tugas, materi, absensi] = await Promise.all([
+  const [nilai, tugas, materi, absensi, ujianAktif] = await Promise.all([
     prisma.nilai.findMany({
       where: { siswaId },
       include: { mapel: true },
@@ -861,8 +873,12 @@ export async function getDashboardMurid(siswaId: string, kelasId: string) {
       orderBy: { tanggal: "desc" },
       take: 10,
     }),
+    // Padanan widget "Tugas & Ujian" prototipe (murid/index.html) yang gabungin tugas belum
+    // dikumpul DAN ujian yang belum dikerjakan jadi 1 daftar — sebelumnya cuma tugas doang,
+    // ujian gak pernah ikut ditampilkan di beranda sama sekali.
+    getUjianAktifUntukMurid(kelasId, siswaId),
   ]);
-  return { nilai, tugas, materi, absensi };
+  return { nilai, tugas, materi, absensi, ujianAktif };
 }
 
 // ---------- TUGAS / PR ----------
@@ -955,6 +971,24 @@ export function hitungPredikat(skor: number, scale: { minSkor: number; maxSkor: 
   return cocok?.label ?? "-";
 }
 
+/**
+ * Padanan warna `.grade-badge` prototipe (yang hardcode 4 tingkat tetap Sangat Baik/Baik/Cukup/
+ * Perlu Bimbingan → warna tetap) — TAPI di app sungguhan label predikat bisa dikonfigurasi bebas
+ * tiap sekolah (`GradeScale`, lihat kepsek/master-data), jadi gak bisa asal cocokkan TEKS label ke
+ * warna. Solusinya: urutkan band skala dari TERTINGGI, tone-nya ditentukan dari RANKING posisi band
+ * yg cocok (bukan isi labelnya) — band teratas = "ok", band terbawah = "warn", sisanya "info". Kalau
+ * cuma 1 band (Sekolah gak setting rentang predikat sama sekali) semua "ok" (gak ada tingkat wajar
+ * yg bisa dibedakan, gak masuk akal nge-warn skor apapun.
+ */
+export function hitungPredikatTone(skor: number, scale: { minSkor: number; maxSkor: number; label: string }[]): "ok" | "info" | "warn" {
+  const terurut = [...scale].sort((a, b) => b.minSkor - a.minSkor);
+  const idx = terurut.findIndex((s) => skor >= s.minSkor && skor <= s.maxSkor);
+  if (idx === -1 || terurut.length <= 1) return "ok";
+  if (idx === 0) return "ok";
+  if (idx === terurut.length - 1) return "warn";
+  return "info";
+}
+
 // ---------- PERFORMA MURID (D-2) ----------
 
 export async function getPerformaSiswa(siswaId: string, sekolahId?: string) {
@@ -998,6 +1032,7 @@ export async function getPerformaSiswa(siswaId: string, sekolahId?: string) {
 
   const rataKeseluruhan = rataDariNilaiPerMapel(nilai, bobot);
   const predikat = rataKeseluruhan !== null ? hitungPredikat(rataKeseluruhan, gradeScale) : "-";
+  const predikatTone = rataKeseluruhan !== null ? hitungPredikatTone(rataKeseluruhan, gradeScale) : "ok";
 
   const hadir = absensi.filter((a) => a.status === "HADIR").length;
   const persenHadir = absensi.length > 0 ? Math.round((hadir / absensi.length) * 100) : null;
@@ -1007,6 +1042,7 @@ export async function getPerformaSiswa(siswaId: string, sekolahId?: string) {
     perMapel,
     rataKeseluruhan,
     predikat,
+    predikatTone,
     persenHadir,
     totalAbsensi: absensi.length,
     tugasSelesai: pengumpulanTugas.length,
@@ -1268,6 +1304,15 @@ export async function getDashboardGuru(penggunaId: string, sekolahId: string) {
   ]);
   const kelasUnik = Array.from(new Map(penugasan.map((p) => [p.kelas.id, p.kelas])).values());
 
+  // Padanan "· N murid" di kartu "Kelas & mapel yang diampu" prototipe (guru/index.html) — dulu
+  // gak ikut ditampilkan sama sekali di app sungguhan, cuma KKM doang.
+  const siswaPerKelasRaw = await prisma.siswa.findMany({
+    where: { kelasId: { in: kelasUnik.map((k) => k.id) }, aktif: true },
+    select: { kelasId: true },
+  });
+  const jumlahMuridPerKelas: Record<string, number> = {};
+  for (const s of siswaPerKelasRaw) jumlahMuridPerKelas[s.kelasId] = (jumlahMuridPerKelas[s.kelasId] ?? 0) + 1;
+
   const today = new Date();
   const hariIni = today.getDay() === 0 ? 7 : today.getDay();
   const jadwalHariIni =
@@ -1295,6 +1340,7 @@ export async function getDashboardGuru(penggunaId: string, sekolahId: string) {
     esaiPerluDinilai: esaiPerlu.length,
     persenHadirHariIni,
     penugasan,
+    jumlahMuridPerKelas,
   };
 }
 
@@ -1644,7 +1690,10 @@ export async function getProjekSiswa(siswaId: string) {
 // ---------- REMINDER PROAKTIF GURU (X-7, versi in-app tanpa cron) ----------
 
 export async function getRemindersGuru(guruPenggunaId: string) {
-  const reminders: { pesan: string; href: string }[] = [];
+  // `id` = "tipe:entitasKey" — dipakai sbg React key di widget dashboard DAN sbg sumber sinkronisasi
+  // ke tabel Notifikasi (lib/notifikasi.ts syncNotifikasiReminderGuru) supaya satu logic ini jadi
+  // satu-satunya sumber kebenaran, gak dobel-tulis di 2 tempat.
+  const reminders: { id: string; pesan: string; href: string }[] = [];
 
   const tugasBelumDinilai = await prisma.tugas.findMany({
     where: { penggunaId: guruPenggunaId, pengumpulan: { some: { nilai: null } } },
@@ -1655,6 +1704,7 @@ export async function getRemindersGuru(guruPenggunaId: string) {
     const lamaHari = Math.floor((Date.now() - Math.min(...belumDinilai.map((p) => p.submitAt.getTime()))) / 86400000);
     if (lamaHari > 5) {
       reminders.push({
+        id: `tugas-belum-nilai:${t.id}`,
         pesan: `Tugas "${t.judul}": ${belumDinilai.length} pengumpulan sudah >${lamaHari} hari belum dinilai.`,
         href: `/guru/tugas/${t.id}`,
       });
@@ -1680,7 +1730,11 @@ export async function getRemindersGuru(guruPenggunaId: string) {
   const ujianPerluDinilai = new Map<string, string>();
   for (const j of jawabanPerluDinilai) ujianPerluDinilai.set(j.pengerjaan.ujianId, j.pengerjaan.ujian.judul);
   for (const [ujianId, judul] of ujianPerluDinilai) {
-    reminders.push({ pesan: `Ujian "${judul}" punya jawaban esai/singkat yang belum dinilai.`, href: `/guru/ujian/${ujianId}/nilai-esai` });
+    reminders.push({
+      id: `esai-pending:${ujianId}`,
+      pesan: `Ujian "${judul}" punya jawaban esai/singkat yang belum dinilai.`,
+      href: `/guru/ujian/${ujianId}/nilai-esai`,
+    });
   }
 
   const kelengkapanRPP = await prisma.pengguna.findUnique({ where: { id: guruPenggunaId } });
@@ -1689,6 +1743,7 @@ export async function getRemindersGuru(guruPenggunaId: string) {
     const belumRPP = matrix.filter((m) => m.guru.id === guruPenggunaId && !m.adaRPP);
     if (belumRPP.length > 0) {
       reminders.push({
+        id: "rpp-belum:rpp-belum",
         pesan: `RPP belum dibuat untuk ${belumRPP.length} kelas/mapel yang diampu.`,
         href: `/guru/rpp`,
       });

@@ -6,6 +6,7 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { Switch } from "@/components/ui/Switch";
 import { notFound } from "next/navigation";
 
 export default async function EditGuruPage({
@@ -93,10 +94,9 @@ export default async function EditGuruPage({
           </select>
           <p className="text-[11px] text-ink-soft">Label kompetensi guru — bukan penugasan konkret (atur penugasan riil di bagian bawah).</p>
         </div>
-        <label className="flex items-center gap-2.5 text-sm mb-5">
-          <input type="checkbox" name="aktif" defaultChecked={guru.aktif} />
-          Akun aktif
-        </label>
+        <div className="mb-5">
+          <Switch name="aktif" defaultChecked={guru.aktif} label="Akun aktif" />
+        </div>
         <Button type="submit">Simpan perubahan</Button>
       </form>
 

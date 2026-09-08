@@ -4,6 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function CapaianBankPage({
   searchParams,
@@ -39,26 +41,29 @@ export default async function CapaianBankPage({
       {error && <div className="mb-4"><Callout tone="warn">{error}</Callout></div>}
       <a href="/guru/rpp" className="text-xs font-semibold text-primary-deep hover:underline mb-4 inline-block">← RPP saya</a>
 
-      <details className="bg-paper-raised border border-rule rounded-xl p-5 mb-6">
-        <summary className="cursor-pointer font-semibold text-sm">+ Tambah Capaian Pembelajaran</summary>
-        <form action="/api/capaian" method="POST" className="mt-4 grid md:grid-cols-4 gap-3 items-end">
+      <Drawer triggerLabel="+ Tambah Capaian Pembelajaran" eyebrow="RPP & Capaian" title="Tambah Capaian Pembelajaran">
+        <form action="/api/capaian" method="POST" className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Mapel</label>
-            <select name="mapelId" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+            <select name="mapelId" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
               {mapelUnik.map((m) => (<option key={m.id} value={m.id}>{m.nama}</option>))}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Kode (opsional)</label>
-            <input name="kode" placeholder="mis. CP.5.1" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+            <input name="kode" placeholder="mis. CP.5.1" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
           </div>
-          <div className="flex flex-col gap-1.5 md:col-span-2">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold">Deskripsi</label>
-            <input name="deskripsi" required placeholder="mis. Siswa mampu menjumlahkan pecahan berpenyebut sama" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
+            <input name="deskripsi" required placeholder="mis. Siswa mampu menjumlahkan pecahan berpenyebut sama" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
           </div>
-          <Button type="submit" size="sm" className="md:col-span-4 w-fit">Simpan</Button>
+          <div className="border-b border-rule my-1" />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm">Simpan</Button>
+            <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+          </div>
         </form>
-      </details>
+      </Drawer>
 
       <div className="flex flex-col gap-3">
         {Array.from(perMapel.values()).map((grup) => (
@@ -74,7 +79,7 @@ export default async function CapaianBankPage({
             </div>
           </details>
         ))}
-        {perMapel.size === 0 && <p className="text-sm text-ink-soft">Belum ada Capaian Pembelajaran.</p>}
+        {perMapel.size === 0 && <EmptyState icon="▤" title="Belum ada Capaian Pembelajaran" hint="Tambahkan CP/TP dulu lewat form di atas." />}
       </div>
     </AppShell>
   );

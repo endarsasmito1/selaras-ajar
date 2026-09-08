@@ -11,13 +11,22 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const kurikulumId = String(formData.get("kurikulumId") ?? "").trim();
 
+  const url = req.nextUrl.clone();
+  url.pathname = "/kepsek/master-data";
+
+  if (kurikulumId) {
+    const kurikulum = await prisma.kurikulum.findUnique({ where: { id: kurikulumId } });
+    if (!kurikulum) {
+      url.search = `?error=${encodeURIComponent("Kurikulum tidak ditemukan")}`;
+      return NextResponse.redirect(url, { status: 303 });
+    }
+  }
+
   await prisma.sekolah.update({
     where: { id: session.sekolahId },
     data: { kurikulumId: kurikulumId || null },
   });
 
-  const url = req.nextUrl.clone();
-  url.pathname = "/kepsek/master-data";
-  url.search = "";
+  url.search = `?toast=${encodeURIComponent("Kurikulum sekolah diperbarui.")}&tone=success`;
   return NextResponse.redirect(url, { status: 303 });
 }

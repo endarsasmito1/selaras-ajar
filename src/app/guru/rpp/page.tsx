@@ -3,6 +3,7 @@ import { getRPPByGuru } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { LinkButton } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal } from "@/lib/utils";
 
 export default async function RPPListPage() {
@@ -27,7 +28,7 @@ export default async function RPPListPage() {
       }
     >
       <div className="flex flex-col gap-2.5">
-        {rppList.length === 0 && <p className="text-sm text-ink-soft">Belum ada RPP dibuat.</p>}
+        {rppList.length === 0 && <EmptyState icon="▤" title="Belum ada RPP dibuat" hint='Klik "+ Buat RPP" di atas untuk mulai.' />}
         {rppList.map((r) => (
           <a key={r.id} href={`/guru/rpp/${r.id}/edit`} className="block bg-paper-raised border border-rule rounded-xl px-5 py-4 hover:border-primary">
             <div className="flex items-center justify-between flex-wrap gap-2">

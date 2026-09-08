@@ -3,16 +3,20 @@ import { test, expect } from "@playwright/test";
 test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
 test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
+  // Feedback teknis (Sep 2026) — 4 test di bawah pakai `<details>`/`<summary>`, tapi form tambah/
+  // edit sesi di halaman ini sudah dipindah ke <Drawer> (native <dialog>) — trigger sekarang
+  // <button type="button"> biasa, bukan lagi <summary>. Diperbaiki: klik trigger dulu (buka
+  // dialog), scope semua interaksi ke `dialog[open]`.
   test("positif: tambah sesi baru di hari yang masih kosong jamnya", async ({ page }) => {
     await page.goto("/kepsek/jadwal");
     await page.locator('a[href^="/kepsek/jadwal/"]').first().click();
     await expect(page).toHaveURL(/\/kepsek\/jadwal\//);
 
-    const tambahDetails = page.locator("details", { hasText: "+ Tambah sesi" }).first();
-    await tambahDetails.locator("summary").click();
-    await tambahDetails.locator('input[name="jamMulai"]').fill("06:00");
-    await tambahDetails.locator('input[name="jamSelesai"]').fill("06:30");
-    await tambahDetails.getByRole("button", { name: "Simpan sesi" }).click();
+    await page.getByText("+ Tambah sesi", { exact: true }).first().click();
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="jamMulai"]').fill("06:00");
+    await dialog.locator('input[name="jamSelesai"]').fill("06:30");
+    await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -27,11 +31,11 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
     if (!jamText) return;
     const [jamMulai, jamSelesai] = jamText.split(/[–-]/).map((s) => s.trim());
 
-    const tambahDetails = page.locator("details", { hasText: "+ Tambah sesi" }).first();
-    await tambahDetails.locator("summary").click();
-    await tambahDetails.locator('input[name="jamMulai"]').fill(jamMulai);
-    await tambahDetails.locator('input[name="jamSelesai"]').fill(jamSelesai);
-    await tambahDetails.getByRole("button", { name: "Simpan sesi" }).click();
+    await page.getByText("+ Tambah sesi", { exact: true }).first().click();
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="jamMulai"]').fill(jamMulai);
+    await dialog.locator('input[name="jamSelesai"]').fill(jamSelesai);
+    await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
 
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Bentrok jadwal/)).toBeVisible();
@@ -40,11 +44,11 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
   test("negatif: jam mulai lebih besar dari jam selesai ditolak", async ({ page }) => {
     await page.goto("/kepsek/jadwal");
     await page.locator('a[href^="/kepsek/jadwal/"]').first().click();
-    const tambahDetails = page.locator("details", { hasText: "+ Tambah sesi" }).first();
-    await tambahDetails.locator("summary").click();
-    await tambahDetails.locator('input[name="jamMulai"]').fill("10:00");
-    await tambahDetails.locator('input[name="jamSelesai"]').fill("09:00");
-    await tambahDetails.getByRole("button", { name: "Simpan sesi" }).click();
+    await page.getByText("+ Tambah sesi", { exact: true }).first().click();
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="jamMulai"]').fill("10:00");
+    await dialog.locator('input[name="jamSelesai"]').fill("09:00");
+    await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Jam mulai harus lebih awal/)).toBeVisible();
   });
@@ -52,11 +56,11 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
   test("positif: edit jam sesi yang sudah ada langsung di kartu (edit-in-place, 1.7)", async ({ page }) => {
     await page.goto("/kepsek/jadwal");
     await page.locator('a[href^="/kepsek/jadwal/"]').first().click();
-    const editDetails = page.locator("details", { hasText: "Edit jam" }).first();
-    await editDetails.locator("summary").click();
-    await editDetails.locator('input[name="jamMulai"]').fill("05:00");
-    await editDetails.locator('input[name="jamSelesai"]').fill("05:30");
-    await editDetails.getByRole("button", { name: "Simpan perubahan" }).click();
+    await page.getByText("Edit jam", { exact: true }).first().click();
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="jamMulai"]').fill("05:00");
+    await dialog.locator('input[name="jamSelesai"]').fill("05:30");
+    await dialog.getByRole("button", { name: "Simpan perubahan", exact: true }).click();
     await expect(page).not.toHaveURL(/error=/);
   });
 

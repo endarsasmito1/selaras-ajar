@@ -70,7 +70,9 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     await page.selectOption('select[name="babId"]', { index: 1 });
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await expect(page).toHaveURL(/error=/);
-    await expect(page.getByText(/mapel yang sama/)).toBeVisible();
+    // Feedback teknis (Sep 2026) — getByText polos ambigu: ada label/hint statis di form yang
+    // juga kebetulan mengandung substring "mapel yang sama" — scope ke Callout error-nya sendiri.
+    await expect(page.locator(".bg-warning-tint")).toContainText(/mapel yang sama/);
   });
 
   test("positif: publish ujian yang menyasar >1 kelas menghasilkan N ujian terpisah (fan-out, 1.8)", async ({ page }) => {

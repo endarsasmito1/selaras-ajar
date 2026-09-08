@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
+import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal, formatRupiah } from "@/lib/utils";
 import { notFound } from "next/navigation";
 
@@ -78,29 +80,32 @@ export default async function ProfilSiswa360Page({
         {wali.length === 0 && (
           <div className="mt-3">
             <Callout tone="warn">Belum ada wali terdaftar untuk siswa ini.</Callout>
-            <details className="mt-2.5">
-              <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah wali</summary>
-              <form action="/api/siswa/tambah-wali" method="POST" className="mt-2.5 flex flex-col gap-2.5 max-w-md">
+            <Drawer triggerLabel="+ Tambah wali" eyebrow="Data Siswa" title="Tambah wali">
+              <form action="/api/siswa/tambah-wali" method="POST" className="flex flex-col gap-2.5">
                 <input type="hidden" name="siswaId" value={id} />
                 <div className="grid grid-cols-2 gap-2.5">
-                  <input name="nama" required placeholder="Nama lengkap" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm col-span-2" />
-                  <select name="hubungan" defaultValue="Ayah" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+                  <input name="nama" required placeholder="Nama lengkap" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm col-span-2" />
+                  <select name="hubungan" defaultValue="Ayah" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                     <option value="Ayah">Ayah</option>
                     <option value="Ibu">Ibu</option>
                     <option value="Wali">Wali</option>
                   </select>
-                  <input name="telepon" placeholder="No. HP (opsional)" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-                  <select name="jenisKelamin" defaultValue="" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm">
+                  <input name="telepon" placeholder="No. HP (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                  <select name="jenisKelamin" defaultValue="" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
                     <option value="">Jenis kelamin (opsional)</option>
                     <option value="L">Laki-laki</option>
                     <option value="P">Perempuan</option>
                   </select>
-                  <input name="email" type="email" required placeholder="Email" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm col-span-2" />
+                  <input name="email" type="email" required placeholder="Email" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm col-span-2" />
                 </div>
                 <p className="text-xs text-ink-soft">Akun baru dapat password sementara — tampil sekali setelah disimpan.</p>
-                <Button type="submit" size="sm" className="self-start">Simpan wali</Button>
+                <div className="border-b border-rule my-1" />
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm">Simpan wali</Button>
+                  <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
+                </div>
               </form>
-            </details>
+            </Drawer>
           </div>
         )}
       </Card>
@@ -113,7 +118,7 @@ export default async function ProfilSiswa360Page({
 
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-3">Riwayat pembayaran SPP</h3>
-        {tagihan.length === 0 && <p className="text-xs text-ink-soft">Belum ada tagihan.</p>}
+        {tagihan.length === 0 && <EmptyState icon="₽" title="Belum ada tagihan" />}
         <div className="flex flex-col gap-1.5">
           {tagihan.map((t) => (
             <div key={t.id} className="flex items-center justify-between text-sm border-b border-rule last:border-0 py-1.5">
@@ -130,7 +135,7 @@ export default async function ProfilSiswa360Page({
 
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-3">Prestasi & Penghargaan</h3>
-        {prestasi.length === 0 && <p className="text-xs text-ink-soft mb-3">Belum ada catatan prestasi.</p>}
+        {prestasi.length === 0 && <EmptyState icon="🏆" title="Belum ada catatan prestasi" />}
         <div className="flex flex-col gap-2 mb-3">
           {prestasi.map((p) => (
             <div key={p.id} className="border-b border-rule last:border-0 pb-2">
@@ -140,23 +145,26 @@ export default async function ProfilSiswa360Page({
             </div>
           ))}
         </div>
-        <details>
-          <summary className="cursor-pointer text-xs font-semibold text-primary-deep">+ Tambah prestasi</summary>
-          <form action="/api/siswa/prestasi" method="POST" className="flex flex-col gap-2 mt-2">
+        <Drawer triggerLabel="+ Tambah prestasi" eyebrow="Data Siswa" title="Tambah prestasi">
+          <form action="/api/siswa/prestasi" method="POST" className="flex flex-col gap-2">
             <input type="hidden" name="siswaId" value={id} />
             <input type="hidden" name="kembaliKe" value={`/kepsek/siswa/${id}`} />
-            <input name="judul" required placeholder="mis. Juara 1 Lomba Cerdas Cermat" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-            <input name="tanggal" type="date" required className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-            <textarea name="keterangan" rows={2} placeholder="Keterangan (opsional)" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-            <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan</button>
+            <input name="judul" required placeholder="mis. Juara 1 Lomba Cerdas Cermat" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+            <input name="tanggal" type="date" required className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+            <textarea name="keterangan" rows={2} placeholder="Keterangan (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+            <div className="border-b border-rule my-1" />
+            <div className="flex gap-3">
+              <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan</button>
+              <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
+            </div>
           </form>
-        </details>
+        </Drawer>
       </Card>
 
       <Card className="mt-4">
         <h3 className="text-sm font-semibold mb-1">Catatan Guru</h3>
         <p className="text-xs text-ink-soft mb-3">Ditulis guru, privat ke ortu & kepsek — murid tidak melihat ini.</p>
-        {catatan.length === 0 && <p className="text-xs text-ink-soft">Belum ada catatan.</p>}
+        {catatan.length === 0 && <EmptyState icon="📋" title="Belum ada catatan guru" />}
         <div className="flex flex-col gap-2">
           {catatan.map((c) => (
             <div key={c.id} className="bg-paper border border-rule rounded-lg p-3">

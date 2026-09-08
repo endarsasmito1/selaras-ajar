@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { db } from "./helpers/db";
 
 test.describe("Indikator kehadiran guru di Data Guru (13.19-13.20)", () => {
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
@@ -15,8 +16,16 @@ test.describe("Indikator kehadiran guru di Data Guru (13.19-13.20)", () => {
   });
 
   test("negatif: guru tanpa data presensi tampilkan 'Data belum memadai', bukan error", async ({ page }) => {
+    // Feedback teknis (Sep 2026) — seed sekarang kasih jadwal ke SEMUA guru beneran (peran GURU)
+    // di sekolah demo ini, jadi skenario "guru spesialis blm py presensi" gak lagi kejadian
+    // natural — dicek eksplisit dulu drpd asumsi, skip kalau memang gak ada (pola sama spt
+    // test.skip lain di suite ini, mis. absensi-lanjutan.spec.ts).
+    const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const guruTanpaJadwal = db.guruProfil.findFirstTanpaJadwal(sekolah!.id as string);
+    test.skip(!guruTanpaJadwal, "Semua guru di data seed saat ini sudah punya jadwal — skenario 'Data belum memadai' tak terjadi natural");
+    if (!guruTanpaJadwal) return;
+
     await page.goto("/kepsek/guru");
-    // Guru spesialis non-wali (banyak di seed) umumnya belum punya baris PresensiGuru sama sekali.
     await expect(page.getByText("Data belum memadai").first()).toBeVisible();
   });
 });

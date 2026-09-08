@@ -17,8 +17,15 @@ export async function POST(req: NextRequest) {
   url.pathname = `/superadmin/sekolah/${sekolahId}`;
   url.search = "";
 
+  const existing = await prisma.sekolah.findUnique({ where: { id: sekolahId } });
+  if (!existing) {
+    url.pathname = "/superadmin/sekolah";
+    url.search = `?error=${encodeURIComponent("Sekolah tidak ditemukan")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
   await prisma.sekolah.update({
-    where: { id: sekolahId },
+    where: { id: existing.id },
     data: {
       latitude: latitudeRaw ? Number(latitudeRaw) : null,
       longitude: longitudeRaw ? Number(longitudeRaw) : null,

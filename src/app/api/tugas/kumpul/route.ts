@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { simpanFileUpload, ambilFileValid } from "@/lib/upload";
+import { upsertNotifikasi } from "@/lib/notifikasi";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -31,6 +32,13 @@ export async function POST(req: NextRequest) {
   const terlambat = new Date() > new Date(tugas.tenggat);
   const lampiranUrl = lampiranFile ? await simpanFileUpload(lampiranFile, "pengumpulan-tugas") : undefined;
 
+  // NTF-G-04 — dicek SEBELUM upsert: kalau pengumpulan ini sudah pernah dinilai lalu murid
+  // submit ulang, guru perlu tau nilai lama itu sekarang mewakili jawaban yg sudah berubah.
+  const pengumpulanLama = await prisma.pengumpulanTugas.findUnique({
+    where: { tugasId_siswaId: { tugasId, siswaId: siswa.id } },
+    select: { nilai: true },
+  });
+
   await prisma.pengumpulanTugas.upsert({
     where: { tugasId_siswaId: { tugasId, siswaId: siswa.id } },
     update: {
@@ -49,6 +57,17 @@ export async function POST(req: NextRequest) {
       terlambat,
     },
   });
+
+  if (pengumpulanLama && pengumpulanLama.nilai !== null) {
+    await upsertNotifikasi({
+      penggunaId: tugas.penggunaId,
+      tipe: "tugas-submit-ulang",
+      entitasKey: `${tugasId}:${siswa.id}`,
+      judul: `${siswa.nama} kumpul ulang tugas "${tugas.judul}" yang sudah dinilai`,
+      href: `/guru/tugas/${tugasId}`,
+      prioritas: "SEDANG",
+    });
+  }
 
   url.pathname = "/murid/tugas";
   url.search = "";

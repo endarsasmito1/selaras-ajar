@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { upsertNotifikasi } from "@/lib/notifikasi";
+
+// NTF-M-04 — semua murid di kelas itu diberi tahu ujian sudah bisa dikerjakan. Dipanggil SETELAH
+// transaksi publish commit (kegagalan kirim notif bukan alasan buat rollback penerbitan ujian
+// itu sendiri) — beda dari pola izin yang notifnya cukup murah utk ikut nempel di request yg sama.
+async function notifikasiUjianTerbit(kelasId: string, ujianId: string, judulUjian: string) {
+  const siswa = await prisma.siswa.findMany({
+    where: { kelasId, akunId: { not: null } },
+    select: { akunId: true },
+  });
+  await Promise.all(
+    siswa.map((s) =>
+      upsertNotifikasi({
+        penggunaId: s.akunId as string,
+        tipe: "ujian-baru",
+        entitasKey: ujianId,
+        judul: `Ujian baru: ${judulUjian}`,
+        deskripsi: "Sudah bisa dikerjakan sekarang.",
+        href: `/murid/ujian/${ujianId}`,
+        prioritas: "TINGGI",
+      })
+    )
+  );
+}
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -26,9 +50,11 @@ export async function POST(req: NextRequest) {
   // terpisah — satu per kelas — begitu dipublish, supaya tiap kelas punya siklus hasil/
   // koreksi/analisis yang sepenuhnya independen (bukan lagi satu record dibagi banyak kelas).
   if (ujian.kelas.length > 1) {
+    const createdIds: string[] = [];
     await prisma.$transaction(async (tx) => {
       for (const uk of ujian.kelas) {
-        await tx.ujian.create({
+        const dibuat = await tx.ujian.create({
+          select: { id: true },
           data: {
             mapelId: ujian.mapelId,
             dibuatOlehId: ujian.dibuatOlehId,
@@ -51,13 +77,18 @@ export async function POST(req: NextRequest) {
             soal: { create: ujian.soal.map((s) => ({ soalId: s.soalId, urutan: s.urutan, poin: s.poin })) },
           },
         });
+        createdIds.push(dibuat.id);
       }
       await tx.ujianSoal.deleteMany({ where: { ujianId } });
       await tx.ujianKelas.deleteMany({ where: { ujianId } });
       await tx.ujian.delete({ where: { id: ujianId } });
     });
+    await Promise.all(
+      ujian.kelas.map((uk, i) => notifikasiUjianTerbit(uk.kelasId, createdIds[i], ujian.judul))
+    );
   } else {
     await prisma.ujian.update({ where: { id: ujianId }, data: { status: "PUBLISHED" } });
+    await notifikasiUjianTerbit(ujian.kelas[0].kelasId, ujianId, ujian.judul);
   }
 
   const url = req.nextUrl.clone();

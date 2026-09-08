@@ -15,7 +15,9 @@ test.describe("Pengumuman Sekolah (21.1-21.4)", () => {
     await expect(page.getByRole("heading", { name: judul })).toBeVisible();
 
     await page.goto("/kepsek");
-    await expect(page.getByText("📣 Pengumuman terbaru")).toBeVisible();
+    // Judul widget-nya "📣 Pengumuman" (PengumumanNotifCard) — bukan "...terbaru", teks itu gak
+    // pernah ada di komponennya (lihat src/components/PengumumanWidget.tsx).
+    await expect(page.getByText("📣 Pengumuman", { exact: true })).toBeVisible();
     await expect(page.getByText(judul)).toBeVisible();
   });
 
@@ -47,16 +49,38 @@ test.describe("Pengumuman Sekolah (21.1-21.4)", () => {
 });
 
 test.describe("Pengumuman Sekolah — widget lintas dashboard (21.1)", () => {
-  for (const role of ["guru", "murid", "ortu", "tu"] as const) {
-    test(`positif: dashboard ${role} menampilkan widget Pengumuman terbaru`, async ({ browser }) => {
+  // Feedback teknis (Sep 2026) — sebelumnya semua role dicek pakai teks "📣 Pengumuman terbaru"
+  // yang GAK PERNAH ada di komponen manapun (lihat PengumumanWidget.tsx: guru pakai
+  // <PengumumanBanner> tanpa heading section sama sekali per-item pakai "📣 {judul}", murid/TU
+  // pakai <PengumumanNotifCard> yg headingnya "📣 Pengumuman" tanpa "terbaru"). Dipisah per gaya
+  // widget yg SUNGGUH dipakai tiap role, bukan satu assertion generik yg gak match siapa pun.
+  for (const role of ["murid", "tu"] as const) {
+    test(`positif: dashboard ${role} menampilkan widget "📣 Pengumuman" (PengumumanNotifCard)`, async ({ browser }) => {
       const context = await browser.newContext({ storageState: `tests/e2e/.auth/${role}.json` });
       const page = await context.newPage();
       const home = role === "tu" ? "/kepsek/siswa" : `/${role}`;
       await page.goto(home);
-      await expect(page.getByText("📣 Pengumuman terbaru")).toBeVisible();
+      await expect(page.getByText("📣 Pengumuman", { exact: true })).toBeVisible();
       await context.close();
     });
   }
+
+  test("positif: dashboard guru menampilkan pengumuman via banner (PengumumanBanner, tanpa heading section)", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: "tests/e2e/.auth/guru.json" });
+    const page = await context.newPage();
+    await page.goto("/guru");
+    // Banner guru gak punya judul section — tiap pengumuman tampil sbg <h4>📣 {judul}</h4> sendiri.
+    await expect(page.locator("h4", { hasText: "📣" }).first()).toBeVisible();
+    await context.close();
+  });
+
+  test("negatif: dashboard ortu belum punya widget pengumuman (TODO produk — lihat komentar PengumumanWidget.tsx, sengaja belum diputuskan)", async ({ browser }) => {
+    const context = await browser.newContext({ storageState: "tests/e2e/.auth/ortu.json" });
+    const page = await context.newPage();
+    await page.goto("/ortu");
+    await expect(page.getByText("📣 Pengumuman", { exact: true })).toHaveCount(0);
+    await context.close();
+  });
 });
 
 test.describe("Pengumuman Sekolah — RBAC & isolasi (21.4-21.5)", () => {

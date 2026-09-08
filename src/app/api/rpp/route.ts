@@ -25,6 +25,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
+  // Tenant-scoping: sama seperti api/materi & api/tanya-jawab — guru cuma boleh bikin RPP
+  // untuk kelas+mapel yang benar-benar diampunya.
+  const guru = await prisma.guruProfil.findUnique({ where: { penggunaId: session.userId } });
+  const penugasan = guru ? await prisma.penugasanGuru.findFirst({ where: { guruId: guru.id, kelasId, mapelId } }) : null;
+  if (!penugasan) {
+    return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
+  }
+
   const tahunAktif = await getTahunAjaranAktif(session.sekolahId);
   if (!tahunAktif) {
     url.search = `?error=${encodeURIComponent("Belum ada tahun ajaran aktif")}`;
