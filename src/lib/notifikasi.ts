@@ -116,10 +116,22 @@ export async function syncNotifikasiAbsensiBelum(penggunaId: string) {
   });
   const kelasUnik = Array.from(new Map(entries.map((e) => [e.kelasId, e.kelas])).values());
 
+  // Perf — sebelumnya 1 query `count()` TERPISAH per kelas di dalam loop (guru yg ngajar lintas
+  // puluhan kelas = puluhan round-trip better-sqlite3 SINKRON tambahan di SETIAP render halaman,
+  // krn fungsi ini dipanggil dari AppShell tiap request). Ketauan lewat load-test (dashboard guru
+  // jadi >4 detik pas dites beban). Dibatch jadi 1 query select kelasId doang, dihitung di JS.
+  const absensiHariIni = kelasUnik.length
+    ? await prisma.absensi.findMany({
+        where: { kelasId: { in: kelasUnik.map((k) => k.id) }, tanggal: tanggalHariIni },
+        select: { kelasId: true },
+      })
+    : [];
+  const kelasSudahDiisi = new Set(absensiHariIni.map((a) => a.kelasId));
+
   const aktif = new Set<string>();
   for (const kelas of kelasUnik) {
-    const sudahDiisi = await prisma.absensi.count({ where: { kelasId: kelas.id, tanggal: tanggalHariIni } });
-    if (sudahDiisi === 0) {
+    const sudahDiisi = kelasSudahDiisi.has(kelas.id);
+    if (!sudahDiisi) {
       aktif.add(kelas.id);
       await upsertNotifikasi({
         penggunaId,
