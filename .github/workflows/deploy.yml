@@ -16,7 +16,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: "file:./ci.db"
+      # Feedback teknis (Sep 2026) — WAJIB absolut, bukan "file:./ci.db". Path relatif di-resolve
+      # BEDA antara `prisma migrate deploy` (CLI) dan runtime `@prisma/adapter-better-sqlite3`
+      # (dipakai app/seed.ts) tergantung proses/cwd yang manggil — di runner GH Actions ini
+      # nyata bikin migrate-deploy nulis migrasi ke satu file sementara seed.ts nulis/baca ke
+      # file LAIN yang kosong ("table ApiKey does not exist"), padahal lolos mulus di macOS lokal.
+      # `github.workspace` selalu absolut, gak ambigu siapa pun/dari cwd mana pun yang resolve-nya.
+      DATABASE_URL: "file:${{ github.workspace }}/ci.db"
       SESSION_SECRET: "ci-secret-bukan-untuk-produksi"
     steps:
       - uses: actions/checkout@v4
