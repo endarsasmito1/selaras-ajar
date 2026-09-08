@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Pill } from "@/components/ui/Pill";
 import { LinkButton } from "@/components/ui/Button";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 export default async function PerformaKelasPage({ params }: { params: Promise<{ kelasId: string }> }) {
   const session = await getSession();
@@ -27,7 +28,7 @@ export default async function PerformaKelasPage({ params }: { params: Promise<{ 
       pageSubtitle="Performa kelas (D-4) — sebelum drill-down ke performa per siswa"
       headerAction={<LinkButton href={`/kepsek/siswa/kelas/${kelasId}/buku-induk`} variant="ghost" size="sm">Cetak Buku Induk Kelas</LinkButton>}
     >
-      <a href="/kepsek/siswa" className="text-xs font-semibold text-primary-deep hover:underline mb-4 inline-block">← Semua kelas</a>
+      <Link href="/kepsek/siswa" className="text-xs font-semibold text-primary-deep hover:underline mb-4 inline-block">← Semua kelas</Link>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5 mb-6">
         <StatCard label="Jumlah siswa" value={String(jumlahSiswa)} />

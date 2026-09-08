@@ -35,6 +35,10 @@ export function ToastFromQuery({ param = "toast", toneParam = "tone" }: { param?
     const m = url.searchParams.get(param);
     if (!m) return;
 
+    // Baca query param cuma bisa kejadian client-side (window.location) — gak ada cara hindari
+    // setState di effect ini tanpa ubah keseluruhan pola "flash message lewat URL" yang dipakai
+    // luas di app ini (lihat komentar panjang di atas kenapa bukan useSearchParams()).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- disengaja, bukan anti-pattern.
     setMessage(m);
     const t = url.searchParams.get(toneParam);
     setTone(t === "success" || t === "warn" ? t : "default");

@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { getSessionSecretKey } from "@/lib/session-secret";
 
 const COOKIE_NAME = "selaras_session";
-const secretKey = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "dev-secret-ganti-di-produksi-selaras-ajar"
-);
 
 const HOME_BY_ROLE: Record<string, string> = {
   SUPERADMIN: "/superadmin",
@@ -50,7 +48,7 @@ export async function proxy(req: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token, secretKey);
+    const { payload } = await jwtVerify(token, getSessionSecretKey());
     const peran = payload.peran as string;
 
     if (!matched.roles.includes(peran)) {

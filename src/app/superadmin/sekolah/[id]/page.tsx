@@ -12,6 +12,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { formatTanggal } from "@/lib/utils";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 const PENGGUNA_PER_HALAMAN = 20;
 const PERAN_FILTER_LIST = ["KEPALA_SEKOLAH", "BENDAHARA", "TU", "GURU", "ORANG_TUA", "MURID"];
@@ -68,7 +69,7 @@ export default async function SuperadminSekolahDetailPage({
       pageTitle={sekolah.nama}
       pageSubtitle={`${sekolah.jenjang} · terdaftar ${formatTanggal(sekolah.createdAt)}`}
     >
-      <a href="/superadmin/sekolah" className="text-xs font-semibold text-primary-deep hover:underline mb-4 inline-block">← Semua sekolah</a>
+      <Link href="/superadmin/sekolah" className="text-xs font-semibold text-primary-deep hover:underline mb-4 inline-block">← Semua sekolah</Link>
 
       {sp.error && <div className="mb-4"><Callout tone="warn">{sp.error}</Callout></div>}
       {sp.kepsek_dibuat && (

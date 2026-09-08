@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -49,6 +50,9 @@ next-env.d.ts
 *.db-wal
 prisma/dev.db*
 public/uploads/
+
+# snapshot lokal dari scripts/backup.mjs — idealnya di-rsync ke luar server, bukan disimpan di git
+/backups/
 
 # playwright
 /test-results/

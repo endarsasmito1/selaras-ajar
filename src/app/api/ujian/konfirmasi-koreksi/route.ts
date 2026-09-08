@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { semuaJawabanManualSudahDinilai } from "@/lib/ujian-helpers";
+import { logger, errorContext } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -30,24 +31,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
-  const { selesai, belumDinilai } = await semuaJawabanManualSudahDinilai(pengerjaanId);
-  if (!selesai) {
-    const pengerjaan = await prisma.ujianPengerjaan.findUnique({ where: { id: pengerjaanId }, include: { ujian: { include: { soal: true } } } });
-    const nomorSoal = belumDinilai
-      .map((j) => (pengerjaan?.ujian.soal.findIndex((us) => us.soalId === j.soalId) ?? -1) + 1)
-      .filter((n) => n > 0)
-      .join(", ");
-    url.search = `?error=${encodeURIComponent(
-      `Belum bisa dikonfirmasi — soal esai nomor ${nomorSoal || "?"} belum diberi skor.`
-    )}`;
+  try {
+    const { selesai, belumDinilai } = await semuaJawabanManualSudahDinilai(pengerjaanId);
+    if (!selesai) {
+      const pengerjaan = await prisma.ujianPengerjaan.findUnique({ where: { id: pengerjaanId }, include: { ujian: { include: { soal: true } } } });
+      const nomorSoal = belumDinilai
+        .map((j) => (pengerjaan?.ujian.soal.findIndex((us) => us.soalId === j.soalId) ?? -1) + 1)
+        .filter((n) => n > 0)
+        .join(", ");
+      url.search = `?error=${encodeURIComponent(
+        `Belum bisa dikonfirmasi — soal esai nomor ${nomorSoal || "?"} belum diberi skor.`
+      )}`;
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
+    await prisma.ujianPengerjaan.update({
+      where: { id: pengerjaanId },
+      data: { koreksiDikonfirmasi: true, dikonfirmasiPada: new Date() },
+    });
+
+    url.search = `?toast=${encodeURIComponent("Koreksi dikonfirmasi — nilai & komentar sekarang tampil ke murid/ortu.")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  } catch (err) {
+    // Feedback teknis (Sep 2026) — jalur penilaian ujian, wajib ada jejak kalau gagal diam-diam.
+    logger.error("Gagal konfirmasi koreksi ujian", { route: "ujian/konfirmasi-koreksi", pengerjaanId, ujianId, guruId: session.userId, ...errorContext(err) });
+    url.search = `?error=${encodeURIComponent("Gagal konfirmasi, coba lagi")}`;
     return NextResponse.redirect(url, { status: 303 });
   }
-
-  await prisma.ujianPengerjaan.update({
-    where: { id: pengerjaanId },
-    data: { koreksiDikonfirmasi: true, dikonfirmasiPada: new Date() },
-  });
-
-  url.search = `?toast=${encodeURIComponent("Koreksi dikonfirmasi — nilai & komentar sekarang tampil ke murid/ortu.")}`;
-  return NextResponse.redirect(url, { status: 303 });
 }

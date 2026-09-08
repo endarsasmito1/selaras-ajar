@@ -57,6 +57,9 @@ export function Sidebar({ groups, activeHref }: { groups: NavGroup[]; activeHref
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    // Hydration-safe: localStorage gak ada di server, jadi state mulai dari default (false) dan
+    // baru disesuaikan ke preferensi tersimpan sesudah mount client-side.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- disengaja, bukan anti-pattern.
     if (localStorage.getItem(STORAGE_KEY) === "1") setCollapsed(true);
   }, []);
 

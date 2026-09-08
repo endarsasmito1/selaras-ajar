@@ -3,11 +3,9 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Peran } from "@/generated/prisma/client";
+import { getSessionSecretKey } from "@/lib/session-secret";
 
 const COOKIE_NAME = "selaras_session";
-const secretKey = new TextEncoder().encode(
-  process.env.SESSION_SECRET ?? "dev-secret-ganti-di-produksi-selaras-ajar"
-);
 
 export type SessionPayload = {
   userId: string;
@@ -31,7 +29,7 @@ export async function createSession(payload: SessionPayload) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(secretKey);
+    .sign(getSessionSecretKey());
 
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
@@ -53,7 +51,7 @@ export async function getSession(): Promise<SessionPayload | null> {
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secretKey);
+    const { payload } = await jwtVerify(token, getSessionSecretKey());
     return payload as unknown as SessionPayload;
   } catch {
     return null;

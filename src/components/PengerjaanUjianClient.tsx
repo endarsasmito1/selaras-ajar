@@ -151,6 +151,9 @@ export default function PengerjaanUjianClient({
   useEffect(() => {
     const durasi = soal[index]?.durasiDetik;
     if (!durasi) {
+      // Reset timer per-soal saat pindah ke soal tanpa durasi — komponen timer ujian ini sengaja
+      // TIDAK direstruktur (production-grade, risiko tinggi kalau salah, lihat README).
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- disengaja, bukan anti-pattern.
       setSisaDetikSoal(null);
       return;
     }

@@ -7,6 +7,9 @@ export function CountdownTenggat({ tenggat }: { tenggat: string }) {
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    // Pola hydration-safe standar: `now` sengaja mulai null (render pertama sama persis di
+    // server & client, gak ada Date.now() yang beda), diisi ASLI cuma sesudah mount client-side.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- disengaja, bukan anti-pattern.
     setNow(Date.now());
     const iv = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(iv);

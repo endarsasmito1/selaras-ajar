@@ -34,7 +34,12 @@ export default async function LoginPage({
             Sistem sekolah yang selaras — untuk kepala sekolah, guru, orang tua, dan murid.
           </p>
 
-          {params.error && (
+          {params.error === "locked" && (
+            <div className="bg-warning-tint text-warning text-sm rounded-lg px-4 py-3 mb-4">
+              Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit.
+            </div>
+          )}
+          {params.error && params.error !== "locked" && (
             <div className="bg-warning-tint text-warning text-sm rounded-lg px-4 py-3 mb-4">
               Email atau kata sandi salah. Coba lagi.
             </div>

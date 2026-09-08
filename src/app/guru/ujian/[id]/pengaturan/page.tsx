@@ -41,7 +41,7 @@ export default async function PengaturanUjianPage({ params }: { params: Promise<
         <div className="flex flex-col gap-1.5 mb-4">
           <label className="text-xs font-semibold">Judul ujian</label>
           <input name="judul" defaultValue={ujian.judul} required className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" />
-          <p className="text-[11px] text-ink-soft">Bisa diubah kapan saja, mis. setelah "Duplikat ke kelas lain" masih otomatis dikasih akhiran "(salinan)".</p>
+          <p className="text-[11px] text-ink-soft">Bisa diubah kapan saja, mis. setelah &quot;Duplikat ke kelas lain&quot; masih otomatis dikasih akhiran &quot;(salinan)&quot;.</p>
         </div>
 
         <div className="flex flex-col gap-1.5 mb-4">

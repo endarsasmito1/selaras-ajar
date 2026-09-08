@@ -1,11 +1,50 @@
-name: Deploy to Production
+name: Test & Deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
+  # Feedback teknis (Sep 2026) — sebelumnya job "deploy" langsung jalan begitu ada push ke main,
+  # gak ada apa pun yang gate-in kalau kode ternyata rusak secara fungsional (build sukses tapi
+  # logic/regresi/keamanan salah) — `deploy.sh` sendiri cuma jaga dari build GAGAL (set -e), bukan
+  # dari build SUKSES tapi salah. Suite Playwright (tests/e2e/, 253 test) udah ada dari sebelumnya
+  # tapi gak pernah dijalankan di sini — job ini yang gate-in-nya sekarang, baik di PR (sebelum
+  # merge, begitu branch protection main diaktifkan) maupun di push langsung ke main (sebelum deploy).
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "file:./ci.db"
+      SESSION_SECRET: "ci-secret-bukan-untuk-produksi"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npx playwright test
+      - name: Upload laporan Playwright kalau ada test gagal
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   deploy:
+    needs: test
+    # Cuma jalan pas push langsung ke main (bukan di PR — PR cuma perlu lolos job "test" di atas
+    # sbg required check, gak boleh sampai punya akses SSH produksi).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: SSH and deploy
