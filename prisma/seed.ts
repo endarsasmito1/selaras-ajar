@@ -2,7 +2,12 @@ import { PrismaClient, StatusAbsensi, StatusTagihan } from "../src/generated/pri
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
 
-const adapter = new PrismaBetterSqlite3({ url: "file:./dev.db" });
+// Feedback teknis (Sep 2026) — sebelumnya hardcode "file:./dev.db", SAMA SEKALI GAK BACA
+// process.env.DATABASE_URL — beda dari src/lib/prisma.ts yang benar. Gak ketauan lama krn di
+// lokal DATABASE_URL emang selalu "file:./dev.db" juga (kebetulan cocok), tapi di CI
+// (DATABASE_URL="file:.../ci.db") jadi nge-seed file "dev.db" yang BEDA & gak pernah dimigrasi
+// sama sekali, sementara migrate deploy jalan ke ci.db — "table X does not exist" pas seed jalan.
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
 const prisma = new PrismaClient({ adapter });
 
 const PASSWORD = "selaras123";
