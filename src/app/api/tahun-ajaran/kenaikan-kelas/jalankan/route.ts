@@ -28,9 +28,20 @@ export async function POST(req: NextRequest) {
     include: { siswa: { where: { aktif: true } } },
   });
 
+  // Keamanan: `target_${siswaId}` datang mentah dari form user. Kalau bukan "LULUS"/"PINDAH",
+  // nilainya dipakai sbg kelasId tujuan promosi - HARUS divalidasi dulu kelas itu benar milik
+  // tahun ajaran baru sekolah ini, supaya id acak/kelas sekolah lain gak bisa ke-assign
+  // (FK constraint Prisma cuma cek baris-nya ADA, bukan cek tenant-nya cocok).
+  const kelasTujuanValid = await prisma.kelas.findMany({
+    where: { tahunAjaranId: tahunBaru.id },
+    select: { id: true },
+  });
+  const kelasTujuanSet = new Set(kelasTujuanValid.map((k) => k.id));
+
   let dipromosikan = 0;
   let diluluskan = 0;
   let dipindah = 0;
+  let gagal = 0;
   const sekarang = new Date();
 
   for (const k of kelasLama) {
@@ -48,9 +59,11 @@ export async function POST(req: NextRequest) {
           data: { aktif: false, statusKeluar: "PINDAH_SEKOLAH", tanggalKeluar: sekarang, keteranganKeluar: keteranganPindah },
         });
         dipindah++;
-      } else {
+      } else if (kelasTujuanSet.has(target)) {
         await prisma.siswa.update({ where: { id: s.id }, data: { kelasId: target } });
         dipromosikan++;
+      } else {
+        gagal++;
       }
     }
   }
@@ -62,5 +75,6 @@ export async function POST(req: NextRequest) {
   url.searchParams.set("promosi", String(dipromosikan));
   url.searchParams.set("lulus", String(diluluskan));
   url.searchParams.set("pindah", String(dipindah));
+  if (gagal > 0) url.searchParams.set("gagal", String(gagal));
   return NextResponse.redirect(url, { status: 303 });
 }

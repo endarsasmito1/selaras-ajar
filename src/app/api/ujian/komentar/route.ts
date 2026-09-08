@@ -13,13 +13,24 @@ export async function POST(req: NextRequest) {
   const komentar = String(formData.get("komentarGuru") ?? "").trim();
   const ujianId = String(formData.get("ujianId") ?? "");
 
+  const url = req.nextUrl.clone();
+  url.pathname = `/guru/ujian/${ujianId}`;
+
+  // Kepemilikan: pengerjaanId mentah dari form — tanpa cek ini, guru mana pun bisa nulis
+  // komentar ke pengerjaan ujian murid guru LAIN (bahkan sekolah lain) asal tau/nebak id-nya.
+  const pengerjaan = await prisma.ujianPengerjaan.findFirst({
+    where: { id: pengerjaanId, ujianId, ujian: { dibuatOlehId: session.userId } },
+  });
+  if (!pengerjaan) {
+    url.search = `?error=${encodeURIComponent("Pengerjaan tidak ditemukan")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
   await prisma.ujianPengerjaan.update({
-    where: { id: pengerjaanId },
+    where: { id: pengerjaan.id },
     data: { komentarGuru: komentar || null },
   });
 
-  const url = req.nextUrl.clone();
-  url.pathname = `/guru/ujian/${ujianId}`;
   url.search = `?toast=${encodeURIComponent("Komentar tersimpan.")}`;
   return NextResponse.redirect(url, { status: 303 });
 }

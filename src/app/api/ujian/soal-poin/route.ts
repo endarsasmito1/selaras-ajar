@@ -34,6 +34,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ujian tidak ditemukan atau sudah diterbitkan" }, { status: 404 });
   }
 
+  const ujianSoal = await prisma.ujianSoal.findUnique({ where: { ujianId_soalId: { ujianId, soalId } } });
+  if (!ujianSoal) {
+    url.search = `?error=${encodeURIComponent("Soal tidak ditemukan di ujian ini")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
   await prisma.ujianSoal.update({
     where: { ujianId_soalId: { ujianId, soalId } },
     data: { poin },

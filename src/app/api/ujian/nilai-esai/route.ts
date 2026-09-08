@@ -13,7 +13,18 @@ export async function POST(req: NextRequest) {
   const ujianId = String(formData.get("ujianId"));
   const jawabanIds = formData.getAll("jawabanId") as string[];
 
+  // Kepemilikan: jawabanId mentah dari form — tanpa cek ini, guru mana pun bisa nyetel skor
+  // jawaban esai murid guru LAIN (bahkan ujian/sekolah lain) asal tau/nebak id-nya.
+  const jawabanValid = jawabanIds.length
+    ? await prisma.ujianJawaban.findMany({
+        where: { id: { in: jawabanIds }, pengerjaan: { ujianId, ujian: { dibuatOlehId: session.userId } } },
+        select: { id: true },
+      })
+    : [];
+  const jawabanIdValid = new Set(jawabanValid.map((j) => j.id));
+
   for (const jawabanId of jawabanIds) {
+    if (!jawabanIdValid.has(jawabanId)) continue;
     const skorRaw = formData.get(`skor_${jawabanId}`);
     if (skorRaw === null || skorRaw === "") continue;
     const skor = Number(skorRaw);

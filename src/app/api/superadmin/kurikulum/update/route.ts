@@ -21,7 +21,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
-  await prisma.kurikulum.update({ where: { id: kurikulumId }, data: { nama, jenjang } });
+  const existing = await prisma.kurikulum.findUnique({ where: { id: kurikulumId } });
+  if (!existing) {
+    url.pathname = "/superadmin/kurikulum";
+    url.search = `?error=${encodeURIComponent("Kurikulum tidak ditemukan")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
+  await prisma.kurikulum.update({ where: { id: existing.id }, data: { nama, jenjang } });
 
   const toastUrl = new URLSearchParams({ toast: "Kurikulum berhasil diperbarui.", tone: "success" });
   url.search = `?${toastUrl.toString()}`;

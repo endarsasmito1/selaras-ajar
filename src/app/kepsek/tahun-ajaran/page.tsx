@@ -11,7 +11,7 @@ import { formatTanggal } from "@/lib/utils";
 export default async function TahunAjaranPage({
   searchParams,
 }: {
-  searchParams: Promise<{ promosi?: string; lulus?: string; pindah?: string }>;
+  searchParams: Promise<{ promosi?: string; lulus?: string; pindah?: string; gagal?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -31,6 +31,9 @@ export default async function TahunAjaranPage({
     >
       {params.promosi && (
         <Callout>✓ Kenaikan kelas selesai — {params.promosi} siswa naik kelas, {params.lulus} siswa lulus, {params.pindah ?? 0} siswa pindah sekolah. Lihat detailnya di Riwayat Siswa.</Callout>
+      )}
+      {params.gagal && (
+        <Callout tone="warn">⚠ {params.gagal} siswa gagal diproses — kelas tujuan yang dipilih tidak valid. Data siswa tersebut tidak diubah, silakan ulangi lewat halaman kenaikan kelas.</Callout>
       )}
 
       <div className="flex flex-col gap-3 mt-4">

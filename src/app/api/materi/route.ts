@@ -28,6 +28,15 @@ export async function POST(req: NextRequest) {
   url.pathname = "/guru/materi";
   url.search = `?kelas=${kelasId}`;
 
+  // Tenant-scoping: kelasId/mapelId dari form user, guru cuma boleh unggah materi ke
+  // kelas+mapel yang benar-benar diampunya (pola sama dgn api/tanya-jawab) — tanpa ini,
+  // guru bisa nebak/tau id kelas/mapel sekolah lain lalu nyuntik materi ke sana.
+  const guru = await prisma.guruProfil.findUnique({ where: { penggunaId: session.userId } });
+  const penugasan = guru ? await prisma.penugasanGuru.findFirst({ where: { guruId: guru.id, kelasId, mapelId } }) : null;
+  if (!penugasan) {
+    return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
+  }
+
   try {
     const file = ambilFileValid(formData, "file");
     let isi = String(formData.get("isi") ?? "").trim();
