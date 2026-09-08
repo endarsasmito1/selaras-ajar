@@ -9,7 +9,9 @@ test.describe("RPP & Capaian Pembelajaran (§4.16)", () => {
     const deskripsi = `CP uji otomatis ${Date.now()}`;
     await page.fill('input[name="deskripsi"]', deskripsi);
     await page.fill('input[name="kode"]', "CP.TEST.1");
-    await page.locator('form[action="/api/capaian"] button[type="submit"]').click();
+    // Dialog (Drawer) ini juga punya tombol "Batal" (type="submit" formMethod="dialog") — pilih
+    // "Simpan" pakai teks persis, bukan selector generik button[type="submit"].
+    await page.locator("dialog[open]").getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page).toHaveURL(/\/guru\/rpp\/capaian/);
     await expect(page.getByText(deskripsi)).toBeVisible();
   });

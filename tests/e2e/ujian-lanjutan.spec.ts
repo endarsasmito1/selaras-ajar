@@ -116,13 +116,27 @@ test.describe("Ujian lanjutan — duplikat (8.19-8.20)", () => {
     if (await tambahDariBank.count()) await tambahDariBank.click();
     await page.goto(page.url().replace("/edit", ""));
 
-    const details = page.locator("details", { hasText: "Duplikat ke kelas lain" });
-    await expect(details).toBeVisible();
-    await details.locator("summary").click();
-    await details.locator(`input[type="checkbox"][value="${kelasTarget!.id}"]`).check();
-    await page.getByRole("button", { name: "Duplikat" }).click();
-    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
-    await page.waitForURL(/\/guru\/ujian\/.+\/edit\?ujian_dibuat=1/);
+    // Feedback teknis (Sep 2026) — "↻ Duplikat ke kelas lain" sekarang <Drawer> (native <dialog>),
+    // bukan <details> lagi. getByText ambigu — dialog title-nya (h3) teksnya persis sama minus
+    // "↻ " jadi ikut match — pakai role button biar cuma kena triggernya.
+    await page.getByRole("button", { name: "Duplikat ke kelas lain" }).click();
+    const dialog = page.locator("dialog[open]");
+    await expect(dialog).toBeVisible();
+    await dialog.locator(`input[type="checkbox"][value="${kelasTarget!.id}"]`).check();
+    // "Duplikat" (ConfirmSubmitButton) buka dialog konfirmasi KEDUA, nested di dalam dialog Drawer
+    // yang masih terbuka — dialog[open] jadi ada 2 sekaligus, jadi gak pakai helper
+    // confirmDialogSubmit (ambigu di sini), scope eksplisit ke dialog PALING BARU (.last()).
+    await dialog.getByRole("button", { name: "Duplikat", exact: true }).click();
+    const confirmDialog = page.locator("dialog[open]").last();
+    await Promise.all([
+      page.waitForNavigation(),
+      confirmDialog.getByRole("button", { name: "Ya, lanjutkan" }).click(),
+    ]);
+    // Feedback teknis (Sep 2026) — pesan sukses sudah pindah ke toast (`?toast=...&tone=success`,
+    // dibersihkan client-side lewat ToastFromQuery), bukan lagi flag URL `?ujian_dibuat=1` —
+    // diverifikasi langsung: redirect ASLI ke `.../edit?toast=...`, bukan `?ujian_dibuat=1` (yang
+    // gak akan pernah muncul lagi), jadi cukup pastikan mendarat di halaman edit yang benar.
+    await page.waitForURL(/\/guru\/ujian\/.+\/edit/);
 
     const salinan = db.ujian.findByJudul(`${judul} (salinan)`);
     expect(salinan?.status).toBe("DRAFT");
@@ -168,7 +182,7 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
       await guruPage.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
       await guruPage.selectOption('select[name="babId"]', babMatematika!.id as string);
       await guruPage.getByRole("button", { name: "Lanjut susun soal →" }).click();
-      const ujianId = guruPage.url().match(/\/guru\/ujian\/([^/]+)\/edit/)?.[1]!;
+      const ujianId = guruPage.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
       db.ujianSoal.create({ ujianId, soalId: soalPGKId, urutan: 1, poin: 100 });
       await guruPage.goto(`/guru/ujian/${ujianId}/pengaturan`);
       await guruPage.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
@@ -249,7 +263,7 @@ test.describe("Ujian lanjutan — Pilihan Ganda Nilai Minus (1.23)", () => {
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
-    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)?.[1]!;
+    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     db.ujianSoal.create({ ujianId, soalId, urutan: 1, poin });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
@@ -316,7 +330,7 @@ test.describe("Ujian lanjutan — edit poin soal & filter tingkat kesulitan (1.2
   test("positif: guru ubah poin soal di ujian draft, total poin ikut berubah", async ({ page }) => {
     await buatUjianKelas5BMatematika(page, `Ujian Poin ${Date.now()}`);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
-    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)?.[1]!;
+    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     const soalMatematika = db.soal.findFirst({ mapelId: db.ujian.findUnique({ id: ujianId })?.mapelId as string, jenis: "PILIHAN_GANDA" });
     test.skip(!soalMatematika, "Tak ada soal PG Matematika di bank soal seed");
     if (!soalMatematika) return;
@@ -331,6 +345,10 @@ test.describe("Ujian lanjutan — edit poin soal & filter tingkat kesulitan (1.2
   test("positif: filter tingkat kesulitan di halaman susun ujian menyaring bank soal", async ({ page }) => {
     await buatUjianKelas5BMatematika(page, `Ujian Filter Kesulitan ${Date.now()}`);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    // Feedback teknis (Sep 2026) — race hydration sama kayak kenaikan-kelas.spec.ts: tanpa nunggu
+    // ini, selectOption() sukses set value native tapi submit GET berikutnya kadang tetap ngirim
+    // value kosong (diverifikasi langsung: nempel `networkidle` bikin selalu konsisten).
+    await page.waitForLoadState("networkidle");
     await page.selectOption('select[name="tingkatKesulitan"]', "sulit");
     await page.getByRole("button", { name: "Filter" }).click();
     await expect(page).toHaveURL(/tingkatKesulitan=sulit/);
@@ -350,7 +368,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
-    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)?.[1]!;
+    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 1, poin: 100 });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
@@ -431,7 +449,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
-    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)?.[1]!;
+    const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     db.ujianSoal.create({ ujianId, soalId: soalEsai!.id as string, urutan: 1, poin: 50 });
     db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 2, poin: 50 });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);

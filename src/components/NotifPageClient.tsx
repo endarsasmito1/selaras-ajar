@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { waktuRelatif } from "@/lib/utils";
+import { WaktuRelatif } from "@/components/ui/WaktuRelatif";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { NotifItem, AKSEN_PRIORITAS } from "@/components/NotifBell";
 
@@ -103,7 +103,7 @@ export function NotifPageClient({ initial }: { initial: NotifItem[] }) {
               <div className="min-w-0 flex-1">
                 <div className={"text-sm " + (n.dibacaPada ? "text-ink" : "font-semibold text-ink")}>{n.judul}</div>
                 {n.deskripsi && <p className="text-xs text-ink-soft mt-0.5">{n.deskripsi}</p>}
-                <span className="text-[11px] text-ink-soft/80 mt-1 block">{waktuRelatif(n.createdAt)}</span>
+                <WaktuRelatif date={n.createdAt} className="text-[11px] text-ink-soft/80 mt-1 block" />
               </div>
             </a>
           ))}

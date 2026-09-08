@@ -36,10 +36,18 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     // Lewat API langsung (bukan form UI) — Rina di UI cuma mengajar Matematika di 5B, dropdown
     // mapel-nya gak akan pernah nawarin IPAS; yang mau diverifikasi di sini murni logic
     // `cariAtauBuatBab()` scoping per-mapel di route-nya, bukan pembatasan mapel per-guru di UI.
+    //
+    // Feedback teknis (Sep 2026) — audit keamanan nambahin cek kepemilikan (PenugasanGuru) di
+    // /api/materi (sebelumnya guru mana pun bisa nyuntik materi ke kelas/mapel yg BUKAN
+    // diampunya). Rina beneran gak py penugasan ke 5B+IPAS di seed, jadi POST kedua di bawah
+    // bakal ditolak 403 kalau gak di-grant dulu — `ensure()` nambahin penugasan test-only supaya
+    // yang diuji tetap murni logic scoping bab, bukan korban celah keamanan yg udah ditutup.
     const kelas5B = db.kelas.findFirst({ nama: "5B" });
     const matematika = db.mataPelajaran.findFirst({ nama: "Matematika" });
     const ipas = db.mataPelajaran.findFirst({ nama: "IPAS" });
     const namaBab = `Bab Lintas ${Date.now()}`;
+    const guruRina = db.guruProfil.findByPenggunaEmail("rina@selarasajar.demo");
+    db.penugasanGuru.ensure({ guruId: guruRina!.id, kelasId: kelas5B!.id as string, mapelId: ipas!.id as string });
 
     await page.request.post("/api/materi", {
       form: { kelasId: kelas5B!.id as string, mapelId: matematika!.id as string, judul: "Materi Matematika", tipe: "catatan", isi: "x", babBaru: namaBab },

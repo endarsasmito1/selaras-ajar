@@ -33,16 +33,24 @@ test.describe("Kenaikan Kelas (F-2) — persiapan & validasi", () => {
     await page.fill('input[name="mulai"]', "2040-07-14");
     await page.fill('input[name="selesai"]', "2040-12-19");
     await page.getByRole("button", { name: "Lanjut ke peninjauan rombel tujuan →" }).click();
+    // Halaman tinjau ini berat (24 kelas x ~30 siswa x <Drawer> masing-masing) — klik trigger
+    // sebelum hydration React kelar bikin onClick-nya belum ke-attach (klik jadi no-op, dialog
+    // gak kebuka, kejadian nyata: tombol kekelihatan & lolos actionability check Playwright, tapi
+    // React belum sempat pasang listener-nya). Networkidle nunggu bundle JS-nya kelar dimuat dulu.
+    await page.waitForLoadState("networkidle");
 
-    // 1.20 — input/tombol "Tambah rombel" terhubung ke form tersembunyi di luar <details> lewat
-    // atribut HTML5 form="..." (bukan <form> nested lagi, supaya tak melanggar aturan "<form>
-    // tak boleh berisi <form>"), jadi di-select via input `name="nama"` di dalamnya, bukan <form>.
-    const tambahDetails = page.locator("details").filter({ has: page.locator('input[name="nama"]') }).first();
-    await tambahDetails.locator("> summary").click();
-    await tambahDetails.locator('input[name="nama"]').fill(`ZZ${Date.now() % 1000}`);
+    // Feedback teknis (Sep 2026) — "+ Tambah rombel tujuan lain" sekarang <Drawer> (native
+    // <dialog>), bukan <details> lagi. Input/tombol di dalamnya terhubung ke form TERSEMBUNYI DI
+    // LUAR dialog lewat atribut HTML5 form="..." (bukan <form> nested, supaya tak melanggar aturan
+    // "<form> tak boleh berisi <form>") — cukup klik trigger, isi input di dalam dialog, klik
+    // tombol "Tambah" (submit-nya tetap ngirim form luar itu meski tombolnya sendiri di dalam
+    // dialog, krn atribut `form=` bukan nesting).
+    await page.getByRole("button", { name: "+ Tambah rombel tujuan lain" }).first().click();
+    const dialog = page.locator("dialog[open]");
+    await dialog.locator('input[name="nama"]').fill(`ZZ${Date.now() % 1000}`);
     await Promise.all([
       page.waitForNavigation(),
-      tambahDetails.getByRole("button", { name: "Tambah" }).click(),
+      dialog.getByRole("button", { name: "Tambah", exact: true }).click(),
     ]);
     await expect(page).not.toHaveURL(/error=/);
   });

@@ -523,8 +523,14 @@ export async function getRiwayatAbsensi(
   if (filter.siswaId) where.siswaId = filter.siswaId;
   if (filter.tanggalMulai || filter.tanggalSelesai) {
     where.tanggal = {};
+    // Feedback teknis (Sep 2026) — string tanggal-polos ("YYYY-MM-DD") di-parse UTC oleh spec JS,
+    // tapi begitu ditempel jam TANPA suffix "Z" ("...T23:59:59"), parsing-nya jatuh ke timezone
+    // LOKAL proses Node, bukan UTC — beda dari absensi.tanggal yang selalu disimpan UTC (lihat
+    // toDateOnlyUTC() di lib/utils.ts). Di server ber-TZ non-UTC (mis. Asia/Jakarta, +7), batas
+    // atas ini jadi mundur beberapa jam dari yang dimaksud, diam-diam melewatkan baris absensi yg
+    // dicatat menjelang akhir hari. "Z" eksplisit di sini bikin kedua batas konsisten UTC.
     if (filter.tanggalMulai) where.tanggal.gte = new Date(filter.tanggalMulai);
-    if (filter.tanggalSelesai) where.tanggal.lte = new Date(filter.tanggalSelesai + "T23:59:59");
+    if (filter.tanggalSelesai) where.tanggal.lte = new Date(filter.tanggalSelesai + "T23:59:59.999Z");
   }
   return prisma.absensi.findMany({
     where,

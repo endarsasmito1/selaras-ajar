@@ -120,6 +120,9 @@ const NAMA_KEPSEK_LAIN = [
 async function main() {
   console.log("🌱 Membersihkan data lama...");
   await prisma.apiKey.deleteMany();
+  // Feedback teknis (Sep 2026) — Notifikasi (ditambah belakangan, 6 Sep 2026) kelewat gak pernah
+  // dibersihkan di sini sama sekali, bikin reseed ke-2+ gagal FK constraint pas hapus Pengguna.
+  await prisma.notifikasi.deleteMany();
   await prisma.komentarKonten.deleteMany();
   await prisma.tanyaJawabKelas.deleteMany();
   await prisma.projekPenilaian.deleteMany();
@@ -169,6 +172,11 @@ async function main() {
   await prisma.sekolah.updateMany({ data: { kurikulumId: null } });
   await prisma.kurikulumMapel.deleteMany();
   await prisma.kurikulum.deleteMany();
+  // Feedback teknis (Sep 2026) — pola sama kayak kurikulumId di atas: Kelas.waliKelasId nunjuk ke
+  // Pengguna, tapi kelas.deleteMany() ada di bawah sini (dipertahankan supaya urutan siswa/absensi/
+  // nilai/dst yg bergantung ke Kelas gak berubah) — jadi di-NULL-kan dulu di sini, bukan pindahin
+  // urutan hapus Kelas. Sebelum ini, reseed KEDUA+ (setelah wali kelas ke-assign) selalu gagal FK.
+  await prisma.kelas.updateMany({ data: { waliKelasId: null } });
   await prisma.pengguna.deleteMany();
   await prisma.mataPelajaran.deleteMany();
   await prisma.kelas.deleteMany();

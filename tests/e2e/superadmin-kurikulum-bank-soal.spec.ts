@@ -10,7 +10,9 @@ test.describe("Superadmin — Kurikulum (22.7)", () => {
     await page.getByText("+ Tambah kurikulum baru").click();
     await page.fill('form[action="/api/superadmin/kurikulum"] input[name="nama"]', nama);
     await page.selectOption('form[action="/api/superadmin/kurikulum"] select[name="jenjang"]', "SMP");
-    await page.getByRole("button", { name: "Tambah kurikulum" }).click();
+    // Tanpa exact:true, "Tambah kurikulum" match substring ke trigger "+ Tambah kurikulum baru"
+    // juga (Drawer) — ambigu (strict mode violation).
+    await page.locator("dialog[open]").getByRole("button", { name: "Tambah kurikulum", exact: true }).click();
     const tautanKurikulum = page.getByRole("link", { name: nama });
     await expect(tautanKurikulum).toBeVisible();
 

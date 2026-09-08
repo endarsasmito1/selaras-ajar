@@ -147,6 +147,28 @@ export const db = {
       return sqlite.prepare(sql).get(params) as Record<string, unknown> | undefined;
     },
   },
+  guruProfil: {
+    /** GuruProfil.id dari email akun login-nya (Pengguna.email) — GuruProfil sendiri gak py kolom
+     * email, harus lewat join ke Pengguna. */
+    findByPenggunaEmail(email: string) {
+      return sqlite
+        .prepare(`SELECT g.id FROM GuruProfil g JOIN Pengguna p ON p.id = g.penggunaId WHERE p.email = ?`)
+        .get(email) as { id: string } | undefined;
+    },
+    /** 1.23 — guru (peran GURU beneran, bukan TU yg jg punya baris GuruProfil) yg belum punya
+     * JadwalEntry sama sekali di sekolah ini, dipakai test indikator "Data belum memadai". */
+    findFirstTanpaJadwal(sekolahId: string) {
+      return sqlite
+        .prepare(
+          `SELECT g.id FROM GuruProfil g
+           JOIN Pengguna p ON p.id = g.penggunaId
+           WHERE p.sekolahId = @sekolahId AND p.peran = 'GURU'
+             AND NOT EXISTS (SELECT 1 FROM JadwalEntry j WHERE j.guruId = g.id)
+           LIMIT 1`
+        )
+        .get({ sekolahId }) as { id: string } | undefined;
+    },
+  },
   penggunaPeran: {
     findMany(where: { penggunaId: string }) {
       return sqlite.prepare("SELECT * FROM PenggunaPeran WHERE penggunaId = ?").all(where.penggunaId) as Record<string, unknown>[];
@@ -248,6 +270,15 @@ export const db = {
         .get(sekolahId) as { guruId: string; mapelId: string; email: string; penggunaId: string; kelasIds: string; jumlahKelas: number } | undefined;
       if (!rows) return undefined;
       return { ...rows, kelasIds: rows.kelasIds.split(",") };
+    },
+    /** Assign guru ke kelas+mapel langsung (INSERT OR IGNORE — aman dipanggil ulang, unique
+     * constraint guruId+kelasId+mapelId) — dipakai test yg butuh guru py penugasan legit ke
+     * kombinasi tertentu yg gak natural ada di seed (mis. uji scoping per-mapel lintas mapel). */
+    ensure(data: { guruId: string; kelasId: string; mapelId: string }) {
+      const id = `test_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      sqlite
+        .prepare("INSERT OR IGNORE INTO PenugasanGuru (id, guruId, kelasId, mapelId) VALUES (@id, @guruId, @kelasId, @mapelId)")
+        .run({ id, ...data });
     },
   },
   tanyaJawabKelas: {

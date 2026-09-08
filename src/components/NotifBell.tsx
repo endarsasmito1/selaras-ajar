@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { waktuRelatif } from "@/lib/utils";
+import { WaktuRelatif } from "@/components/ui/WaktuRelatif";
 
 export type NotifItem = {
   id: string;
@@ -102,7 +102,7 @@ export function NotifBell({ initial, unreadCount }: { initial: NotifItem[]; unre
                   {!n.dibacaPada && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" aria-hidden="true" />}
                 </div>
                 {n.deskripsi && <p className="text-xs text-ink-soft mt-0.5 line-clamp-2">{n.deskripsi}</p>}
-                <span className="text-[11px] text-ink-soft/80 mt-1 block">{waktuRelatif(n.createdAt)}</span>
+                <WaktuRelatif date={n.createdAt} className="text-[11px] text-ink-soft/80 mt-1 block" />
               </a>
             ))
           )}
