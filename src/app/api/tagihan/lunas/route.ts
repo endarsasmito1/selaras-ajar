@@ -24,6 +24,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(url, { status: 303 });
   }
 
+  // Dicek dulu (bukan langsung .update()) — pola yang sama ditemukan di izin/putuskan &
+  // ppdb/putuskan: sebelumnya gak ada existence check (500 kalau id gak ada) DAN gak ada
+  // filter sekolahId (bendahara sekolah lain yang tau/nebak id ini bisa nandain tagihan sekolah
+  // lain lunas — celah lintas tenant di data finansial, lebih genting drpd 2 kasus sebelumnya).
+  const existing = await prisma.tagihan.findFirst({ where: { id: tagihanId, siswa: { sekolahId: session.sekolahId } } });
+  if (!existing) {
+    url.search = `?error=${encodeURIComponent("Tagihan tidak ditemukan")}`;
+    return NextResponse.redirect(url, { status: 303 });
+  }
+
   await prisma.tagihan.update({
     where: { id: tagihanId },
     data: {

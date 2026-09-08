@@ -14,6 +14,15 @@ export async function POST(req: NextRequest) {
   const pengajuanId = String(formData.get("pengajuanId"));
   const keputusan = String(formData.get("keputusan")); // "DISETUJUI" | "DITOLAK"
 
+  // Dicek dulu sebelum update — sebelumnya langsung `.update()` tanpa cek, jadi 500 (unhandled
+  // PrismaClientKnownRequestError P2025) kalau id gak ada/sudah dihapus, ATAU race condition
+  // 2 guru/2 klik ganda mutusin pengajuan yang sama nyaris bersamaan (baris kedua nemu status
+  // udah bukan MENUNGGU lagi begitu sampai sini, bukan lagi assumsi masih ada).
+  const existing = await prisma.pengajuanIzin.findUnique({ where: { id: pengajuanId } });
+  if (!existing || existing.status !== "MENUNGGU") {
+    return NextResponse.json({ error: "Pengajuan tidak ditemukan atau sudah diputuskan" }, { status: 404 });
+  }
+
   const pengajuan = await prisma.pengajuanIzin.update({
     where: { id: pengajuanId },
     data: { status: keputusan as "DISETUJUI" | "DITOLAK", disetujuiOlehId: session.userId },
