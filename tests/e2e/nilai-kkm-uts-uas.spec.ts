@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("KKM per UTS/UAS (5.7)", () => {
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
@@ -11,6 +12,7 @@ test.describe("KKM per UTS/UAS (5.7)", () => {
     await form.locator('input[name="kkmUTS"]').fill("85");
     await form.locator('input[name="kkmUAS"]').fill("90");
     await form.getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
     const updated = db.mataPelajaran.findFirst({ nama: "Matematika" });
@@ -32,6 +34,7 @@ test.describe("KKM per UTS/UAS — resolusi di halaman Nilai (5.8-5.9)", () => {
     await page.selectOption('select[name="jenisPenilaian"]', "UTS");
     await page.selectOption('select[name="babId"]', babMatematika!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     const kelas5B = db.kelas.findFirst({ nama: "5B" });
     const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
@@ -41,6 +44,7 @@ test.describe("KKM per UTS/UAS — resolusi di halaman Nilai (5.8-5.9)", () => {
     const skorInputs = page.locator('input[name^="skor_"]');
     await skorInputs.first().fill("75"); // di atas KKM dasar (70) tapi DI BAWAH kkmUTS (85)
     await page.getByRole("button", { name: /Simpan/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
     await page.locator("summary", { hasText: judul }).click();
@@ -60,6 +64,7 @@ test.describe("KKM per UTS/UAS — resolusi di halaman Nilai (5.8-5.9)", () => {
     const skorInputs = page.locator('input[name^="skor_"]');
     await skorInputs.first().fill("75"); // >= KKM dasar 70 -> harus Tuntas, walau kkmUTS=85
     await page.getByRole("button", { name: /Simpan/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.locator("summary", { hasText: labelTugas! }).first().click();
     await expect(page.getByText("Tuntas").first()).toBeVisible();
   });
@@ -75,6 +80,7 @@ test.describe("KKM per UTS/UAS — fallback saat kosong (5.10)", () => {
     await form.locator('input[name="kkmUTS"]').fill("");
     await form.locator('input[name="kkmUAS"]').fill("");
     await form.getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
     const updated = db.mataPelajaran.findFirst({ nama: "Matematika" });

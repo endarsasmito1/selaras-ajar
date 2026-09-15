@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Siswa tanpa wali (12.15-12.16)", () => {
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
@@ -17,6 +18,7 @@ test.describe("Siswa tanpa wali (12.15-12.16)", () => {
     await page.fill('form[action="/api/siswa/tambah-wali"] input[name="nama"]', "Wali Uji Otomatis");
     await page.fill('form[action="/api/siswa/tambah-wali"] input[name="email"]', email);
     await page.getByRole("button", { name: "Simpan wali" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText(/password sementara/)).toBeVisible();
     await expect(page.getByText("Belum ada wali terdaftar untuk siswa ini.")).toHaveCount(0);
   });
@@ -31,6 +33,7 @@ test.describe("Master Data — Kurikulum picker (14.9-14.11)", () => {
     await expect(kurikulumSelect).toBeVisible();
     await kurikulumSelect.selectOption({ label: "Kurikulum Merdeka" });
     await page.locator('form[action="/api/master-data/kurikulum"]').getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
     const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
@@ -39,6 +42,7 @@ test.describe("Master Data — Kurikulum picker (14.9-14.11)", () => {
     await page.goto("/kepsek/master-data");
     await expect(page.getByText(/Isi sesuai Kurikulum Merdeka/)).toBeVisible();
     await page.getByRole("button", { name: /Isi sesuai Kurikulum Merdeka/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -47,6 +51,7 @@ test.describe("Master Data — Kurikulum picker (14.9-14.11)", () => {
     const kurikulumSelect = page.locator('form[action="/api/master-data/kurikulum"] select[name="kurikulumId"]');
     await kurikulumSelect.selectOption("");
     await page.locator('form[action="/api/master-data/kurikulum"]').getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
     const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });

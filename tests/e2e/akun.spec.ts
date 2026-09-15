@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openAccountMenu } from "./helpers/ui";
+import { openAccountMenu, confirmDialogSubmit } from "./helpers/ui";
 import { ACCOUNTS } from "./helpers/accounts";
 import path from "path";
 
@@ -29,6 +29,7 @@ test.describe("Menu Akun — info kontekstual peran + foto profil (§5.5, 1.8)",
     await openAccountMenu(page);
     await page.setInputFiles('input[name="foto"]', path.join(__dirname, "fixtures/avatar.png"));
     await page.getByRole("button", { name: "Unggah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/murid/);
     await openAccountMenu(page);
     await expect(page.locator('img[alt="Ahmad Fauzi"]').first()).toBeVisible();
@@ -42,6 +43,7 @@ test.describe("Menu Akun — info kontekstual peran + foto profil (§5.5, 1.8)",
     await openAccountMenu(page);
     await page.setInputFiles('input[name="foto"]', path.join(__dirname, "fixtures/bukan-gambar.txt"));
     await page.getByRole("button", { name: "Unggah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Format berkas tidak didukung/)).toBeVisible();
     await context.close();
@@ -53,6 +55,7 @@ test.describe("Menu Akun — info kontekstual peran + foto profil (§5.5, 1.8)",
     await page.goto("/ortu");
     await openAccountMenu(page);
     await page.getByRole("button", { name: "Unggah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Input file kini required (1.9) — browser cegah submit sebelum sampai server, tetap di halaman sama.
     await expect(page).toHaveURL(/^http:\/\/localhost:3000\/ortu$/);
     await context.close();
@@ -78,14 +81,19 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     const page = await context.newPage();
     await page.goto("/guru");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await page.locator('input[name="passwordLama"]').fill("password-salah");
     await page.locator('input[name="passwordBaru"]').fill("passwordbaru123");
     await page.locator('input[name="konfirmasiPasswordBaru"]').fill("passwordbaru123");
     await page.getByRole("button", { name: "Simpan password baru" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Redirect me-reload halaman -> <details> dropdown & "Ganti password" tertutup lagi by default.
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await expect(page.getByText(/Password lama salah/)).toBeVisible();
     await context.close();
   });
@@ -95,13 +103,18 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     const page = await context.newPage();
     await page.goto("/guru");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await page.locator('input[name="passwordLama"]').fill(ACCOUNTS.guruLain.password);
     await page.locator('input[name="passwordBaru"]').fill("passwordbaru123");
     await page.locator('input[name="konfirmasiPasswordBaru"]').fill("passwordbeda456");
     await page.getByRole("button", { name: "Simpan password baru" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await expect(page.getByText(/Konfirmasi password baru tidak cocok/)).toBeVisible();
     await context.close();
   });
@@ -111,14 +124,19 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     const page = await context.newPage();
     await page.goto("/guru");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     const passwordBaru = "passwordbaru123";
     await page.locator('input[name="passwordLama"]').fill(ACCOUNTS.guruLain.password);
     await page.locator('input[name="passwordBaru"]').fill(passwordBaru);
     await page.locator('input[name="konfirmasiPasswordBaru"]').fill(passwordBaru);
     await page.getByRole("button", { name: "Simpan password baru" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await expect(page.getByText(/Password berhasil diubah/)).toBeVisible();
 
     // Logout lalu login ulang pakai password baru — password lama seharusnya sudah tak berlaku.

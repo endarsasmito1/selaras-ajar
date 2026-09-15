@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
@@ -17,6 +18,7 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
     await dialog.locator('input[name="jamMulai"]').fill("06:00");
     await dialog.locator('input[name="jamSelesai"]').fill("06:30");
     await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -36,6 +38,7 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
     await dialog.locator('input[name="jamMulai"]').fill(jamMulai);
     await dialog.locator('input[name="jamSelesai"]').fill(jamSelesai);
     await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Bentrok jadwal/)).toBeVisible();
@@ -49,6 +52,7 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
     await dialog.locator('input[name="jamMulai"]').fill("10:00");
     await dialog.locator('input[name="jamSelesai"]').fill("09:00");
     await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Jam mulai harus lebih awal/)).toBeVisible();
   });
@@ -61,6 +65,7 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
     await dialog.locator('input[name="jamMulai"]').fill("05:00");
     await dialog.locator('input[name="jamSelesai"]').fill("05:30");
     await dialog.getByRole("button", { name: "Simpan perubahan", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -69,6 +74,7 @@ test.describe("Jadwal Pelajaran (§4.14, JP-2/JP-3)", () => {
     await page.locator('a[href^="/kepsek/jadwal/"]').first().click();
     const hapusButton = page.getByRole("button", { name: "Hapus" }).first();
     await hapusButton.click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 });

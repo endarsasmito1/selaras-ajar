@@ -11,6 +11,7 @@ test.describe("Pengumuman Sekolah (21.1-21.4)", () => {
     await page.fill('input[name="judul"]', judul);
     await page.fill('textarea[name="isi"]', "Isi pengumuman uji otomatis.");
     await page.getByRole("button", { name: "Terbitkan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByRole("heading", { name: judul })).toBeVisible();
 
@@ -24,6 +25,7 @@ test.describe("Pengumuman Sekolah (21.1-21.4)", () => {
   test("negatif: submit pengumuman tanpa judul/isi ditolak validasi required", async ({ page }) => {
     await page.goto("/kepsek/pengumuman");
     await page.getByRole("button", { name: "Terbitkan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Validasi HTML5 required mencegah submit — tetap di halaman yang sama, bukan redirect sukses.
     await expect(page).toHaveURL(/\/kepsek\/pengumuman$/);
   });
@@ -36,6 +38,7 @@ test.describe("Pengumuman Sekolah (21.1-21.4)", () => {
     await page.fill('input[name="judul"]', judul);
     await page.fill('textarea[name="isi"]', "Konten uji, akan dibersihkan.");
     await page.getByRole("button", { name: "Terbitkan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByRole("heading", { name: judul })).toBeVisible();
 
     // Scoping ke div baris spesifik (class unik "px-4 py-3.5", beda dari card form di atasnya)
@@ -107,6 +110,7 @@ test.describe("Pengumuman Sekolah — RBAC & isolasi (21.4-21.5)", () => {
     await pageLain.fill('input[name="judul"]', judulSekolahLain);
     await pageLain.fill('textarea[name="isi"]', "Cuma buat sekolah lain.");
     await pageLain.getByRole("button", { name: "Terbitkan" }).click();
+    await confirmDialogSubmit(pageLain, "Ya, lanjutkan");
     await kepsekLain.close();
 
     const context = await browser.newContext({ storageState: "tests/e2e/.auth/kepsek.json" });

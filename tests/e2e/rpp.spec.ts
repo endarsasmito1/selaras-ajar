@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
@@ -12,6 +13,7 @@ test.describe("RPP & Capaian Pembelajaran (§4.16)", () => {
     // Dialog (Drawer) ini juga punya tombol "Batal" (type="submit" formMethod="dialog") — pilih
     // "Simpan" pakai teks persis, bukan selector generik button[type="submit"].
     await page.locator("dialog[open]").getByRole("button", { name: "Simpan", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/rpp\/capaian/);
     await expect(page.getByText(deskripsi)).toBeVisible();
   });
@@ -24,6 +26,7 @@ test.describe("RPP & Capaian Pembelajaran (§4.16)", () => {
     const cpCheckbox = page.locator('input[name="capaianIds"]').first();
     if (await cpCheckbox.count()) await cpCheckbox.check();
     await page.getByRole("button", { name: "Simpan RPP" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/rpp/);
   });
 
@@ -31,6 +34,7 @@ test.describe("RPP & Capaian Pembelajaran (§4.16)", () => {
     await page.goto("/guru/rpp/baru");
     await page.fill('input[name="judul"]', "RPP Tanpa Isi");
     await page.getByRole("button", { name: "Simpan RPP" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // required textarea mencegah submit browser — tetap di halaman form yang sama
     await expect(page).toHaveURL(/\/guru\/rpp\/baru/);
   });

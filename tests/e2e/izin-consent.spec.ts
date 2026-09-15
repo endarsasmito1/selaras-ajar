@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Pengajuan Izin/Sakit (ortu ajukan, guru putuskan)", () => {
   test("positif: ortu ajukan izin baru untuk anaknya", async ({ browser }) => {
@@ -10,6 +11,7 @@ test.describe("Pengajuan Izin/Sakit (ortu ajukan, guru putuskan)", () => {
     const keterangan = `Uji otomatis izin ${Date.now()}`;
     await page.fill('textarea[name="keterangan"]', keterangan);
     await page.getByRole("button", { name: "Kirim pengajuan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/ortu\/izin/);
     await expect(page.getByText(keterangan)).toBeVisible();
     await context.close();
@@ -21,6 +23,7 @@ test.describe("Pengajuan Izin/Sakit (ortu ajukan, guru putuskan)", () => {
     await page.goto("/ortu/izin");
     await page.fill('input[name="tanggal"]', new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10));
     await page.getByRole("button", { name: "Kirim pengajuan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/ortu\/izin/); // tetap di halaman yang sama, tak pindah
     await expect(page.locator('textarea[name="keterangan"]')).toBeVisible();
     await context.close();
@@ -35,6 +38,7 @@ test.describe("Pengajuan Izin/Sakit (ortu ajukan, guru putuskan)", () => {
     const keterangan = `Sakit uji ${Date.now()}`;
     await ortuPage.fill('textarea[name="keterangan"]', keterangan);
     await ortuPage.getByRole("button", { name: "Kirim pengajuan" }).click();
+    await confirmDialogSubmit(ortuPage, "Ya, lanjutkan");
     await ortuCtx.close();
 
     const guruCtx = await browser.newContext({ storageState: "tests/e2e/.auth/guru.json" });
@@ -43,6 +47,7 @@ test.describe("Pengajuan Izin/Sakit (ortu ajukan, guru putuskan)", () => {
     const row = guruPage.locator("div.bg-paper-raised.border.border-rule.rounded-xl", { hasText: keterangan }).first();
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "Setujui" }).click();
+    await confirmDialogSubmit(guruPage, "Ya, lanjutkan");
     await expect(guruPage).toHaveURL(/\/guru\/izin/);
     await guruCtx.close();
   });
@@ -56,6 +61,7 @@ test.describe("Consent PDP (UU PDP, F-15/§5.4)", () => {
     const checkbox = page.locator('input[name="disetujui"]');
     if (!(await checkbox.isChecked())) await checkbox.check();
     await page.getByRole("button", { name: "Simpan pilihan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText("Anda sudah menyetujui")).toBeVisible();
   });
 
@@ -64,6 +70,7 @@ test.describe("Consent PDP (UU PDP, F-15/§5.4)", () => {
     const checkbox = page.locator('input[name="disetujui"]');
     if (await checkbox.isChecked()) await checkbox.uncheck();
     await page.getByRole("button", { name: "Simpan pilihan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText("Anda belum memberi persetujuan")).toBeVisible();
   });
 });

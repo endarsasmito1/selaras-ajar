@@ -21,7 +21,8 @@ test.describe("Tanya Jawab Kelas — murid", () => {
     const formBaru = page.locator("main").locator('form:not(:has(input[name="parentId"]))').first();
     await formBaru.locator('input[name="isi"]').fill(teks);
     await formBaru.locator('input[name="anonim"]').check();
-    await formBaru.locator('button[type="submit"]').click();
+    await formBaru.getByRole("button", { name: "Kirim" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/murid\/tanya-jawab/);
 
     // Scope ke kartu pertanyaan spesifik (bukan sembarang <div> — ada banyak div pembungkus

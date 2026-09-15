@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Diskusi & Tanya Jawab di Materi (§4.17)", () => {
   test.use({ storageState: "tests/e2e/.auth/murid.json" });
@@ -13,7 +14,8 @@ test.describe("Diskusi & Tanya Jawab di Materi (§4.17)", () => {
     const pertanyaan = `Pertanyaan uji otomatis ${Date.now()}`;
     const inputBaru = materiPertama.locator('form:not(:has(input[name="parentId"])) input[name="isi"]');
     await inputBaru.fill(pertanyaan);
-    await materiPertama.locator('form:not(:has(input[name="parentId"])) button[type="submit"]').click();
+    await materiPertama.locator('form:not(:has(input[name="parentId"]))').getByRole("button", { name: "Kirim" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).toHaveURL(/\/murid\/materi/);
   });
@@ -25,7 +27,8 @@ test.describe("Diskusi & Tanya Jawab di Materi (§4.17)", () => {
     const materiPertama = grup.locator("details").first();
     await materiPertama.locator("> summary").click();
     const form = materiPertama.locator('form:not(:has(input[name="parentId"]))').first();
-    await form.locator('button[type="submit"]').click();
+    await form.getByRole("button", { name: "Kirim" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // required text input mencegah submit — masih di halaman yang sama, form tetap terlihat
     await expect(form.locator('input[name="isi"]')).toBeVisible();
   });
@@ -52,7 +55,8 @@ test.describe("Diskusi — guru bisa balas & moderasi (hapus) komentar di materi
       await balasToggle.click();
       const balasForm = details.locator('form:has(input[name="parentId"])').first();
       await balasForm.locator('input[name="isi"]').fill("Balasan uji otomatis dari guru.");
-      await balasForm.locator('button[type="submit"]').click();
+      await balasForm.getByRole("button", { name: "Kirim" }).click();
+      await confirmDialogSubmit(page, "Ya, lanjutkan");
     }
   });
 });

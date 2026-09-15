@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Profil Siswa 360° — Catatan Guru (privat) & Prestasi (F-15/F-16, §4.18)", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
@@ -11,8 +12,11 @@ test.describe("Profil Siswa 360° — Catatan Guru (privat) & Prestasi (F-15/F-1
 
     const isi = `Catatan uji otomatis ${Date.now()}`;
     await page.getByText("+ Tambah catatan").click();
-    await page.locator('textarea[name="isi"]').fill(isi);
+    // Placeholder spesifik — `textarea[name="isi"]` polos ambigu, ada 2 di halaman ini (form Prestasi
+    // di dialog terpisah pakai name yang sama, tetap di DOM meski dialognya belum dibuka).
+    await page.getByPlaceholder("Tulis observasi tentang murid ini…").fill(isi);
     await page.getByRole("button", { name: "Simpan catatan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByText(isi)).toBeVisible();
   });
@@ -27,6 +31,7 @@ test.describe("Profil Siswa 360° — Catatan Guru (privat) & Prestasi (F-15/F-1
     await page.fill('input[name="judul"]', judul);
     await page.fill('input[name="tanggal"]', "2026-08-01");
     await page.getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByText(judul)).toBeVisible();
   });
@@ -37,6 +42,7 @@ test.describe("Profil Siswa 360° — Catatan Guru (privat) & Prestasi (F-15/F-1
     await page.locator('a[href^="/guru/performa/"]').first().click();
     await page.getByText("+ Tambah catatan").click();
     await page.getByRole("button", { name: "Simpan catatan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/performa\//); // required textarea cegah submit
   });
 

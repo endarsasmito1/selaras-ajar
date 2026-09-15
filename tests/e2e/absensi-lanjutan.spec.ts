@@ -90,6 +90,7 @@ test.describe("Absensi lanjutan — datepicker & indikator izin pending (1.23)",
     const baris = page.locator("tr", { hasText: siswaDb.nama as string }).filter({ hasText: "Sakit" });
     await expect(baris).toBeVisible();
     await baris.getByRole("button", { name: "Setujui" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/absensi/);
 
     const updated = db.pengajuanIzin.findById(pengajuanId);

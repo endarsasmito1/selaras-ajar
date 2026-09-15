@@ -47,6 +47,7 @@ test.describe("Multi-role — kepsek assign/cabut peran tambahan (13.22-13.25)",
     await page.goto(`/kepsek/guru/${solihin!.id}/edit`);
     await page.selectOption('select[name="peran"]', "BENDAHARA");
     await page.getByRole("button", { name: "+ Tambah peran" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     const kartuPeran = page.locator("div.bg-paper-raised", { hasText: "Peran tambahan (multi-role)" });
     await expect(kartuPeran.getByText("Bendahara", { exact: true })).toBeVisible();

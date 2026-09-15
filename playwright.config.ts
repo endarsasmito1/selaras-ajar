@@ -21,9 +21,13 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run dev",
+    // Di CI, "npm run build" udah jalan duluan sbg step terpisah (lihat deploy.yml) — pakai server
+    // hasil build ("next start") drpd "next dev" biar gak kompilasi on-demand per halaman lagi
+    // (dev-mode compile-on-visit numpuk berat di 107 halaman x runner GH Actions yg pas-pasan CPU-nya).
+    // Lokal tetap "next dev" biar iterasinya nyaman (gak perlu build ulang tiap ubah kode).
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: "http://localhost:3000/login",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },
 });

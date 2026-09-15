@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { isiPertanyaan } from "./helpers/ui";
+import { isiPertanyaan, confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Superadmin — Kurikulum (22.7)", () => {
   test.use({ storageState: "tests/e2e/.auth/superadmin.json" });
@@ -13,6 +13,7 @@ test.describe("Superadmin — Kurikulum (22.7)", () => {
     // Tanpa exact:true, "Tambah kurikulum" match substring ke trigger "+ Tambah kurikulum baru"
     // juga (Drawer) — ambigu (strict mode violation).
     await page.locator("dialog[open]").getByRole("button", { name: "Tambah kurikulum", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const tautanKurikulum = page.getByRole("link", { name: nama });
     await expect(tautanKurikulum).toBeVisible();
 
@@ -23,6 +24,7 @@ test.describe("Superadmin — Kurikulum (22.7)", () => {
     await page.fill('form[action="/api/superadmin/kurikulum-mapel"] input[name="nama"]', "Bahasa Inggris Lanjutan");
     await page.fill('form[action="/api/superadmin/kurikulum-mapel"] input[name="kkm"]', "75");
     await page.getByRole("button", { name: "Tambah mapel" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // 1.21 — getByText polos ambigu: dialog konfirmasi hapus utk mapel ini juga nyimpan namanya
     // permanen di DOM (di dalam <dialog> tak terbuka) — scope ke sel tabel spesifik.
     await expect(page.getByRole("cell", { name: "Bahasa Inggris Lanjutan" })).toBeVisible();
@@ -66,6 +68,7 @@ test.describe("Superadmin — Bank Soal Global (22.9)", () => {
     await opsi.nth(3).fill("D");
     await page.locator('input[name="kunciJawaban"]').nth(0).check();
     await page.getByRole("button", { name: "Simpan ke bank soal terpusat" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText(pertanyaan)).toBeVisible();
     await expect(page.getByText("Kelas 5-6")).toBeVisible();
 

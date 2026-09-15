@@ -31,6 +31,7 @@ test.describe("Presensi Guru — tandai hadir manual (AG-2)", () => {
     test.skip((await tombolTandai.count()) === 0, "Tidak ada sesi hari ini yang belum tercatat presensinya saat test dijalankan");
     if ((await tombolTandai.count()) === 0) return;
     await tombolTandai.click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 });

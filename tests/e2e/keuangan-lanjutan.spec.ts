@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Keuangan lanjutan — tagihan custom & proyeksi (16.5-16.9)", () => {
   test.use({ storageState: "tests/e2e/.auth/bendahara.json" });
@@ -10,6 +11,7 @@ test.describe("Keuangan lanjutan — tagihan custom & proyeksi (16.5-16.9)", () 
     await page.goto("/keuangan/tipe-tagihan");
     await page.fill('form[action="/api/tagihan-tipe"] input[name="nama"]', namaTipe);
     await page.locator('form[action="/api/tagihan-tipe"]').getByRole("button", { name: "+ Tambah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.locator("div.text-sm.border-b", { hasText: namaTipe })).toBeVisible();
 
     await page.selectOption('select[name="tipeId"]', { label: namaTipe });
@@ -20,6 +22,7 @@ test.describe("Keuangan lanjutan — tagihan custom & proyeksi (16.5-16.9)", () 
     await page.fill('input[name="periode"]', namaPeriode);
     // 1.21 — "Semua siswa aktif" sekarang mode radio default, tak perlu dipilih eksplisit.
     await page.getByRole("button", { name: "Buat tagihan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // 1.24 — pesan sukses dipindah dari flash-message query-param (`?tagihan_dibuat=`) ke toast
     // (`?toast=`, lihat ToastFromQuery); URL-nya sendiri langsung dibersihkan client-side sesaat
     // setelah toast muncul, jadi yang bisa dicek stabil cuma teks toast-nya, bukan query param.

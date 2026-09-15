@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { db } from "./helpers/db";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
@@ -28,6 +29,7 @@ test.describe("Bank Soal (BS-1..BS-8)", () => {
     await opsiInputs.nth(3).fill("Jawaban D");
     await page.locator('input[name="kunciJawaban"]').nth(1).check();
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByText(pertanyaan)).toBeVisible();
@@ -42,6 +44,7 @@ test.describe("Bank Soal (BS-1..BS-8)", () => {
     await opsiInputs.nth(0).fill("Opsi A");
     await opsiInputs.nth(1).fill("Opsi B");
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Radio kunciJawaban ditandai required di form -> browser cegah submit, tetap di halaman sama.
     await expect(page).toHaveURL(/\/guru\/bank-soal\/mapel\//);
     await expect(page).not.toHaveURL(/error=/);
@@ -57,9 +60,10 @@ test.describe("Bank Soal (BS-1..BS-8)", () => {
     await isiPertanyaan(page, pertanyaan);
     // URL tujuan sama persis dengan URL saat ini (redirect balik ke halaman yang sama) — toHaveURL
     // sendiri tak bisa jadi sinyal "navigasi selesai" di sini, jadi tunggu event navigasi eksplisit.
+    await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
     await Promise.all([
       page.waitForNavigation(),
-      page.getByRole("button", { name: "Simpan ke bank soal" }).click(),
+      confirmDialogSubmit(page, "Ya, lanjutkan"),
     ]);
     await expect(page.getByText(pertanyaan)).toBeVisible();
   });
@@ -72,6 +76,7 @@ test.describe("Bank Soal (BS-1..BS-8)", () => {
     const pertanyaanBaru = `Pertanyaan diedit ${Date.now()}`;
     await isiPertanyaan(page, pertanyaanBaru);
     await page.getByRole("button", { name: /Simpan/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -93,6 +98,7 @@ test.describe("Bank Soal (BS-1..BS-8)", () => {
     await opsiInputs.nth(3).fill("Opsi D");
     await page.locator('input[name="kunciJawaban"]').nth(0).check();
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // API mengarahkan balik ke halaman mapel terkait setelah simpan.
     await expect(page).toHaveURL(/\/guru\/bank-soal\/mapel\//);
     await expect(page.getByText(pertanyaan)).toBeVisible();

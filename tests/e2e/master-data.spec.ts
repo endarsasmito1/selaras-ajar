@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
@@ -19,6 +20,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     await dialog.locator('input[name="nama"]').fill(nama);
     await dialog.locator('input[name="tingkat"]').fill("6");
     await dialog.getByRole("button", { name: "Tambah kelas", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // 1.24 — pesan sukses dipindah ke toast (`?toast=`, lihat ToastFromQuery), URL-nya sendiri
     // dibersihkan client-side sesaat sesudah toast muncul — assert teks toast, bukan query param.
     await expect(page.getByText(`Kelas "${nama}" ditambahkan.`)).toBeVisible();
@@ -33,6 +35,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     await dialog.locator('input[name="nama"]').fill("5A"); // sudah ada dari seed
     await dialog.locator('input[name="tingkat"]').fill("5");
     await dialog.getByRole("button", { name: "Tambah kelas", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.locator(".bg-warning-tint")).toContainText(/sudah ada/);
   });
@@ -41,6 +44,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     await page.goto("/kepsek/master-data");
     await page.getByRole("button", { name: "+ Tambah mapel manual" }).click();
     await page.locator("dialog[open]").getByRole("button", { name: "Tambah mapel", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/kepsek\/master-data$/); // tak lanjut, required mencegah submit
   });
 
@@ -53,6 +57,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     const namaBaru = `Edited${Date.now() % 10000}`;
     await dialog.locator('input[name="nama"]').fill(namaBaru);
     await dialog.getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText(`Kelas "${namaBaru}" diperbarui.`)).toBeVisible();
   });
 
@@ -67,6 +72,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     await dialog.locator('input[name="bobot_UTS"]').fill("20");
     await dialog.locator('input[name="bobot_UAS"]').fill("30");
     await dialog.getByRole("button", { name: /Simpan bobot/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -79,6 +85,7 @@ test.describe("Master Data Kelas & Mapel (F-18)", () => {
     await dialog.locator('input[name="bobot_UTS"]').fill("10");
     await dialog.locator('input[name="bobot_UAS"]').fill("10");
     await dialog.getByRole("button", { name: /Simpan bobot/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Total bobot harus 100/)).toBeVisible();
   });

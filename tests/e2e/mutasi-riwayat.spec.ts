@@ -11,6 +11,7 @@ test.describe("Mutasi Siswa & Riwayat Siswa (F-2/F-3, 1.7)", () => {
     await page.fill('input[name="nisn"]', nisn);
     await page.fill('input[name="nama"]', nama);
     await page.getByRole("button", { name: "Tambahkan sebagai siswa aktif" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -19,6 +20,7 @@ test.describe("Mutasi Siswa & Riwayat Siswa (F-2/F-3, 1.7)", () => {
     await page.fill('input[name="nisn"]', "0098234571"); // NISN Ahmad Fauzi dari seed
     await page.fill('input[name="nama"]', "Siswa Duplikat NISN");
     await page.getByRole("button", { name: "Tambahkan sebagai siswa aktif" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
   });
 
@@ -30,6 +32,7 @@ test.describe("Mutasi Siswa & Riwayat Siswa (F-2/F-3, 1.7)", () => {
     await page.fill('input[name="nisn"]', nisn);
     await page.fill('input[name="nama"]', nama);
     await page.getByRole("button", { name: "Tambahkan sebagai siswa aktif" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     // 1.8 — daftar dipaginasi & bisa dicari (bukan lagi 300+ dialog sekaligus di-mount), jadi
     // cari nama siswa yang baru dibuat lewat search box supaya pasti muncul di halaman ini.

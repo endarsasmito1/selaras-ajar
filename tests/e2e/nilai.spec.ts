@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
@@ -11,6 +12,7 @@ test.describe("Input Nilai — sumber dari Tugas/Ujian, editable/upsert & sinkro
     const skorInput = page.locator('form[action="/api/nilai"] input[name^="skor_"]').first();
     await skorInput.fill("88");
     await page.getByRole("button", { name: /Simpan/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/nilai/);
     if (opsiPertama) {
       await expect(page.locator("summary", { hasText: opsiPertama.trim() }).first()).toBeVisible();
@@ -44,6 +46,7 @@ test.describe("Input Nilai — sumber dari Tugas/Ujian, editable/upsert & sinkro
     await expect(page.getByText(/Nilai yang sudah tersimpan\/ada ditampilkan/)).toBeVisible();
     await page.locator('form[action="/api/nilai"] input[name^="skor_"]').first().fill("77");
     await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).toHaveURL(/\/guru\/nilai/);
     if (judul) {
@@ -69,6 +72,7 @@ test.describe("Input Nilai — sumber dari Tugas/Ujian, editable/upsert & sinkro
     if ((await baris.count()) === 0) return;
     await baris.locator('input[name^="skor_"]').fill(String(skorBaru));
     await page.getByRole("button", { name: /Simpan/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/nilai/);
 
     const setelah = db.ujianPengerjaan.findById(pengerjaan.pengerjaanId as string);

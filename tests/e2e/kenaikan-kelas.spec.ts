@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
@@ -14,6 +15,7 @@ test.describe("Kenaikan Kelas (F-2) — persiapan & validasi", () => {
     await page.fill('input[name="mulai"]', "2030-07-14");
     await page.fill('input[name="selesai"]', "2030-12-19");
     await page.getByRole("button", { name: "Lanjut ke peninjauan rombel tujuan →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/kepsek\/tahun-ajaran\/kenaikan-kelas\//);
     await expect(page.getByText("✓ Jalankan Kenaikan Kelas")).toBeVisible();
   });
@@ -23,6 +25,7 @@ test.describe("Kenaikan Kelas (F-2) — persiapan & validasi", () => {
     await page.fill('input[name="mulai"]', "2031-07-14");
     await page.fill('input[name="selesai"]', "2031-12-19");
     await page.getByRole("button", { name: "Lanjut ke peninjauan rombel tujuan →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/kepsek\/tahun-ajaran\/kenaikan-kelas$/);
   });
 
@@ -33,6 +36,7 @@ test.describe("Kenaikan Kelas (F-2) — persiapan & validasi", () => {
     await page.fill('input[name="mulai"]', "2040-07-14");
     await page.fill('input[name="selesai"]', "2040-12-19");
     await page.getByRole("button", { name: "Lanjut ke peninjauan rombel tujuan →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Halaman tinjau ini berat (24 kelas x ~30 siswa x <Drawer> masing-masing) — klik trigger
     // sebelum hydration React kelar bikin onClick-nya belum ke-attach (klik jadi no-op, dialog
     // gak kebuka, kejadian nyata: tombol kekelihatan & lolos actionability check Playwright, tapi
@@ -62,6 +66,7 @@ test.describe("Kenaikan Kelas (F-2) — persiapan & validasi", () => {
     await page.fill('input[name="mulai"]', "2050-07-14");
     await page.fill('input[name="selesai"]', "2050-12-19");
     await page.getByRole("button", { name: "Lanjut ke peninjauan rombel tujuan →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     const selectPertama = page.locator('select[name^="target_"]').first();
     await expect(selectPertama).toBeVisible();
