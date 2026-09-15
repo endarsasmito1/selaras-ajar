@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getUjianDetail } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { ModeHasilField } from "@/components/ModeHasilField";
 import { Switch } from "@/components/ui/Switch";
@@ -97,7 +97,7 @@ export default async function PengaturanUjianPage({ params }: { params: Promise<
         </Callout>
 
         <div className="mt-5">
-          <Button type="submit">Lanjut ke preview & konfirmasi →</Button>
+          <ConfirmSubmitButton confirmMessage="Simpan pengaturan ujian ini dan lanjut ke preview & konfirmasi?">Lanjut ke preview & konfirmasi →</ConfirmSubmitButton>
         </div>
       </form>
     </AppShell>

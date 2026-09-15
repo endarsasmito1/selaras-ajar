@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_SUPERADMIN, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Drawer } from "@/components/ui/Drawer";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { notFound } from "next/navigation";
@@ -55,7 +55,7 @@ export default async function KurikulumDetailPage({
             </div>
             <div className="border-b border-rule my-1" />
             <div className="flex gap-2">
-              <Button type="submit" size="sm">Simpan perubahan</Button>
+              <ConfirmSubmitButton size="sm" confirmMessage="Simpan perubahan kurikulum ini?">Simpan perubahan</ConfirmSubmitButton>
               <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
             </div>
           </form>
@@ -98,7 +98,7 @@ export default async function KurikulumDetailPage({
           <input type="hidden" name="kurikulumId" value={kurikulum.id} />
           <input name="nama" required placeholder="mis. Bahasa Inggris" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
           <input type="number" name="kkm" defaultValue={70} min={0} max={100} placeholder="KKM default" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-          <Button type="submit" size="sm" className="self-start">Tambah mapel</Button>
+          <ConfirmSubmitButton size="sm" className="self-start" confirmMessage="Tambah mapel baru ke kurikulum ini?">Tambah mapel</ConfirmSubmitButton>
         </form>
       </div>
     </AppShell>

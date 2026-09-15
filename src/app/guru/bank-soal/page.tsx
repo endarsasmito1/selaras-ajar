@@ -3,6 +3,7 @@ import { getBankSoal, getKelasDiampu, getSemuaMapel } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Card } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
@@ -132,7 +133,7 @@ export default async function BankSoalPage({
             </div>
             <div className="border-b border-rule my-3" />
             <div className="flex gap-2">
-              <Button type="submit" size="sm">Simpan ke bank soal</Button>
+              <ConfirmSubmitButton size="sm" confirmMessage="Simpan soal ini ke bank soal?">Simpan ke bank soal</ConfirmSubmitButton>
               <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
             </div>
           </form>

@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getConsentPDP, getAnakDariOrtu } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_ORTU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
 import { formatTanggal } from "@/lib/utils";
@@ -50,7 +50,7 @@ export default async function ConsentPage() {
               Saya memberikan persetujuan eksplisit atas pemrosesan data anak saya sebagaimana dijelaskan di atas, terpisah dari syarat &amp; ketentuan umum penggunaan aplikasi.
             </span>
           </label>
-          <Button type="submit">Simpan pilihan</Button>
+          <ConfirmSubmitButton confirmMessage="Simpan pilihan persetujuan ini?">Simpan pilihan</ConfirmSubmitButton>
         </form>
       </div>
 

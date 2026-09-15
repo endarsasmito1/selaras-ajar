@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { ambilBatch } from "@/lib/csv";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
 import { Stepper } from "@/components/ui/Stepper";
@@ -106,9 +106,9 @@ export default async function ImporPreviewPage({
 
       <form action="/api/impor/siswa/commit" method="POST" className="flex items-center gap-3">
         <input type="hidden" name="batchId" value={batchId} />
-        <Button type="submit" disabled={batch.valid.length === 0}>
+        <ConfirmSubmitButton disabled={batch.valid.length === 0} confirmMessage={`Impor ${batch.valid.length} data siswa hasil unggahan ini?`}>
           Simpan {batch.valid.length} baris valid
-        </Button>
+        </ConfirmSubmitButton>
         <a href="/kepsek/ekspor" className="text-sm text-ink-soft hover:underline">Batal, unggah ulang file</a>
       </form>
     </AppShell>

@@ -3,6 +3,7 @@ import { getKelasDiampu, getSiswaKelas, getNilaiKelasMapel, getSumberPenilaianKe
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
@@ -192,7 +193,15 @@ export default async function NilaiPage({
             </tbody>
           </table>
         </div>
-        <Button type="submit">{sedangEdit ? "Simpan perubahan" : "Simpan nilai"}</Button>
+        <ConfirmSubmitButton
+          confirmMessage={
+            sedangEdit
+              ? "Simpan perubahan nilai untuk semua murid di daftar ini? Nilai lama yang sudah tersimpan akan ditimpa."
+              : "Simpan nilai untuk semua murid di daftar ini?"
+          }
+        >
+          {sedangEdit ? "Simpan perubahan" : "Simpan nilai"}
+        </ConfirmSubmitButton>
       </form>
       </>
       )}

@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getSoalGlobalById, getSemuaNamaMapelUnik } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_SUPERADMIN, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { SoalEditor } from "@/components/ui/SoalEditor";
 import { notFound } from "next/navigation";
@@ -184,7 +184,7 @@ export default async function EditSoalGlobalPage({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" size="sm">Simpan perubahan</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Simpan perubahan soal terpusat ini? Perubahan berlaku ke semua sekolah yang memakainya.">Simpan perubahan</ConfirmSubmitButton>
             <a href={kembaliHref} className="text-xs font-semibold text-ink-soft self-center hover:underline">
               Batal
             </a>

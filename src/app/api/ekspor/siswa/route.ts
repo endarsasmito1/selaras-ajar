@@ -5,7 +5,7 @@ import { toCsv } from "@/lib/csv";
 
 export async function GET() {
   const session = await getSession();
-  if (!session || (session.peran !== "KEPALA_SEKOLAH" && session.peran !== "BENDAHARA")) {
+  if (!session || (session.peran !== "KEPALA_SEKOLAH" && session.peran !== "BENDAHARA" && session.peran !== "TU")) {
     return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
   }
 

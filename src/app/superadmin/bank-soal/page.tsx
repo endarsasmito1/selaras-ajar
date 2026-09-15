@@ -8,7 +8,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { OpsiPreview } from "@/components/ui/OpsiPreview";
@@ -225,7 +225,7 @@ export default async function SuperadminBankSoalPage({
           </div>
           <div className="border-b border-rule my-1" />
           <div className="flex gap-2">
-            <Button type="submit" size="sm">Simpan ke bank soal terpusat</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Simpan soal ini ke bank soal terpusat? Akan tersedia untuk semua sekolah.">Simpan ke bank soal terpusat</ConfirmSubmitButton>
             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
           </div>
         </form>

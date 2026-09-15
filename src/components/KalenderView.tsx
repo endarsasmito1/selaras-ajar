@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
+import { KalenderBulanTahunPicker } from "@/components/ui/KalenderBulanTahunPicker";
 import { formatTanggal } from "@/lib/utils";
 import type { getAgendaAkademik } from "@/lib/data";
 
@@ -83,14 +85,17 @@ export function KalenderView({
                 <option value="Libur">Libur</option>
               </select>
             </div>
-            <Button type="submit" size="sm" className="md:col-span-4 w-fit">Tambah agenda</Button>
+            <ConfirmSubmitButton size="sm" className="md:col-span-4 w-fit" confirmMessage="Tambah agenda baru ini ke kalender akademik?">Tambah agenda</ConfirmSubmitButton>
           </form>
         </details>
       )}
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <a href={`?bulan=${fmtBulan(bulanPrev)}`} className="text-sm font-semibold text-primary-deep hover:underline">← Bulan lalu</a>
-        <h3 className="font-serif text-lg">{bulanLabel}</h3>
+        <div className="flex items-center gap-3 flex-wrap justify-center">
+          <h3 className="font-serif text-lg">{bulanLabel}</h3>
+          <KalenderBulanTahunPicker tahun={tahun} bulanIdx={bulanIdx} />
+        </div>
         <a href={`?bulan=${fmtBulan(bulanNext)}`} className="text-sm font-semibold text-primary-deep hover:underline">Bulan depan →</a>
       </div>
 
@@ -166,7 +171,7 @@ export function KalenderView({
                           <option value="Libur">Libur</option>
                         </select>
                       </div>
-                      <Button type="submit" size="sm">Simpan perubahan</Button>
+                      <ConfirmSubmitButton size="sm" confirmMessage={`Simpan perubahan agenda "${a.judul}"?`}>Simpan perubahan</ConfirmSubmitButton>
                     </form>
                   </ConfirmDialog>
                   <ConfirmDialog triggerLabel="Hapus" title={`Hapus agenda "${a.judul}"?`}>

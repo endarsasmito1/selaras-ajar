@@ -3,6 +3,7 @@ import { getTugasByGuru, getKelasDiampu } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
@@ -75,7 +76,7 @@ export default async function TugasPage({
           </div>
           <div className="border-b border-rule my-1" />
           <div className="flex gap-2">
-            <Button type="submit" size="sm">Publikasikan tugas</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Publikasikan tugas ini ke kelas?">Publikasikan tugas</ConfirmSubmitButton>
             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
           </div>
         </form>

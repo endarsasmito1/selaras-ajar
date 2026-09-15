@@ -2,10 +2,9 @@ import { getSession } from "@/lib/auth";
 import { getSemuaPengumuman } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatTanggal } from "@/lib/utils";
 
@@ -42,7 +41,7 @@ export default async function PengumumanPage({
           <label className="text-xs font-semibold">Isi pengumuman</label>
           <textarea name="isi" required rows={4} className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" placeholder="Tulis isi pengumuman di sini…" />
         </div>
-        <Button type="submit" size="sm">Terbitkan</Button>
+        <ConfirmSubmitButton size="sm" confirmMessage="Terbitkan pengumuman ini? Akan langsung tampil ke guru, murid, orang tua, dan TU.">Terbitkan</ConfirmSubmitButton>
       </form>
 
       <div className="flex flex-col gap-2.5">

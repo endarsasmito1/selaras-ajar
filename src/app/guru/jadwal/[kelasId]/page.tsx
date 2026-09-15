@@ -5,9 +5,9 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { LinkButton } from "@/components/ui/Button";
 import { PrintButton } from "@/components/ui/PrintButton";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Drawer } from "@/components/ui/Drawer";
 import { WeekCalendar, type WeekEvent } from "@/components/ui/WeekCalendar";
 import { notFound } from "next/navigation";
@@ -98,7 +98,7 @@ export default async function JadwalGuruKelasPage({
               ) : (
                 <form action="/api/presensi-guru/manual" method="POST">
                   <input type="hidden" name="jadwalEntryId" value={entry.id} />
-                  <Button type="submit" size="sm" variant="accent" className="w-full justify-center">Tandai hadir</Button>
+                  <ConfirmSubmitButton size="sm" variant="accent" className="w-full justify-center" confirmMessage="Tandai kehadiran mengajarmu untuk sesi ini?">Tandai hadir</ConfirmSubmitButton>
                 </form>
               )
             )}
@@ -115,7 +115,7 @@ export default async function JadwalGuruKelasPage({
                   <input type="time" name="jamMulai" defaultValue={entry.jamMulai} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                   <input type="time" name="jamSelesai" defaultValue={entry.jamSelesai} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                 </div>
-                <Button type="submit" size="sm">Simpan perubahan</Button>
+                <ConfirmSubmitButton size="sm" confirmMessage="Simpan perubahan jam sesi ini?">Simpan perubahan</ConfirmSubmitButton>
               </form>
             </div>
 
@@ -173,7 +173,7 @@ export default async function JadwalGuruKelasPage({
                   <option key={p.id} value={`${p.mapelId}|${guruProfil.id}`}>{p.mapel.nama}</option>
                 ))}
               </select>
-              <Button type="submit" size="sm">Simpan sesi</Button>
+              <ConfirmSubmitButton size="sm" confirmMessage="Tambah sesi jadwal ini?">Simpan sesi</ConfirmSubmitButton>
             </form>
           </Drawer>
         </div>

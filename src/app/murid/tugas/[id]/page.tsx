@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getSiswaByAkun, getTugasSiswaDetail, getKomentar } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_MURID, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
@@ -110,7 +110,7 @@ export default async function KerjakanTugasPage({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button type="submit">{pengumpulan ? "Perbarui jawaban" : "Kumpulkan tugas"}</Button>
+          <ConfirmSubmitButton confirmMessage={pengumpulan ? "Perbarui jawaban tugas ini?" : "Kumpulkan tugas ini? Pastikan jawabanmu sudah benar."}>{pengumpulan ? "Perbarui jawaban" : "Kumpulkan tugas"}</ConfirmSubmitButton>
           {pengumpulan && <Pill tone={pengumpulan.terlambat ? "warn" : "ok"}>{pengumpulan.terlambat ? "Terlambat" : "Tepat waktu"}</Pill>}
         </div>
       </form>

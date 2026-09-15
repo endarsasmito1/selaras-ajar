@@ -405,7 +405,19 @@ async function getAgregatTagihan(sekolahId: string, periode: string) {
 }
 
 export async function getProyeksiKeuangan(sekolahId: string, jumlahPeriodeUntukRataRata = 3) {
-  const periodeList = await getDaftarPeriodeTagihan(sekolahId);
+  // 1.24 — proyeksi ini asumsi kadensi BULANAN ("proyeksi bulan depan"/"12 bulan ke depan"), jadi
+  // daftar periode-nya dipersempit ke tipe SPP (satu-satunya tagihan yang genuinely berulang tiap
+  // bulan) — bukan `getDaftarPeriodeTagihan` yang generic lintas semua tipe. Sebelumnya ketiganya
+  // (SPP bulanan + Buku Paket/Seragam tahunan) berbagi ruang "periode" yang sama; begitu bug
+  // jatuhTempo SPP yang ke-tie diperbaiki, periode tahunan ("Tahun Ajaran 2026/2027") jadi bisa
+  // ke-ranking lebih baru dari SPP bulanan & menggeser salah satu bulan keluar dari tren — proyeksi
+  // rata-rata pun jadi nyampur target tahunan sekali-bayar dgn target bulanan, gak apple-to-apple.
+  const periodeList = await prisma.tagihan.findMany({
+    where: { siswa: { sekolahId }, tipe: { nama: "SPP" } },
+    select: { periode: true, jatuhTempo: true },
+    distinct: ["periode"],
+    orderBy: { jatuhTempo: "desc" },
+  }).then((rows) => rows.map((r) => r.periode));
   const periodeDipakai = periodeList.slice(0, jumlahPeriodeUntukRataRata);
   if (periodeDipakai.length === 0) {
     return { rasioRataRata: 0, rataRataTarget: 0, proyeksiBulanDepan: 0, proyeksiTahunDepan: 0, riwayat: [] as { periode: string; terkumpul: number; target: number }[] };

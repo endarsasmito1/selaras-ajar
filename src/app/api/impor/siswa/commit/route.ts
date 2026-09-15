@@ -5,7 +5,7 @@ import { ambilBatch, hapusBatch } from "@/lib/csv";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session || session.peran !== "KEPALA_SEKOLAH") {
+  if (!session || (session.peran !== "KEPALA_SEKOLAH" && session.peran !== "TU")) {
     return NextResponse.json({ error: "Tidak diizinkan" }, { status: 403 });
   }
 

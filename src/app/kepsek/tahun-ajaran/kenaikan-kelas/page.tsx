@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getTahunAjaranAktif, getDaftarSiswa } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Stepper } from "@/components/ui/Stepper";
 
@@ -64,7 +64,7 @@ export default async function KenaikanKelasPage({
             <input type="date" name="selesai" required className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" />
           </div>
         </div>
-        <Button type="submit">Lanjut ke peninjauan rombel tujuan →</Button>
+        <ConfirmSubmitButton confirmMessage="Lanjut ke peninjauan rombel tujuan untuk kenaikan kelas ini?">Lanjut ke peninjauan rombel tujuan →</ConfirmSubmitButton>
       </form>
     </AppShell>
   );

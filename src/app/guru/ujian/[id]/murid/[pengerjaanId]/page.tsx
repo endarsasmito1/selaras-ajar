@@ -2,7 +2,6 @@ import { getSession } from "@/lib/auth";
 import { getUjianDetail } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { SoalHtml } from "@/lib/sanitize-html";
@@ -136,7 +135,7 @@ export default async function DetailPengerjaanMuridPage({
                     defaultValue={j.skor ?? ""}
                     className="w-20 bg-paper border border-rule rounded-lg px-2 py-1 text-sm"
                   />
-                  <Button type="submit" size="sm" variant="ghost">Simpan skor</Button>
+                  <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Simpan skor soal esai ini?">Simpan skor</ConfirmSubmitButton>
                 </form>
               )}
             </div>
@@ -156,7 +155,7 @@ export default async function DetailPengerjaanMuridPage({
             placeholder="mis. Sudah bagus di aljabar, masih perlu latihan soal cerita."
             className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm"
           />
-          <Button type="submit" size="sm" className="self-start">Simpan komentar</Button>
+          <ConfirmSubmitButton size="sm" className="self-start" confirmMessage="Simpan komentar untuk murid & orang tua ini?">Simpan komentar</ConfirmSubmitButton>
         </form>
       </div>
 

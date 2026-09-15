@@ -7,6 +7,7 @@ import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { SearchInput } from "@/components/ui/SearchInput";
 
 export default async function DataGuruPage({
@@ -150,7 +151,7 @@ export default async function DataGuruPage({
             <p className="text-xs text-ink-soft">Akun baru dapat password sementara <code>selaras123</code> — minta guru gantinya setelah login pertama. Penugasan kelas & mapel diatur setelah ini, dari halaman Edit.</p>
             <div className="border-b border-rule my-1" />
             <div className="flex gap-2">
-              <Button type="submit" size="sm">Tambah guru</Button>
+              <ConfirmSubmitButton size="sm" confirmMessage="Tambah akun guru baru ini?">Tambah guru</ConfirmSubmitButton>
               <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
             </div>
           </form>
@@ -164,7 +165,7 @@ export default async function DataGuruPage({
             <input name="file" type="file" accept=".csv" required className="text-xs" />
             <div className="border-b border-rule my-1" />
             <div className="flex gap-2">
-              <Button type="submit" size="sm" variant="ghost">Unggah & impor</Button>
+              <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Impor guru dari file CSV ini? Email yang sudah terdaftar akan dilewati.">Unggah & impor</ConfirmSubmitButton>
               <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
             </div>
           </form>

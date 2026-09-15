@@ -4,29 +4,27 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { SoalEditor } from "@/components/ui/SoalEditor";
+import { Pagination } from "@/components/ui/Pagination";
+import { JENIS_SOAL_LABEL as JENIS_LABEL } from "@/lib/soal-ui";
 import { SoalHtml } from "@/lib/sanitize-html";
 import { notFound } from "next/navigation";
 
-const JENIS_LABEL: Record<string, string> = {
-  PILIHAN_GANDA: "Pilihan Ganda",
-  PILIHAN_GANDA_KOMPLEKS: "PG Kompleks",
-  PILIHAN_GANDA_MINUS: "PG Nilai Minus",
-  JAWABAN_SINGKAT: "Jawaban Singkat",
-  ESAI: "Esai",
-};
+// Feedback teknis (Sep 2026) — 10/halaman, konsisten dgn bank soal terpusat superadmin.
+const SOAL_PER_HALAMAN = 10;
 
 export default async function BankSoalMapelPage({
   params,
   searchParams,
 }: {
   params: Promise<{ mapelId: string }>;
-  searchParams: Promise<{ error?: string; poinMin?: string; poinMax?: string }>;
+  searchParams: Promise<{ error?: string; poinMin?: string; poinMax?: string; jenis?: string; halaman?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
@@ -39,9 +37,21 @@ export default async function BankSoalMapelPage({
   const semuaSoalMapel = await getBankSoal(session.sekolahId, mapelId);
   const poinMin = sp.poinMin ? Number(sp.poinMin) : null;
   const poinMax = sp.poinMax ? Number(sp.poinMax) : null;
+  const jenisFilter = sp.jenis ?? "";
   const semuaSoal = semuaSoalMapel.filter(
-    (s) => (poinMin === null || s.poinDefault >= poinMin) && (poinMax === null || s.poinDefault <= poinMax)
+    (s) =>
+      (poinMin === null || s.poinDefault >= poinMin) &&
+      (poinMax === null || s.poinDefault <= poinMax) &&
+      (!jenisFilter || s.jenis === jenisFilter)
   );
+
+  // Feedback teknis (Sep 2026) — sebelumnya semua soal ditampilkan sekaligus tanpa batas, berat
+  // begitu bank soal 1 mapel sudah puluhan/ratusan baris. Pola sama dgn superadmin/bank-soal.
+  const totalHalaman = Math.max(1, Math.ceil(semuaSoal.length / SOAL_PER_HALAMAN));
+  const halamanAman = Math.min(totalHalaman, Math.max(1, Number(sp.halaman) || 1));
+  const soalHalaman = semuaSoal.slice((halamanAman - 1) * SOAL_PER_HALAMAN, halamanAman * SOAL_PER_HALAMAN);
+  const hrefHalaman = (h: number) =>
+    `?poinMin=${encodeURIComponent(sp.poinMin ?? "")}&poinMax=${encodeURIComponent(sp.poinMax ?? "")}&jenis=${encodeURIComponent(jenisFilter)}&halaman=${h}`;
 
   return (
     <AppShell
@@ -132,13 +142,14 @@ export default async function BankSoalMapelPage({
           </div>
           <div className="border-b border-rule my-3" />
           <div className="flex gap-2">
-            <Button type="submit" size="sm">Simpan ke bank soal</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Simpan soal ini ke bank soal?">Simpan ke bank soal</ConfirmSubmitButton>
             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
           </div>
         </form>
       </Drawer>
 
       <form method="GET" className="flex flex-wrap items-end gap-2 mb-4">
+        <input type="hidden" name="halaman" value="1" />
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-semibold text-ink-soft">Poin min</label>
           <input type="number" name="poinMin" defaultValue={sp.poinMin ?? ""} className="w-24 bg-paper-raised border border-rule rounded-lg px-2.5 py-1.5 text-xs" />
@@ -147,19 +158,26 @@ export default async function BankSoalMapelPage({
           <label className="text-[11px] font-semibold text-ink-soft">Poin maks</label>
           <input type="number" name="poinMax" defaultValue={sp.poinMax ?? ""} className="w-24 bg-paper-raised border border-rule rounded-lg px-2.5 py-1.5 text-xs" />
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-semibold text-ink-soft">Jenis soal</label>
+          <select name="jenis" defaultValue={jenisFilter} className="bg-paper-raised border border-rule rounded-lg px-2.5 py-1.5 text-xs">
+            <option value="">Semua jenis</option>
+            {Object.entries(JENIS_LABEL).map(([v, l]) => (<option key={v} value={v}>{l}</option>))}
+          </select>
+        </div>
         <Button type="submit" size="sm" variant="ghost">Filter</Button>
-        {(sp.poinMin || sp.poinMax) && (
+        {(sp.poinMin || sp.poinMax || jenisFilter) && (
           <a href="?" className="text-xs text-ink-soft hover:underline self-center">Reset</a>
         )}
       </form>
 
       <div className="flex flex-col gap-2.5">
         {semuaSoal.length === 0 && (
-          poinMin !== null || poinMax !== null
-            ? <p className="text-sm text-ink-soft">Tidak ada soal di rentang poin ini.</p>
+          poinMin !== null || poinMax !== null || jenisFilter
+            ? <p className="text-sm text-ink-soft">Tidak ada soal yang cocok dengan filter ini.</p>
             : <EmptyState icon="❖" title="Belum ada soal di mapel ini" hint='Klik "+ Tambah soal baru" di atas untuk mulai.' />
         )}
-        {semuaSoal.map((s) => (
+        {soalHalaman.map((s) => (
           <div key={s.id} className="bg-paper-raised border border-rule rounded-xl px-4 py-3.5">
             <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
@@ -222,6 +240,7 @@ export default async function BankSoalMapelPage({
           </div>
         ))}
       </div>
+      <Pagination halaman={halamanAman} totalHalaman={totalHalaman} hrefHalaman={hrefHalaman} />
 
       <script
         dangerouslySetInnerHTML={{

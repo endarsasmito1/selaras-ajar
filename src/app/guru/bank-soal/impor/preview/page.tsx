@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { ambilBatch } from "@/lib/csv";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { Callout } from "@/components/ui/Callout";
 import { Stepper } from "@/components/ui/Stepper";
@@ -97,9 +97,9 @@ export default async function ImporSoalPreviewPage({
 
       <form action="/api/soal/impor/commit" method="POST" className="flex flex-wrap gap-2">
         <input type="hidden" name="batchId" value={batchId} />
-        <Button type="submit" disabled={batch.valid.length === 0}>
+        <ConfirmSubmitButton disabled={batch.valid.length === 0} confirmMessage={`Simpan ${batch.valid.length} soal hasil impor ini ke bank soal?`}>
           Simpan {batch.valid.length} soal ke bank
-        </Button>
+        </ConfirmSubmitButton>
         <a href="/guru/bank-soal" className="text-xs font-semibold text-ink-soft self-center hover:underline">
           Batal
         </a>

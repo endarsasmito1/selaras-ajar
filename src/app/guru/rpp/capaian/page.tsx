@@ -3,6 +3,7 @@ import { getCapaianBank, getKelasDiampu } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -59,7 +60,7 @@ export default async function CapaianBankPage({
           </div>
           <div className="border-b border-rule my-1" />
           <div className="flex gap-2">
-            <Button type="submit" size="sm">Simpan</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Simpan capaian pembelajaran ini?">Simpan</ConfirmSubmitButton>
             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
           </div>
         </form>

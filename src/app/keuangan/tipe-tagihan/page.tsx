@@ -4,7 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_KEPSEK, NAV_KEUANGAN, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { LinkButton } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { TargetTagihanFields } from "./TargetTagihanFields";
@@ -55,7 +56,7 @@ export default async function TipeTagihanPage({
           </div>
           <form action="/api/tagihan-tipe" method="POST" className="flex items-center gap-2">
             <input name="nama" required placeholder="mis. Study Tour Kelas 6" className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-            <Button type="submit" size="sm">+ Tambah</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Tambah jenis tagihan baru ini?">+ Tambah</ConfirmSubmitButton>
           </form>
         </Card>
 
@@ -86,7 +87,7 @@ export default async function TipeTagihanPage({
                 <input name="periode" required placeholder="mis. Study Tour 2026" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
               </div>
               <TargetTagihanFields jenjangOpsi={jenjangOpsi} kelasOpsi={kelasOpsi} muridOpsi={muridOpsi} />
-              <Button type="submit" className="self-start mt-1">Buat tagihan</Button>
+              <ConfirmSubmitButton className="self-start mt-1" confirmMessage="Buat tagihan ini untuk sasaran yang dipilih? Tagihan akan langsung terbit ke semua target.">Buat tagihan</ConfirmSubmitButton>
             </form>
           )}
         </Card>

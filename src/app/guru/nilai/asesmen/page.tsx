@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { chipClass } from "@/lib/tab-style";
 import { formatTanggal } from "@/lib/utils";
@@ -117,7 +117,7 @@ export default async function AsesmenDeskriptifPage({
                           <label className="text-xs font-semibold">Catatan / masukan / pujian</label>
                           <textarea name="isi" required rows={3} placeholder="mis. Sudah baik dalam operasi hitung, perlu latihan lebih pada soal cerita." className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
                         </div>
-                        <Button type="submit" size="sm" className="self-start">Simpan</Button>
+                        <ConfirmSubmitButton size="sm" className="self-start" confirmMessage={`Simpan asesmen deskriptif untuk ${s.nama}?`}>Simpan</ConfirmSubmitButton>
                       </form>
                     </ConfirmDialog>
                   </td>

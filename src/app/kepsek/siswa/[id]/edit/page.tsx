@@ -3,7 +3,7 @@ import { getSemuaKelas } from "@/lib/data";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Switch } from "@/components/ui/Switch";
 import { notFound } from "next/navigation";
@@ -80,7 +80,7 @@ export default async function EditSiswaPage({
         {siswa.wali[0] && (
           <p className="text-xs text-ink-soft mb-4">Wali: {siswa.wali[0].pengguna.nama} ({siswa.wali[0].hubungan})</p>
         )}
-        <Button type="submit">Simpan perubahan</Button>
+        <ConfirmSubmitButton confirmMessage="Simpan perubahan data siswa ini?">Simpan perubahan</ConfirmSubmitButton>
       </form>
     </AppShell>
   );

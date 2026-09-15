@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getKelasDiampu, getMateriKelas, getKomentar, getBabMapel, getSemuaMapel } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { DiskusiPanel } from "@/components/DiskusiPanel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { chipClass } from "@/lib/tab-style";
@@ -144,7 +144,7 @@ export default async function MateriPage({
           <input type="file" name="silabusFile" accept=".pdf,.doc,.docx" className="text-sm" />
         </div>
 
-        <Button type="submit" size="sm">Tambah materi</Button>
+        <ConfirmSubmitButton size="sm" confirmMessage="Tambah materi ini untuk kelas ini?">Tambah materi</ConfirmSubmitButton>
       </form>
 
       <script

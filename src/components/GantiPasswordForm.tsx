@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 
 /**
  * 1.10 — form ganti password di menu Akun, muncul di semua halaman (lewat AppShell).
@@ -39,9 +40,9 @@ export function GantiPasswordForm() {
         placeholder="Ulangi password baru"
         className="bg-paper border border-rule rounded-lg px-2.5 py-1.5 text-xs"
       />
-      <button type="submit" className="text-xs font-semibold text-primary-deep hover:underline self-start mt-0.5">
+      <ConfirmSubmitLink confirmMessage="Ganti password akunmu sekarang?" className="text-xs font-semibold text-primary-deep hover:underline self-start mt-0.5">
         Simpan password baru
-      </button>
+      </ConfirmSubmitLink>
     </form>
   );
 }

@@ -5,6 +5,7 @@ import { NAV_KEPSEK, ROLE_LABEL } from "@/lib/nav";
 import { StatCard, Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
@@ -112,7 +113,7 @@ export default async function KepsekDashboard({
             </div>
             <div className="border-b border-rule my-1" />
             <div className="flex gap-2">
-              <Button type="submit" size="sm">Simpan</Button>
+              <ConfirmSubmitButton size="sm" confirmMessage="Simpan alamat sekolah ini?">Simpan</ConfirmSubmitButton>
               {/* formMethod="dialog" = tutup <dialog> terdekat tanpa submit ke server — atribut HTML
                   polos, aman dipakai dari Server Component (beda dari onClick yang butuh Client). */}
               <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>

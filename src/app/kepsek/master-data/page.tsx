@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Drawer } from "@/components/ui/Drawer";
@@ -82,7 +83,7 @@ export default async function MasterDataPage({
                             <input type="hidden" name="kelasId" value={k.id} />
                             <input name="nama" defaultValue={k.nama} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                             <input type="number" name="tingkat" defaultValue={k.tingkat} required min={1} max={12} className="w-20 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
-                            <Button type="submit" size="sm">Simpan</Button>
+                            <ConfirmSubmitButton size="sm" confirmMessage={`Simpan perubahan kelas ${k.nama}?`}>Simpan</ConfirmSubmitButton>
                           </form>
                         </Drawer>
                       </div>
@@ -99,7 +100,7 @@ export default async function MasterDataPage({
               <input name="tingkat" required type="number" min={1} max={12} placeholder="Tingkat, mis. 6" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
               <div className="border-b border-rule my-1" />
               <div className="flex gap-2">
-                <Button type="submit" size="sm">Tambah kelas</Button>
+                <ConfirmSubmitButton size="sm" confirmMessage="Tambah kelas baru ini?">Tambah kelas</ConfirmSubmitButton>
                 <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
               </div>
             </form>
@@ -112,7 +113,7 @@ export default async function MasterDataPage({
                 <input name="file" type="file" accept=".csv" required className="text-xs" />
                 <div className="border-b border-rule my-1" />
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm" variant="ghost">Unggah & impor</Button>
+                  <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Impor kelas dari file CSV ini? Nama yang sudah ada akan dilewati.">Unggah & impor</ConfirmSubmitButton>
                   <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                 </div>
               </form>
@@ -132,13 +133,13 @@ export default async function MasterDataPage({
                     <option value="">— Belum pilih kurikulum (pakai preset Kurikulum Merdeka) —</option>
                     {kurikulumOpsi.map((k) => (<option key={k.id} value={k.id}>{k.nama}</option>))}
                   </select>
-                  <Button type="submit" size="sm" variant="ghost">Simpan</Button>
+                  <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Simpan pilihan kurikulum sekolah ini?">Simpan</ConfirmSubmitButton>
                 </form>
               )}
               <form action="/api/master-data/mapel/kurikulum" method="POST">
-                <Button type="submit" size="sm" variant="ghost" className="w-full">
+                <ConfirmSubmitButton size="sm" variant="ghost" className="w-full" confirmMessage="Tambahkan mapel dari kurikulum ini? Mapel yang sudah ada tidak akan diduplikat.">
                   ⚡ Isi sesuai {kurikulumTerpilih ? kurikulumTerpilih.nama : `Kurikulum Merdeka (${sekolah.jenjang})`}
-                </Button>
+                </ConfirmSubmitButton>
                 <p className="text-[11px] text-ink-soft mt-1.5">
                   Tambahkan mapel dari {kurikulumTerpilih ? `kurikulum "${kurikulumTerpilih.nama}"` : `preset Kurikulum Merdeka jenjang ${sekolah.jenjang}`} yang belum ada di daftar — mapel yang sudah ada tak akan diduplikat.
                 </p>
@@ -153,7 +154,7 @@ export default async function MasterDataPage({
                     <input type="hidden" name="mapelId" value={m.id} />
                     <input name="nama" defaultValue={m.nama} required className="flex-1 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                     <input type="number" name="kkm" defaultValue={m.kkm} required min={0} max={100} className="w-20 bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
-                    <Button type="submit" size="sm">Simpan</Button>
+                    <ConfirmSubmitButton size="sm" confirmMessage={`Simpan perubahan mapel ${m.nama}?`}>Simpan</ConfirmSubmitButton>
                   </form>
                 </Drawer>
                 <span className="text-ink-soft tabnum text-xs shrink-0">KKM {m.kkm}</span>
@@ -168,7 +169,7 @@ export default async function MasterDataPage({
               <input name="kkm" type="number" min={0} max={100} defaultValue={70} placeholder="KKM" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
               <div className="border-b border-rule my-1" />
               <div className="flex gap-2">
-                <Button type="submit" size="sm">Tambah mapel</Button>
+                <ConfirmSubmitButton size="sm" confirmMessage="Tambah mapel baru ini?">Tambah mapel</ConfirmSubmitButton>
                 <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
               </div>
             </form>
@@ -181,7 +182,7 @@ export default async function MasterDataPage({
                 <input name="file" type="file" accept=".csv" required className="text-xs" />
                 <div className="border-b border-rule my-1" />
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm" variant="ghost">Unggah & impor</Button>
+                  <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Impor mapel dari file CSV ini? Nama yang sudah ada akan dilewati.">Unggah & impor</ConfirmSubmitButton>
                   <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                 </div>
               </form>
@@ -210,7 +211,7 @@ export default async function MasterDataPage({
                     ))}
                     <div className="border-b border-rule my-1" />
                     <div className="flex gap-2">
-                      <Button type="submit" size="sm">Simpan bobot {m.nama}</Button>
+                      <ConfirmSubmitButton size="sm" confirmMessage={`Simpan bobot komponen mapel ${m.nama}?`}>Simpan bobot {m.nama}</ConfirmSubmitButton>
                       <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                     </div>
                   </form>
@@ -242,7 +243,7 @@ export default async function MasterDataPage({
                 <input name="labelBaru" placeholder="Label predikat" className="flex-1 bg-paper border border-rule rounded-md px-2 py-1.5 text-sm" />
               </div>
             </div>
-            <Button type="submit" size="sm" className="self-start">Simpan rentang predikat</Button>
+            <ConfirmSubmitButton size="sm" className="self-start" confirmMessage="Simpan perubahan rentang nilai → predikat ini?">Simpan rentang predikat</ConfirmSubmitButton>
           </form>
         </Card>
       </div>
@@ -295,7 +296,7 @@ export default async function MasterDataPage({
                     className="w-16 bg-paper border border-rule rounded-md px-2 py-1.5 text-sm tabnum text-right"
                   />
                 </label>
-                <Button type="submit" size="sm" variant="ghost">Simpan</Button>
+                <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage={`Simpan KKM UTS/UAS mapel ${m.nama}?`}>Simpan</ConfirmSubmitButton>
               </div>
             </form>
           ))}

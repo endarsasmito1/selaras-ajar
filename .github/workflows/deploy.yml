@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# Feedback teknis (Sep 2026) — sebelumnya push/merge beruntun numpuk beberapa run bersamaan
+# (gak ada concurrency control), bikin akun kena limit run paralel & 4 run sekaligus ke-cancel
+# GitHub sendiri di waktu yang sama persis, gak ada satu pun yang sempat lolos verifikasi. Run
+# baru utk ref yang sama sekarang otomatis membatalkan run lama yang belum selesai.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Feedback teknis (Sep 2026) — sebelumnya job "deploy" langsung jalan begitu ada push ke main,
   # gak ada apa pun yang gate-in kalau kode ternyata rusak secara fungsional (build sukses tapi
@@ -15,6 +23,11 @@ jobs:
   # merge, begitu branch protection main diaktifkan) maupun di push langsung ke main (sebelum deploy).
   test:
     runs-on: ubuntu-latest
+    # Feedback teknis (Sep 2026) — sebelumnya gak ada batas sama sekali, sekali ketemu run yang
+    # genuinely hang (bukan lambat — dicek langsung 47+ menit macet persis di satu step yg lokal
+    # cuma makan ~15-20 menit paling lama) bisa nyangkut nyaris tanpa batas. 25 menit generous
+    # utk kondisi normal (termasuk reseed 30 sekolah terberat), tapi tetap gagal cepat kalau hang.
+    timeout-minutes: 25
     env:
       # Feedback teknis (Sep 2026) — WAJIB absolut, bukan "file:./ci.db". Path relatif di-resolve
       # BEDA antara `prisma migrate deploy` (CLI) dan runtime `@prisma/adapter-better-sqlite3`
