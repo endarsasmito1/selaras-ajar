@@ -8,7 +8,14 @@ import path from "path";
 // Pakai better-sqlite3 langsung (bukan Prisma Client) karena Prisma-generated client ini pakai
 // `import.meta` (ESM-only) yang tak bisa di-require lewat transform CJS milik Playwright test
 // runner — raw SQL di sini cukup utk kebutuhan lookup/assert test, tak perlu ORM penuh.
-const sqlite = new Database(path.resolve(__dirname, "../../../dev.db"), { readonly: false });
+//
+// WAJIB baca dari process.env.DATABASE_URL (bukan hardcode "dev.db") — persis bug yang sama kayak
+// prisma/seed.ts sebelumnya: di lokal DATABASE_URL="file:./dev.db" kebetulan resolve ke file yang
+// sama, tapi di CI (DATABASE_URL="file:<workspace>/ci.db") hardcode ini diam-diam nunjuk ke "dev.db"
+// yang gak pernah dimigrasi sama sekali, bikin SETIAP query di sini gagal "no such table" —
+// keliatan kayak flaky test padahal 100% deterministik gagal tiap kali di CI.
+const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+const sqlite = new Database(path.resolve(databaseUrl.replace(/^file:/, "")), { readonly: false });
 
 export const db = {
   bab: {
