@@ -21,6 +21,7 @@ test.describe("Ujian lanjutan — jenisPenilaian & popup sukses (8.11, 8.13-8.14
     await buatUjianKelas5BMatematika(page, judul);
     await page.selectOption('select[name="jenisPenilaian"]', "UTS");
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/ujian\/.+\/edit/);
     await expect(page.getByText("Ujian dibuat. Tersimpan otomatis sebagai draft")).toBeVisible();
     const ujian = db.ujian.findByJudul(judul);
@@ -31,6 +32,7 @@ test.describe("Ujian lanjutan — jenisPenilaian & popup sukses (8.11, 8.13-8.14
     const judul = `Ujian Draft Uji ${Date.now()}`;
     await buatUjianKelas5BMatematika(page, judul);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText("Perubahan di halaman ini tersimpan otomatis")).toBeVisible();
     await page.goto(page.url().replace("/edit", "/pengaturan"));
     await expect(page.getByText("Perubahan di halaman ini tersimpan otomatis")).toBeVisible();
@@ -59,9 +61,11 @@ test.describe("Ujian lanjutan — rename judul (8.21-8.23)", () => {
     const judulBaru = `${judulLama} (diganti)`;
     await buatUjianKelas5BMatematika(page, judulLama);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.goto(page.url().replace("/edit", "/pengaturan"));
     await page.fill('input[name="judul"]', judulBaru);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/konfirmasi/);
     const ujian = db.ujian.findByJudul(judulBaru);
     expect(ujian).toBeTruthy();
@@ -71,9 +75,11 @@ test.describe("Ujian lanjutan — rename judul (8.21-8.23)", () => {
     const judul = `Ujian Rename Kosong ${Date.now()}`;
     await buatUjianKelas5BMatematika(page, judul);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.goto(page.url().replace("/edit", "/pengaturan"));
     await page.fill('input[name="judul"]', "");
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Validasi HTML5 required mencegah submit — tetap di halaman pengaturan.
     await expect(page).toHaveURL(/\/pengaturan(\?|$)/);
   });
@@ -112,6 +118,7 @@ test.describe("Ujian lanjutan — duplikat (8.19-8.20)", () => {
     const babDuplikat = db.bab.findFirst({ mapelId: info.mapelId as string });
     await page.selectOption('select[name="babId"]', babDuplikat!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const tambahDariBank = page.locator('form[action="/api/ujian/soal-tambah"] button').first();
     if (await tambahDariBank.count()) await tambahDariBank.click();
     await page.goto(page.url().replace("/edit", ""));
@@ -182,10 +189,12 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
       await guruPage.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
       await guruPage.selectOption('select[name="babId"]', babMatematika!.id as string);
       await guruPage.getByRole("button", { name: "Lanjut susun soal →" }).click();
+      await confirmDialogSubmit(guruPage, "Ya, lanjutkan");
       const ujianId = guruPage.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
       db.ujianSoal.create({ ujianId, soalId: soalPGKId, urutan: 1, poin: 100 });
       await guruPage.goto(`/guru/ujian/${ujianId}/pengaturan`);
       await guruPage.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+      await confirmDialogSubmit(guruPage, "Ya, lanjutkan");
       await guruPage.getByRole("button", { name: "✓ Terbitkan ujian ini" }).click();
       await Promise.all([guruPage.waitForNavigation(), confirmDialogSubmit(guruPage, "Ya, lanjutkan")]);
       await guruPage.waitForURL(/\/guru\/ujian(\?|$)/);
@@ -263,10 +272,12 @@ test.describe("Ujian lanjutan — Pilihan Ganda Nilai Minus (1.23)", () => {
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     db.ujianSoal.create({ ujianId, soalId, urutan: 1, poin });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.getByRole("button", { name: "✓ Terbitkan ujian ini" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     await page.waitForURL(/\/guru\/ujian(\?|$)/);
@@ -330,6 +341,7 @@ test.describe("Ujian lanjutan — edit poin soal & filter tingkat kesulitan (1.2
   test("positif: guru ubah poin soal di ujian draft, total poin ikut berubah", async ({ page }) => {
     await buatUjianKelas5BMatematika(page, `Ujian Poin ${Date.now()}`);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     const soalMatematika = db.soal.findFirst({ mapelId: db.ujian.findUnique({ id: ujianId })?.mapelId as string, jenis: "PILIHAN_GANDA" });
     test.skip(!soalMatematika, "Tak ada soal PG Matematika di bank soal seed");
@@ -338,13 +350,15 @@ test.describe("Ujian lanjutan — edit poin soal & filter tingkat kesulitan (1.2
     await page.goto(`/guru/ujian/${ujianId}/edit`);
     await expect(page.locator('input[name="poin"]')).toHaveValue("20");
     await page.fill('input[name="poin"]', "35");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "poin" }).click()]);
+    await page.getByRole("button", { name: "poin" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     await expect(page.getByText("total 35 poin")).toBeVisible();
   });
 
   test("positif: filter tingkat kesulitan di halaman susun ujian menyaring bank soal", async ({ page }) => {
     await buatUjianKelas5BMatematika(page, `Ujian Filter Kesulitan ${Date.now()}`);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Feedback teknis (Sep 2026) — race hydration sama kayak kenaikan-kelas.spec.ts: tanpa nunggu
     // ini, selectOption() sukses set value native tapi submit GET berikutnya kadang tetap ngirim
     // value kosong (diverifikasi langsung: nempel `networkidle` bikin selalu konsisten).
@@ -368,10 +382,12 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 1, poin: 100 });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.getByRole("button", { name: "✓ Terbitkan ujian ini" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     await page.waitForURL(/\/guru\/ujian(\?|$)/);
@@ -449,6 +465,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
     db.ujianSoal.create({ ujianId, soalId: soalEsai!.id as string, urutan: 1, poin: 50 });
     db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 2, poin: 50 });
@@ -486,7 +503,8 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.selectOption('select[name="modeHasil"]', "JADWAL_MANUAL");
     const jadwalManual = "2026-08-20T10:00";
     await page.fill('input[name="jadwalHasilManual"]', jadwalManual);
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click()]);
+    await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
     // Ujian sudah PUBLISHED — halaman konfirmasi harus tampilkan status "sudah diterbitkan",
     // BUKAN tombol terbitkan lagi (itu akan jadi bug tersendiri kalau sampai muncul).
