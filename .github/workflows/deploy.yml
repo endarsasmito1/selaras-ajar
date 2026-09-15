@@ -2,9 +2,9 @@ name: Test & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
 
 # Feedback teknis (Sep 2026) — sebelumnya push/merge beruntun numpuk beberapa run bersamaan
 # (gak ada concurrency control), bikin akun kena limit run paralel & 4 run sekaligus ke-cancel

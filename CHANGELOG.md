@@ -10,6 +10,8 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/), dan p
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-15
+
 ### Ditambahkan
 
 - Fail-fast `SESSION_SECRET` di produksi (nolak start drpd diam-diam pakai fallback dev) + `.env.example`
@@ -58,5 +60,6 @@ Rilis produksi pertama — live di `dashboard.selaras-ajar.id`.
 
 Lihat README bagian "Yang belum diimplementasikan" — notifikasi WhatsApp sungguhan, payment gateway sungguhan, generator rapor PDF, dan beberapa penyederhanaan lain yang sengaja ditunda.
 
-[Unreleased]: https://github.com/endarsasmito1/selaras-ajar/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/endarsasmito1/selaras-ajar/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/endarsasmito1/selaras-ajar/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/endarsasmito1/selaras-ajar/releases/tag/v1.0.0
