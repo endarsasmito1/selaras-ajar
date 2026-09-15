@@ -15,7 +15,8 @@ test.describe("Kalender Akademik (F-7) — kelola oleh Kepsek", () => {
     const tanggalDepan = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     await tambahForm.locator('input[name="tanggal"]').fill(tanggalDepan);
     await tambahForm.locator('select[name="jenis"]').selectOption("Kegiatan");
-    await tambahForm.locator('button[type="submit"]').click();
+    await tambahForm.getByRole("button", { name: "Tambah agenda" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).toHaveURL(/\/kepsek\/kalender/);
     await expect(page.getByText(judul).first()).toBeVisible();
@@ -38,7 +39,8 @@ test.describe("Kalender Akademik (F-7) — kelola oleh Kepsek", () => {
     const tambahForm = page.locator('form[action="/api/agenda"]');
     await tambahForm.locator('input[name="judul"]').fill(judul);
     await tambahForm.locator('input[name="tanggal"]').fill(new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10));
-    await tambahForm.locator('button[type="submit"]').click();
+    await tambahForm.getByRole("button", { name: "Tambah agenda" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText(judul).first()).toBeVisible();
 
     const row = page.locator(ROW_SELECTOR, { hasText: judul }).last();

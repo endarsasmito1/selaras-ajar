@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { bukaFormTambahSekolahManual } from "./helpers/ui";
+import { bukaFormTambahSekolahManual, confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/superadmin.json" });
 
@@ -8,6 +8,7 @@ test.describe("Superadmin — Administrasi Platform (§4.19)", () => {
     const nama = `SD Uji Otomatis ${Date.now()}`;
     await bukaFormTambahSekolahManual(page, nama);
     await page.getByRole("button", { name: "Buat sekolah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/sekolah_dibuat=1/);
     await expect(page.getByText(nama).first()).toBeVisible();
     await expect(page.getByText(/Belum ada akun kepala sekolah/)).toBeVisible();
@@ -17,6 +18,7 @@ test.describe("Superadmin — Administrasi Platform (§4.19)", () => {
     await bukaFormTambahSekolahManual(page, `SD Tanpa Nama ${Date.now()}`);
     await page.fill('input[name="nama"]', ""); // kosongkan lagi — mode manual prefill dari query pencarian
     await page.getByRole("button", { name: "Buat sekolah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/superadmin\/sekolah\/tambah$/); // required field browser cegah submit
   });
 
@@ -25,12 +27,14 @@ test.describe("Superadmin — Administrasi Platform (§4.19)", () => {
     const email = `kepsek${Date.now()}@ujiotomatis.demo`;
     await bukaFormTambahSekolahManual(page, nama);
     await page.getByRole("button", { name: "Buat sekolah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.getByText(nama).first().click();
 
     await page.getByText("+ Tambah akun kepala sekolah").click();
     await page.fill('input[name="kepsekNama"]', "Kepsek Uji Otomatis");
     await page.fill('input[name="kepsekEmail"]', email);
     await page.getByRole("button", { name: "Buat akun" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).toHaveURL(/kepsek_dibuat=1/);
     await expect(page.getByText(email).first()).toBeVisible();
@@ -40,12 +44,14 @@ test.describe("Superadmin — Administrasi Platform (§4.19)", () => {
     const nama = `SD Kepsek Duplikat ${Date.now()}`;
     await bukaFormTambahSekolahManual(page, nama);
     await page.getByRole("button", { name: "Buat sekolah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.getByText(nama).first().click();
 
     await page.getByText("+ Tambah akun kepala sekolah").click();
     await page.fill('input[name="kepsekNama"]', "Kepsek Duplikat");
     await page.fill('input[name="kepsekEmail"]', "hendra@selarasajar.demo"); // sudah ada
     await page.getByRole("button", { name: "Buat akun" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/sudah dipakai akun lain/)).toBeVisible();
   });
@@ -55,12 +61,14 @@ test.describe("Superadmin — Administrasi Platform (§4.19)", () => {
     const email = `blokir${Date.now()}@ujiotomatis.demo`;
     await bukaFormTambahSekolahManual(page, nama);
     await page.getByRole("button", { name: "Buat sekolah" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.getByText(nama).first().click();
 
     await page.getByText("+ Tambah akun kepala sekolah").click();
     await page.fill('input[name="kepsekNama"]', "Kepsek Blokir Uji");
     await page.fill('input[name="kepsekEmail"]', email);
     await page.getByRole("button", { name: "Buat akun" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const url = new URL(page.url());
     const password = url.searchParams.get("password");
     expect(password).toBeTruthy();

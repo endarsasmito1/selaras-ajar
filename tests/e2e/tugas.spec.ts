@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("Tugas / PR — guru buat & koreksi", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
@@ -12,6 +13,7 @@ test.describe("Tugas / PR — guru buat & koreksi", () => {
     await page.fill('input[name="tenggat"]', tenggat);
     await page.locator('textarea[name="instruksi"]').fill("Kerjakan latihan uji otomatis halaman 1-3.");
     await page.getByRole("button", { name: "Publikasikan tugas" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/tugas$/);
     await expect(page).not.toHaveURL(/error=/);
   });
@@ -22,6 +24,7 @@ test.describe("Tugas / PR — guru buat & koreksi", () => {
     await page.fill('input[name="judul"]', "Tugas Tanpa Instruksi");
     await page.fill('input[name="tenggat"]', new Date(Date.now() + 86400000).toISOString().slice(0, 16));
     await page.getByRole("button", { name: "Publikasikan tugas" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/tugas$/);
   });
 
@@ -41,6 +44,7 @@ test.describe("Tugas / PR — guru buat & koreksi", () => {
       await page.locator('input[name^="nilai_"]').fill("95");
       await page.locator('textarea[name^="catatan_"]').fill("Bagus, pertahankan.");
       await page.getByRole("button", { name: "Simpan nilai & catatan" }).click();
+      await confirmDialogSubmit(page, "Ya, lanjutkan");
       await expect(page).not.toHaveURL(/error=/);
     }
   });
@@ -67,6 +71,7 @@ test.describe("Tugas — murid kumpulkan jawaban", () => {
     await expect(page).toHaveURL(/\/murid\/tugas\//);
     await page.locator('textarea[name="isiJawaban"]').fill("Jawaban uji otomatis dari murid.");
     await page.getByRole("button", { name: /Kumpulkan tugas|Perbarui jawaban/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
@@ -76,6 +81,7 @@ test.describe("Tugas — murid kumpulkan jawaban", () => {
     await page.locator('textarea[name="isiJawaban"]').fill("");
     await page.fill('input[name="tautanUrl"]', "");
     await page.getByRole("button", { name: /Kumpulkan tugas|Perbarui jawaban/ }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Isi minimal salah satu/)).toBeVisible();
   });

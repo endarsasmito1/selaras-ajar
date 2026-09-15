@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
-import { bukaFormTambahSekolahManual } from "./helpers/ui";
+import { bukaFormTambahSekolahManual, confirmDialogSubmit } from "./helpers/ui";
 
 // Superadmin — Peta Sekolah / lat-long (22.11-22.15)
 test.use({ storageState: "tests/e2e/.auth/superadmin.json" });
@@ -11,6 +11,7 @@ test("positif: isi lat/long saat tambah sekolah baru tersimpan", async ({ page }
   await page.fill('input[name="latitude"]', "-6.914744");
   await page.fill('input[name="longitude"]', "107.609810");
   await page.getByRole("button", { name: "Buat sekolah" }).click();
+  await confirmDialogSubmit(page, "Ya, lanjutkan");
   await expect(page).toHaveURL(/\/superadmin\/sekolah/);
 
   const sekolah = db.sekolah.findFirst({ nama });
@@ -22,11 +23,13 @@ test("positif: edit lat/long sekolah yang sudah ada dari halaman detail", async 
   const nama = `SD Peta Edit Uji ${Date.now()}`;
   await bukaFormTambahSekolahManual(page, nama);
   await page.getByRole("button", { name: "Buat sekolah" }).click();
+  await confirmDialogSubmit(page, "Ya, lanjutkan");
   await page.getByText(nama).first().click();
 
   await page.fill('form[action="/api/superadmin/sekolah/lokasi"] input[name="latitude"]', "-7.797");
   await page.fill('form[action="/api/superadmin/sekolah/lokasi"] input[name="longitude"]', "110.370");
   await page.getByRole("button", { name: "Simpan lokasi" }).click();
+  await confirmDialogSubmit(page, "Ya, lanjutkan");
   await expect(page.getByText("Koordinat: -7.797, 110.37")).toBeVisible();
 
   const sekolah = db.sekolah.findFirst({ nama });
@@ -45,6 +48,7 @@ test("negatif: sekolah tanpa lat/long tidak muncul sbg marker tapi tetap muncul 
   const nama = `SD Tanpa Koordinat ${Date.now()}`;
   await bukaFormTambahSekolahManual(page, nama);
   await page.getByRole("button", { name: "Buat sekolah" }).click();
+  await confirmDialogSubmit(page, "Ya, lanjutkan");
   await expect(page).toHaveURL(/\/superadmin\/sekolah/);
   await expect(page.getByRole("link", { name: nama })).toBeVisible(); // tampil di tabel
 

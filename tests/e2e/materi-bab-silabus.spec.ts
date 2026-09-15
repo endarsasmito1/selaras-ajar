@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 // 1.23 — Bab (master data per-mapel, reusable), Silabus (dokumen per-mapel), video di materi
 // (upload file ATAU tautan YouTube/Vimeo, preview asli bukan cuma link).
@@ -16,7 +17,8 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.fill('input[name="babBaru"]', namaBab);
     await page.selectOption("#tipe-materi", "catatan");
     await page.fill('textarea[name="isi"]', "Catatan pertama");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Tambah materi" }).click()]);
+    await page.getByRole("button", { name: "Tambah materi" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
     expect(db.bab.countByNamaMapel({ mapelId: mapel!.id as string, nama: namaBab })).toBe(1);
 
@@ -27,7 +29,8 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.selectOption("#bab-select", { label: namaBab });
     await page.selectOption("#tipe-materi", "catatan");
     await page.fill('textarea[name="isi"]', "Catatan kedua");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Tambah materi" }).click()]);
+    await page.getByRole("button", { name: "Tambah materi" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
     expect(db.bab.countByNamaMapel({ mapelId: mapel!.id as string, nama: namaBab })).toBe(1);
   });
@@ -71,7 +74,8 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.fill('input[name="judul"]', judul);
     await page.selectOption("#tipe-materi", "video");
     await page.fill('textarea[name="isi"]', "https://www.youtube.com/watch?v=abc12345678");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Tambah materi" }).click()]);
+    await page.getByRole("button", { name: "Tambah materi" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
     await page.locator("summary", { hasText: judul }).click();
     await expect(page.locator("iframe").first()).toBeVisible();
@@ -91,7 +95,8 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.fill('input[name="judul"]', "Materi dgn silabus");
     await page.selectOption("#tipe-materi", "catatan");
     await page.fill('textarea[name="isi"]', "z");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Tambah materi" }).click()]);
+    await page.getByRole("button", { name: "Tambah materi" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
     const updated = db.mataPelajaran.findFirst({ nama: "Matematika" });
     expect(updated?.silabusUrl).toBeTruthy();

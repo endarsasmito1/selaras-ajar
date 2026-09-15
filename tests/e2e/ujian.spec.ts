@@ -14,14 +14,17 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     const bab = db.bab.findFirst({ mapelId });
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/ujian\/.+\/edit/);
 
     const tambahDariBank = page.locator('form[action="/api/ujian/soal-tambah"] button').first();
     await expect(tambahDariBank).toBeVisible();
     await tambahDariBank.click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await page.goto(page.url().replace("/edit", "/pengaturan"));
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/konfirmasi/);
     await page.getByRole("button", { name: "✓ Terbitkan ujian ini" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
@@ -38,6 +41,7 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     const bab = db.bab.findFirst({ mapelId });
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)?.[1];
     expect(ujianId).toBeTruthy();
 
@@ -52,6 +56,7 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     // "pilih minimal 1 kelas" di server sungguh tereksekusi (bukan keblok validasi klien duluan).
     await page.selectOption('select[name="babId"]', { index: 1 });
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Pilih minimal satu kelas/)).toBeVisible();
   });
@@ -69,6 +74,7 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     await checkboxes.nth(idxBeda).check();
     await page.selectOption('select[name="babId"]', { index: 1 });
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     // Feedback teknis (Sep 2026) — getByText polos ambigu: ada label/hint statis di form yang
     // juga kebetulan mengandung substring "mapel yang sama" — scope ke Callout error-nya sendiri.
@@ -89,6 +95,7 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     const babFanOut = db.bab.findFirst({ mapelId: mapelPertama });
     await page.selectOption('select[name="babId"]', babFanOut!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
 
     const soal = db.soal.findFirst({ mapelId: mapelPertama });

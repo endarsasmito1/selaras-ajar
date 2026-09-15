@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
@@ -8,14 +9,16 @@ test.describe("Asesmen Deskriptif (N-5)", () => {
     const isi = `Asesmen uji otomatis ${Date.now()}`;
     await page.getByRole("button", { name: "+ Nilai/Masukan" }).first().click();
     await page.locator('dialog[open] textarea[name="isi"]').fill(isi);
-    await page.locator('dialog[open] button[type="submit"]').click();
+    await page.locator("dialog[open]").getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
   });
 
   test("negatif: submit asesmen dengan isi kosong ditolak validasi required", async ({ page }) => {
     await page.goto("/guru/nilai/asesmen");
     await page.getByRole("button", { name: "+ Nilai/Masukan" }).first().click();
-    await page.locator('dialog[open] button[type="submit"]').click();
+    await page.locator("dialog[open]").getByRole("button", { name: "Simpan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.locator("dialog[open]")).toBeVisible(); // required textarea cegah submit, dialog tetap terbuka
   });
 });
@@ -27,6 +30,7 @@ test.describe("Projek Profil Pelajar Pancasila / P5 (N-6)", () => {
     await page.fill('input[name="tema"]', tema);
     await page.locator('input[name="dimensi"]').first().check();
     await page.getByRole("button", { name: "Simpan projek" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByText(tema)).toBeVisible();
   });
@@ -35,6 +39,7 @@ test.describe("Projek Profil Pelajar Pancasila / P5 (N-6)", () => {
     await page.goto("/guru/projek/baru");
     await page.fill('input[name="tema"]', "Projek Tanpa Dimensi");
     await page.getByRole("button", { name: "Simpan projek" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
   });
 
@@ -48,6 +53,7 @@ test.describe("Projek Profil Pelajar Pancasila / P5 (N-6)", () => {
     if (await select.count()) {
       await select.selectOption("SB");
       await page.getByRole("button", { name: "Simpan penilaian" }).click();
+      await confirmDialogSubmit(page, "Ya, lanjutkan");
       await expect(page).not.toHaveURL(/error=/);
     }
   });

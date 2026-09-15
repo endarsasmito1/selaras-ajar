@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
@@ -17,6 +18,7 @@ test.describe("Kelola Data Guru (MG-1/MG-2, 1.8: tambah manual, wali eksklusif, 
     await dialog.locator('input[name="nama"]').fill("Guru Uji Otomatis");
     await dialog.locator('input[name="email"]').fill(email);
     await dialog.getByRole("button", { name: "Tambah guru", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText(/ditambahkan — password sementara/)).toBeVisible();
     await expect(page.locator("table").getByText("Guru Uji Otomatis")).toBeVisible();
   });
@@ -28,6 +30,7 @@ test.describe("Kelola Data Guru (MG-1/MG-2, 1.8: tambah manual, wali eksklusif, 
     await dialog.locator('input[name="nama"]').fill("Guru Duplikat");
     await dialog.locator('input[name="email"]').fill("rina@selarasajar.demo"); // sudah ada
     await dialog.getByRole("button", { name: "Tambah guru", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.locator(".bg-warning-tint")).toContainText(/sudah terdaftar/);
   });
@@ -36,6 +39,7 @@ test.describe("Kelola Data Guru (MG-1/MG-2, 1.8: tambah manual, wali eksklusif, 
     await page.goto("/kepsek/guru");
     await page.getByRole("button", { name: "+ Tambah guru manual" }).click();
     await page.locator("dialog[open]").getByRole("button", { name: "Tambah guru", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/kepsek\/guru$/);
   });
 

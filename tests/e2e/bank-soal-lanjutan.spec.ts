@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { db } from "./helpers/db";
-import { isiPertanyaan } from "./helpers/ui";
+import { isiPertanyaan, confirmDialogSubmit } from "./helpers/ui";
 import fs from "fs";
 import path from "path";
 
@@ -23,6 +23,7 @@ test.describe("Bank Soal lanjutan — PG Kompleks (7.11-7.12)", () => {
     await kunciMulti.nth(0).check();
     await kunciMulti.nth(2).check();
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByText(pertanyaan)).toBeVisible();
     const soal = db.soal.findFirst({ jenis: "PILIHAN_GANDA_KOMPLEKS" });
@@ -42,6 +43,7 @@ test.describe("Bank Soal lanjutan — PG Kompleks (7.11-7.12)", () => {
     await opsi.nth(3).fill("D");
     await page.locator('input[name="kunciJawabanMulti"]').nth(0).check();
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/minimal 2 kunci jawaban/)).toBeVisible();
   });
@@ -58,7 +60,8 @@ test.describe("Bank Soal lanjutan — filter poin & poin custom (7.8-7.9)", () =
     const pertanyaan = `Soal poin custom ${Date.now()}`;
     await isiPertanyaan(page, pertanyaan);
     await page.fill('input[name="poinDefault"]', "35");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Simpan ke bank soal" }).click()]);
+    await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     const row = page.locator("div.bg-paper-raised", { hasText: pertanyaan }).first();
     await expect(row.getByText("35 poin")).toBeVisible();
   });
@@ -82,7 +85,8 @@ test.describe("Bank Soal lanjutan — WYSIWYG & sanitasi XSS (7.13-7.14)", () =>
     await page.selectOption("#jenis-select", "ESAI");
     const marker = `Cetak${Date.now()}Tebal`;
     await isiPertanyaan(page, `<p>Soal dengan <b>${marker}</b></p>`);
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Simpan ke bank soal" }).click()]);
+    await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     const bold = page.locator("b", { hasText: marker });
     await expect(bold).toBeVisible();
   });
@@ -99,7 +103,8 @@ test.describe("Bank Soal lanjutan — WYSIWYG & sanitasi XSS (7.13-7.14)", () =>
     await page.selectOption("#jenis-select", "ESAI");
     const marker = `xss${Date.now()}`;
     await isiPertanyaan(page, `<p>Sebelum</p><script>alert('${marker}')</script><p>Sesudah</p>`);
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Simpan ke bank soal" }).click()]);
+    await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     await page.waitForTimeout(300); // beri kesempatan script (kalau lolos sanitasi) sempat jalan
     expect(dialogMuncul).toBe(false);
     const scriptCount = await page.locator("script", { hasText: marker }).count();

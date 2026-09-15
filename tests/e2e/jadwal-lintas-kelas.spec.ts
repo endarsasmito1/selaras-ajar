@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
@@ -21,6 +22,7 @@ test.describe("Jadwal — guru tidak bisa bentrok dengan jadwalnya sendiri linta
     await dialog.locator('input[name="jamMulai"]').fill("06:05");
     await dialog.locator('input[name="jamSelesai"]').fill("06:35");
     await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
     // Coba isi jam yang sama (overlap) di kelas kedua — guru yang sama, hari yang sama.
@@ -30,6 +32,7 @@ test.describe("Jadwal — guru tidak bisa bentrok dengan jadwalnya sendiri linta
     await dialog.locator('input[name="jamMulai"]').fill("06:05");
     await dialog.locator('input[name="jamSelesai"]').fill("06:35");
     await dialog.getByRole("button", { name: "Simpan sesi", exact: true }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
 
     await expect(page).toHaveURL(/error=/);
     await expect(page.getByText(/Bentrok jadwal/)).toBeVisible();

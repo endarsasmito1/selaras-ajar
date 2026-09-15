@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { confirmDialogSubmit } from "./helpers/ui";
 
 test.describe("PPDB — formulir publik (tanpa login)", () => {
   test("positif: isi form, tinjau, lalu kirim pendaftaran baru", async ({ page }) => {
@@ -48,6 +49,7 @@ test.describe("PPDB — kelola pendaftar (kepsek)", () => {
     const row = page.locator("tbody tr", { has: page.getByRole("button", { name: "Terima" }) }).first();
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "Terima" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/kepsek\/ppdb/);
   });
 
@@ -58,6 +60,7 @@ test.describe("PPDB — kelola pendaftar (kepsek)", () => {
     await page.goto("/kepsek/ppdb");
     const row = page.locator("tbody tr", { has: page.getByRole("button", { name: "Tolak" }) }).first();
     await row.getByRole("button", { name: "Tolak" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/kepsek\/ppdb/);
   });
 });
