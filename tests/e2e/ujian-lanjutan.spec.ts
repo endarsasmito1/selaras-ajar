@@ -259,7 +259,8 @@ test.describe("Ujian lanjutan — Pilihan Ganda Nilai Minus (1.23)", () => {
     await page.locator('input[name="kunciJawaban"]').nth(0).check();
     await page.selectOption('select[name="penguranganMode"]', mode);
     await page.fill('input[name="penguranganNilai"]', String(nilai));
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Simpan ke bank soal" }).click()]);
+    await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     const soal = db.soal.findFirst({ jenis: "PILIHAN_GANDA_MINUS" });
     return soal!.id as string;
   }
@@ -453,7 +454,8 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.selectOption("#jenis-select", "ESAI");
     await isiPertanyaan(page, `Soal esai durasi ${Date.now()}`);
     await page.fill('input[name="durasiDetik"]', "2");
-    await Promise.all([page.waitForNavigation(), page.getByRole("button", { name: "Simpan ke bank soal" }).click()]);
+    await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
+    await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     const soalEsai = db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "ESAI" });
     expect(soalEsai?.durasiDetik).toBe(2);
 
@@ -473,6 +475,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     // Matikan acak urutan soal — tes ini butuh soal esai (yg ada durasi) pasti muncul duluan.
     await page.locator('input[name="acakSoal"]').uncheck();
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await page.getByRole("button", { name: "✓ Terbitkan ujian ini" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
     await page.waitForURL(/\/guru\/ujian(\?|$)/);

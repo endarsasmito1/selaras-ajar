@@ -71,7 +71,7 @@ test.describe("Bank Soal lanjutan — filter poin & poin custom (7.8-7.9)", () =
     await page.goto(`/guru/bank-soal/mapel/${mapel!.id}?poinMin=34&poinMax=36`);
     await expect(page.getByText(/poin custom/)).toBeVisible();
     await page.goto(`/guru/bank-soal/mapel/${mapel!.id}?poinMin=1000&poinMax=2000`);
-    await expect(page.getByText("Tidak ada soal di rentang poin ini.")).toBeVisible();
+    await expect(page.getByText("Tidak ada soal yang cocok dengan filter ini.")).toBeVisible();
   });
 });
 

@@ -28,7 +28,10 @@ test.describe("Kalender Akademik (F-7) — kelola oleh Kepsek", () => {
     await row.getByRole("button", { name: "Edit" }).click();
     const judulBaru = `Diubah ${Date.now()}`;
     await page.locator('dialog[open] input[name="judul"]').fill(judulBaru);
-    await confirmDialogSubmit(page, "Simpan perubahan");
+    // "Simpan perubahan" cuma trigger ConfirmSubmitButton BERSARANG di dalam dialog edit yg udah
+    // kebuka — klik itu cuma buka dialog konfirmasi kedua, submit asli baru kejadi di "Ya, lanjutkan".
+    await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page.getByText(judulBaru).first()).toBeVisible();
   });
 

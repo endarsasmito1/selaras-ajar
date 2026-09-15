@@ -11,14 +11,22 @@ test.describe("Keuangan / SPP (F-14, popup konfirmasi lunas)", () => {
     const row = page.locator("tbody tr", { has: page.getByRole("button", { name: "Tandai lunas" }) }).first();
     await expect(row).toBeVisible();
     const namaSiswa = await row.locator("td").first().textContent();
+    // Periode ikut di-tangkap — satu siswa bisa punya beberapa baris tagihan (periode beda), jadi
+    // nama siswa saja gak cukup unik buat nemuin balik baris yang SAMA persis setelah dibayar.
+    const periode = await row.locator("td").nth(3).textContent();
 
     await row.getByRole("button", { name: "Tandai lunas" }).click();
     await confirmDialogSubmit(page, "Konfirmasi lunas");
 
     await expect(page).toHaveURL(/\/keuangan\/riwayat/);
-    if (namaSiswa) {
-      const rowSetelah = page.locator("tbody tr", { hasText: namaSiswa.trim() }).first();
-      await expect(rowSetelah.getByText("Lunas")).toBeVisible();
+    if (namaSiswa && periode) {
+      const rowSetelah = page
+        .locator("tbody tr", { hasText: namaSiswa.trim() })
+        .filter({ hasText: periode.trim() })
+        .first();
+      // Locator("Lunas") polos ambigu — sisa dialog konfirmasi "Tandai lunas"/"Konfirmasi lunas" yang
+      // baru saja ditutup tetap ada di DOM (tak di-reparent) & ikut match teks "lunas" di baris yang sama.
+      await expect(rowSetelah.locator("td", { hasText: "Lunas" }).first()).toBeVisible();
     }
   });
 

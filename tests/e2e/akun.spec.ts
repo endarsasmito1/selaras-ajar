@@ -81,7 +81,9 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     const page = await context.newPage();
     await page.goto("/guru");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await page.locator('input[name="passwordLama"]').fill("password-salah");
     await page.locator('input[name="passwordBaru"]').fill("passwordbaru123");
     await page.locator('input[name="konfirmasiPasswordBaru"]').fill("passwordbaru123");
@@ -89,7 +91,9 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     // Redirect me-reload halaman -> <details> dropdown & "Ganti password" tertutup lagi by default.
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await expect(page.getByText(/Password lama salah/)).toBeVisible();
     await context.close();
   });
@@ -99,14 +103,18 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     const page = await context.newPage();
     await page.goto("/guru");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await page.locator('input[name="passwordLama"]').fill(ACCOUNTS.guruLain.password);
     await page.locator('input[name="passwordBaru"]').fill("passwordbaru123");
     await page.locator('input[name="konfirmasiPasswordBaru"]').fill("passwordbeda456");
     await page.getByRole("button", { name: "Simpan password baru" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await expect(page.getByText(/Konfirmasi password baru tidak cocok/)).toBeVisible();
     await context.close();
   });
@@ -116,7 +124,9 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     const page = await context.newPage();
     await page.goto("/guru");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     const passwordBaru = "passwordbaru123";
     await page.locator('input[name="passwordLama"]').fill(ACCOUNTS.guruLain.password);
     await page.locator('input[name="passwordBaru"]').fill(passwordBaru);
@@ -124,7 +134,9 @@ test.describe("Menu Akun — ganti password (1.10)", () => {
     await page.getByRole("button", { name: "Simpan password baru" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await openAccountMenu(page);
-    await page.getByText("Ganti password").click();
+    // exact: true — tanpa ini ambigu, ikut match teks dialog konfirmasi "Ganti password akunmu sekarang?"
+    // yang tetap ada di DOM (dialog custom tak di-reparent, cuma disembunyikan lewat atribut `open`).
+    await page.getByText("Ganti password", { exact: true }).click();
     await expect(page.getByText(/Password berhasil diubah/)).toBeVisible();
 
     // Logout lalu login ulang pakai password baru — password lama seharusnya sudah tak berlaku.
