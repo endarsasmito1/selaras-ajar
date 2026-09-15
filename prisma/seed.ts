@@ -544,17 +544,25 @@ async function main() {
   console.log("₽ Membuat tagihan SPP (3 periode, semua 24 kelas)...");
   const spp = await prisma.tagihanTipe.create({ data: { sekolahId: sekolah.id, nama: "SPP" } });
   const nominalPerTingkat: Record<number, number> = { 1: 300000, 2: 300000, 3: 310000, 4: 325000, 5: 350000, 6: 375000 };
-  const periodeIni = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-  const duaBulanLalu = new Date();
-  duaBulanLalu.setMonth(duaBulanLalu.getMonth() - 1);
-  const bulanLalu = duaBulanLalu.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-  const tigaBulanLalu2 = new Date();
-  tigaBulanLalu2.setMonth(tigaBulanLalu2.getMonth() - 2);
-  const duaBulanLaluLabel = tigaBulanLalu2.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-  const periodeList = [duaBulanLaluLabel, bulanLalu, periodeIni];
+  // 1.24 — jatuhTempo per periode HARUS beda-beda (tanggal 10 di bulan periode itu sendiri),
+  // bukan satu tanggal hardcode buat ketiganya. Sebelumnya ketiga periode (2 bulan lalu/bulan
+  // lalu/bulan ini) semua dikasih jatuhTempo yang sama persis — `getDaftarPeriodeTagihan`
+  // (dipakai buat default selector "Periode" & urutan grafik proyeksi di keuangan/page.tsx)
+  // ngurutin by jatuhTempo desc, jadi kalau nilainya seri, urutannya jadi acak/salah (periode
+  // terlama malah kepilih sbg default, grafik tren kebalik arah waktunya).
+  const tanggalJatuhTempoBulan = (bulanKe: number) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - bulanKe, 10);
+    return d;
+  };
+  const periodeDenganJatuhTempo = [2, 1, 0].map((bulanKe) => ({
+    periode: tanggalJatuhTempoBulan(bulanKe).toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+    jatuhTempo: tanggalJatuhTempoBulan(bulanKe),
+  }));
+  const periodeIni = periodeDenganJatuhTempo[2].periode;
 
   let tagihanIdx = 0;
-  for (const periode of periodeList) {
+  for (const { periode, jatuhTempo } of periodeDenganJatuhTempo) {
     for (const info of semuaKelasInfo) {
       const nominal = nominalPerTingkat[info.kelas.tingkat];
       for (const s of info.siswa) {
@@ -581,7 +589,7 @@ async function main() {
             periode,
             nominal,
             status,
-            jatuhTempo: new Date("2026-08-10"),
+            jatuhTempo,
             dibayarPada: dibayarPada ?? undefined,
             metodeBayar: metode ?? undefined,
             tahunAjaranId: info.kelas.tahunAjaranId,
@@ -634,7 +642,11 @@ async function main() {
           mapelId: mapelMap[mapelNama],
           penggunaId: rina.akun.id,
           judul: `Rangkuman ${mapelNama} — ${info.kelas.nama}`,
-          tipe: "dokumen",
+          // Feedback teknis (Sep 2026) — ditemukan tak sengaja: sebelumnya tipe "dokumen" tapi
+          // `isi` diisi KALIMAT deskripsi (bukan path berkas beneran), jadi tombol "Unduh berkas"
+          // di UI hrefnya jadi kalimat itu sendiri, bukan berkas apa pun. "catatan" cocok krn isinya
+          // memang teks, bukan tautan/berkas.
+          tipe: "catatan",
           isi: `Ringkasan materi ${mapelNama} untuk kelas ${info.kelas.nama}.`,
           babId: babSatuPerMapel[mapelNama],
         },
@@ -828,6 +840,31 @@ async function main() {
       { jenis: "PILIHAN_GANDA", pertanyaan: "KPK dari 6 dan 8 adalah…", opsi: ["12", "24", "48", "16"], kunci: "1", topik: "Bilangan Bulat" },
       { jenis: "JAWABAN_SINGKAT", pertanyaan: "Berapa keliling persegi dengan sisi 9 cm?", kunci: "36", topik: "Bangun Datar" },
       { jenis: "ESAI", pertanyaan: "Sebuah kolam berbentuk persegi panjang panjang 8 m lebar 5 m. Hitung luas dan kelilingnya, tuliskan langkahnya.", topik: "Bangun Datar" },
+      // Feedback teknis (Sep 2026) — 19 soal di bawah GANTI soal filler generik ("Latihan Pecahan
+      // — soal variasi N", opsi "Berkaitan langsung dengan..." dst, lihat loop pelengkap bank soal
+      // di bawah) yang isinya bukan soal beneran, cuma buat genepin kuota 24/mapel. Total array ini
+      // jadi 5(sudah ada di atas)+19 = 24, jadi loop pelengkap otomatis skip Matematika (jumlahAda
+      // sudah = target). 5 domain CP Matematika Kurikulum Merdeka SD: Bilangan (Pecahan/Bilangan
+      // Bulat), Aljabar, Geometri, Analisis Data & Peluang (Statistika).
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Bentuk paling sederhana dari 8/12 adalah…", opsi: ["4/6", "2/3", "3/4", "1/2"], kunci: "1", topik: "Pecahan" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Hasil dari 3/4 − 1/4 adalah…", opsi: ["1/2", "2/8", "1", "1/4"], kunci: "0", topik: "Pecahan" },
+      { jenis: "JAWABAN_SINGKAT", pertanyaan: "Ubah pecahan 3/5 menjadi persen.", kunci: "60", topik: "Pecahan" },
+      { jenis: "ESAI", pertanyaan: "Ibu membeli 2 3/4 kg gula dan memakai 1 1/2 kg untuk membuat kue. Berapa kg sisa gula Ibu? Tuliskan cara penyelesaiannya.", topik: "Pecahan" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Hasil dari −8 + 15 adalah…", opsi: ["7", "-7", "23", "-23"], kunci: "0", topik: "Bilangan Bulat" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Hasil dari (−4) × (−6) adalah…", opsi: ["-24", "24", "10", "-10"], kunci: "1", topik: "Bilangan Bulat" },
+      { jenis: "JAWABAN_SINGKAT", pertanyaan: "Berapa hasil dari 45 : (−9)?", kunci: "-5", topik: "Bilangan Bulat" },
+      { jenis: "ESAI", pertanyaan: "Suhu di puncak gunung −3°C, sedangkan suhu di kaki gunung 25°C. Berapa selisih suhunya? Jelaskan cara menghitungnya.", topik: "Bilangan Bulat" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Jika n + 7 = 15, maka nilai n adalah…", opsi: ["6", "7", "8", "9"], kunci: "2", topik: "Aljabar" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Pola bilangan 2, 4, 6, 8, … bilangan selanjutnya adalah…", opsi: ["9", "10", "12", "14"], kunci: "1", topik: "Aljabar" },
+      { jenis: "JAWABAN_SINGKAT", pertanyaan: "Jika 3 × n = 21, berapa nilai n?", kunci: "7", topik: "Aljabar" },
+      { jenis: "ESAI", pertanyaan: "Sebuah toko menjual pensil dengan aturan harga = 2000 × banyak pensil. Jika Andi membayar Rp16.000, berapa pensil yang dibeli Andi? Tuliskan cara menghitungnya.", topik: "Aljabar" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Banyak sisi pada bangun ruang kubus adalah…", opsi: ["4", "6", "8", "12"], kunci: "1", topik: "Geometri" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Luas segitiga dengan alas 10 cm dan tinggi 6 cm adalah…", opsi: ["16 cm²", "60 cm²", "30 cm²", "20 cm²"], kunci: "2", topik: "Geometri" },
+      { jenis: "JAWABAN_SINGKAT", pertanyaan: "Berapa jumlah titik sudut pada bangun ruang balok?", kunci: "8", topik: "Geometri" },
+      { jenis: "ESAI", pertanyaan: "Sebuah taman berbentuk persegi dengan panjang sisi 12 m. Hitung luas dan kelilingnya, tuliskan langkah-langkahnya.", topik: "Geometri" },
+      { jenis: "PILIHAN_GANDA", pertanyaan: "Data nilai ulangan: 70, 80, 90, 60, 100. Nilai rata-ratanya adalah…", opsi: ["80", "75", "85", "90"], kunci: "0", topik: "Statistika" },
+      { jenis: "JAWABAN_SINGKAT", pertanyaan: "Dari data 5, 7, 7, 9, 12, berapa nilai modus (yang paling sering muncul)?", kunci: "7", topik: "Statistika" },
+      { jenis: "ESAI", pertanyaan: "Perhatikan data tinggi badan 5 siswa (cm): 130, 135, 128, 140, 132. Urutkan data dari yang terkecil ke terbesar, lalu tentukan median (nilai tengah)nya.", topik: "Statistika" },
     ],
     "Pendidikan Agama": [
       { jenis: "PILIHAN_GANDA", pertanyaan: "Rukun Islam yang pertama adalah…", opsi: ["Syahadat", "Shalat", "Zakat", "Puasa"], kunci: "0", topik: "Rukun Islam" },
@@ -2001,7 +2038,9 @@ async function main() {
     for (const { kelas, siswa, waliAkunId } of kelasList) {
       for (const m of MAPEL_LAIN) {
         await prisma.materiBelajar.create({
-          data: { kelasId: kelas.id, mapelId: mapelLainMap[m], penggunaId: waliAkunId, judul: `Rangkuman ${m} — ${kelas.nama}`, tipe: "dokumen", isi: `Ringkasan materi ${m} untuk kelas ${kelas.nama}.`, babId: babLainMap[m] },
+          // Feedback teknis (Sep 2026) — "catatan" (bukan "dokumen"), sama seperti fix di materi
+          // sekolah utama: `isi` di sini kalimat deskripsi, bukan path berkas beneran.
+          data: { kelasId: kelas.id, mapelId: mapelLainMap[m], penggunaId: waliAkunId, judul: `Rangkuman ${m} — ${kelas.nama}`, tipe: "catatan", isi: `Ringkasan materi ${m} untuk kelas ${kelas.nama}.`, babId: babLainMap[m] },
         });
       }
 
@@ -2096,17 +2135,24 @@ async function main() {
 
     // ---- Tagihan SPP (2 periode) ----
     const spplain = await prisma.tagihanTipe.create({ data: { sekolahId: sekolahLain.id, nama: "SPP" } });
-    const periodeLain = [
-      new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
-      new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
-    ];
+    // 1.24 — jatuhTempo per periode dibedakan (tanggal 10 di bulan periode-nya sendiri), sama
+    // spt fix di seed sekolah demo utama — lihat komentar di situ.
+    const jatuhTempoLain = (bulanKe: number) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - bulanKe, 10);
+      return d;
+    };
+    const periodeLain = [1, 0].map((bulanKe) => ({
+      periode: jatuhTempoLain(bulanKe).toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+      jatuhTempo: jatuhTempoLain(bulanKe),
+    }));
     for (const { kelas, siswa } of kelasList) {
       for (let i = 0; i < siswa.length; i++) {
         for (let p = 0; p < periodeLain.length; p++) {
           const lunas = (i + p) % 3 !== 0;
           const status: StatusTagihan = lunas ? "LUNAS" : "BELUM_BAYAR";
           await prisma.tagihan.create({
-            data: { siswaId: siswa[i].id, tipeId: spplain.id, periode: periodeLain[p], nominal: 300000, status, jatuhTempo: new Date("2026-08-10"), dibayarPada: lunas ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId },
+            data: { siswaId: siswa[i].id, tipeId: spplain.id, periode: periodeLain[p].periode, nominal: 300000, status, jatuhTempo: periodeLain[p].jatuhTempo, dibayarPada: lunas ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId },
           });
         }
       }

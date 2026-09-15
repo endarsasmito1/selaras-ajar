@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Callout } from "@/components/ui/Callout";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Drawer } from "@/components/ui/Drawer";
 import { notFound } from "next/navigation";
 
@@ -83,7 +83,7 @@ export default async function JadwalKelasPage({
                           </div>
                           <div className="border-b border-rule my-1" />
                           <div className="flex gap-2">
-                            <Button type="submit" size="sm">Simpan perubahan</Button>
+                            <ConfirmSubmitButton size="sm" confirmMessage="Simpan perubahan jam sesi ini?">Simpan perubahan</ConfirmSubmitButton>
                             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                           </div>
                         </form>
@@ -117,7 +117,7 @@ export default async function JadwalKelasPage({
                       </select>
                       <div className="border-b border-rule my-1" />
                       <div className="flex gap-2">
-                        <Button type="submit" size="sm">Simpan sesi</Button>
+                        <ConfirmSubmitButton size="sm" confirmMessage="Tambah sesi jadwal ini?">Simpan sesi</ConfirmSubmitButton>
                         <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                       </div>
                     </form>

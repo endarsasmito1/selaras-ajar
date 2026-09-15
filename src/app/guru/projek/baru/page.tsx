@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 
 const DIMENSI_P5 = [
@@ -47,7 +47,7 @@ export default async function ProjekBaruPage({
             ))}
           </div>
         </div>
-        <Button type="submit" className="self-start">Simpan projek</Button>
+        <ConfirmSubmitButton className="self-start" confirmMessage="Simpan projek baru ini?">Simpan projek</ConfirmSubmitButton>
       </form>
     </AppShell>
   );

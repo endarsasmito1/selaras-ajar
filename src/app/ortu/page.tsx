@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_ORTU, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { LinkButton } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
@@ -156,9 +156,9 @@ export default async function OrtuDashboard({
                             <input type="hidden" name="tagihanId" value={t.id} />
                             {/* Turun jadi ghost begitu banner "Bayar Semua" di atas aktif — jangan
                                 2 CTA emas sekaligus di 1 layar (padanan aturan yg sama di prototipe). */}
-                            <Button type="submit" size="sm" variant={konsolidasi ? "ghost" : "accent"}>
+                            <ConfirmSubmitButton size="sm" variant={konsolidasi ? "ghost" : "accent"} confirmMessage={`Bayar tagihan ${formatRupiah(t.nominal)} ini via QRIS?`}>
                               Bayar (QRIS)
-                            </Button>
+                            </ConfirmSubmitButton>
                           </form>
                         )}
                       </div>

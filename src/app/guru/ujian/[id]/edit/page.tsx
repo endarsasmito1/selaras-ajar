@@ -8,7 +8,7 @@ import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { SoalEditor } from "@/components/ui/SoalEditor";
 import { SoalHtml } from "@/lib/sanitize-html";
 import { notFound } from "next/navigation";
@@ -92,7 +92,7 @@ export default async function EditUjianPage({
                       <input type="hidden" name="ujianId" value={ujian.id} />
                       <input type="hidden" name="soalId" value={us.soalId} />
                       <input type="number" name="poin" defaultValue={us.poin} min={1} className="w-16 bg-paper-raised border border-rule rounded-md px-2 py-1 text-xs" />
-                      <button type="submit" className="text-xs font-semibold text-primary-deep hover:underline">poin</button>
+                      <ConfirmSubmitLink confirmMessage="Simpan perubahan poin soal ini?" className="text-xs font-semibold text-primary-deep hover:underline">poin</ConfirmSubmitLink>
                     </form>
                     <form action="/api/ujian/soal-hapus" method="POST">
                       <input type="hidden" name="ujianId" value={ujian.id} />
@@ -218,7 +218,7 @@ export default async function EditUjianPage({
               </div>
               <div className="border-b border-rule my-3" />
               <div className="flex gap-2">
-                <Button type="submit" size="sm">Tambah ke ujian</Button>
+                <ConfirmSubmitButton size="sm" confirmMessage="Buat soal baru ini dan tambahkan ke ujian?">Tambah ke ujian</ConfirmSubmitButton>
                 <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
               </div>
             </form>
@@ -254,7 +254,7 @@ export default async function EditUjianPage({
                 <form action="/api/ujian/soal-tambah" method="POST">
                   <input type="hidden" name="ujianId" value={ujian.id} />
                   <input type="hidden" name="soalId" value={s.id} />
-                  <Button type="submit" size="sm" variant="ghost">+ Tambah</Button>
+                  <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Tambahkan soal ini ke ujian?">+ Tambah</ConfirmSubmitButton>
                 </form>
               </div>
             ))}

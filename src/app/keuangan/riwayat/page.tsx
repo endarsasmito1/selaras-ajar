@@ -5,6 +5,7 @@ import { NAV_KEPSEK, NAV_KEUANGAN, ROLE_LABEL } from "@/lib/nav";
 import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { formatRupiah } from "@/lib/utils";
@@ -130,7 +131,7 @@ export default async function RiwayatPembayaranPage({
                           <label className="text-xs font-semibold">Catatan (opsional)</label>
                           <input name="catatan" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
                         </div>
-                        <Button type="submit" size="sm">Konfirmasi lunas</Button>
+                        <ConfirmSubmitButton size="sm" confirmMessage={`Tandai tagihan ${t.siswa.nama} sebagai lunas dengan data ini?`}>Konfirmasi lunas</ConfirmSubmitButton>
                       </form>
                     </ConfirmDialog>
                   )}

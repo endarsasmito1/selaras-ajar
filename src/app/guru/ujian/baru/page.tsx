@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getKelasDiampu, getBabMapel } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 
 export default async function BuatUjianPage({
@@ -83,7 +83,7 @@ export default async function BuatUjianPage({
             <input name="babBaru" className="bg-paper border border-rule rounded-lg px-3 py-2.5 text-sm" placeholder="mis. Bab 3 - Pecahan" />
           </div>
         </div>
-        <Button type="submit">Lanjut susun soal →</Button>
+        <ConfirmSubmitButton confirmMessage="Buat ujian ini dan lanjut susun soal?">Lanjut susun soal →</ConfirmSubmitButton>
       </form>
     </AppShell>
   );

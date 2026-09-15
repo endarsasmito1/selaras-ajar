@@ -89,9 +89,9 @@ export function TanyaJawabPanel({
                   placeholder="Tulis balasan..."
                   className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm"
                 />
-                <button type="submit" className="text-xs font-semibold text-primary-deep px-3">
+                <ConfirmSubmitLink confirmMessage="Kirim balasan ini?" className="text-xs font-semibold text-primary-deep px-3">
                   Kirim
-                </button>
+                </ConfirmSubmitLink>
               </div>
               <label className="text-[11px] text-ink-soft flex items-center gap-1.5">
                 <input type="checkbox" name="anonim" value="1" /> Kirim sebagai anonim
@@ -112,9 +112,9 @@ export function TanyaJawabPanel({
             placeholder="Tulis pertanyaan baru..."
             className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm"
           />
-          <button type="submit" className="text-xs font-semibold text-primary-deep px-3">
+          <ConfirmSubmitLink confirmMessage="Kirim pertanyaan ini?" className="text-xs font-semibold text-primary-deep px-3">
             Kirim
-          </button>
+          </ConfirmSubmitLink>
         </div>
         <label className="text-[11px] text-ink-soft flex items-center gap-1.5">
           <input type="checkbox" name="anonim" value="1" /> Kirim sebagai anonim

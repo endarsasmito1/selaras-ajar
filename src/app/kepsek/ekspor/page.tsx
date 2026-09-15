@@ -35,10 +35,15 @@ export default async function EksporImporPage({
           </div>
         </Card>
 
-        <Card>
-          <CardHead title="Backup data mandiri (K-9)" subtitle="Seluruh data sekolah, kapan saja, tanpa bergantung ke vendor" />
-          <LinkButton href="/api/ekspor/backup" variant="ghost">⬇ Unduh Backup Lengkap (JSON)</LinkButton>
-        </Card>
+        {/* Backup mencakup data tagihan (keuangan) — di luar wewenang TU ("tanpa akses keuangan",
+            lihat komentar NAV_TU di lib/nav.ts), jadi tombolnya disembunyikan utk TU alih-alih
+            ditampilkan tapi selalu ditolak API. */}
+        {session.peran !== "TU" && (
+          <Card>
+            <CardHead title="Backup data mandiri (K-9)" subtitle="Seluruh data sekolah, kapan saja, tanpa bergantung ke vendor" />
+            <LinkButton href="/api/ekspor/backup" variant="ghost">⬇ Unduh Backup Lengkap (JSON)</LinkButton>
+          </Card>
+        )}
 
         <Card>
           <CardHead title="Impor data siswa" subtitle="Ratusan baris sekali unggah — tetap bisa diedit satuan setelahnya" />

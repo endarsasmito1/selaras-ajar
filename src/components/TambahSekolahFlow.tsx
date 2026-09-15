@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 
 type HasilPencarianSekolah = {
@@ -336,7 +337,7 @@ export function TambahSekolahFlow() {
       </div>
       <p className="text-[11px] text-ink-soft -mt-2">Salin dari Google Maps (klik kanan lokasi → salin koordinat) — dipakai utk peta sebaran sekolah di dashboard superadmin.</p>
 
-      <Button type="submit" className="self-start mt-2">Buat sekolah</Button>
+      <ConfirmSubmitButton className="self-start mt-2" confirmMessage="Buat sekolah baru ini?">Buat sekolah</ConfirmSubmitButton>
     </form>
   );
 }

@@ -3,6 +3,7 @@ import { getInboxPengguna, getKontakUntukPesan } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_ORTU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Drawer } from "@/components/ui/Drawer";
 import { formatTanggal } from "@/lib/utils";
@@ -45,7 +46,7 @@ export default async function PesanOrtuPage() {
           </div>
           <div className="border-b border-rule my-1" />
           <div className="flex gap-2">
-            <Button type="submit" size="sm">Kirim</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Kirim pesan ini?">Kirim</ConfirmSubmitButton>
             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
           </div>
         </form>
@@ -79,7 +80,7 @@ export default async function PesanOrtuPage() {
               <input type="hidden" name="penerimaId" value={p.pengirimId === session.userId ? p.penerimaId ?? "" : p.pengirimId} />
               <input type="hidden" name="judul" value={`Re: ${p.judul}`} />
               <input name="isi" placeholder="Balas…" className="flex-1 bg-paper border border-rule rounded-lg px-3 py-1.5 text-sm" />
-              <Button type="submit" size="sm" variant="ghost">Balas</Button>
+              <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage="Kirim balasan ini?">Balas</ConfirmSubmitButton>
             </form>
           </div>
         ))}

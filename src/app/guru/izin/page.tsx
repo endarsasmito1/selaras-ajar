@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getKelasDiampu, getPengajuanIzinKelas } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { formatTanggal } from "@/lib/utils";
 
@@ -61,12 +61,12 @@ export default async function IzinGuruPage() {
               <form action="/api/izin/putuskan" method="POST">
                 <input type="hidden" name="pengajuanId" value={p.id} />
                 <input type="hidden" name="keputusan" value="DISETUJUI" />
-                <Button type="submit" size="sm">Setujui</Button>
+                <ConfirmSubmitButton size="sm" confirmMessage={`Setujui izin ${p.siswa.nama} untuk tanggal ${formatTanggal(p.tanggal)}?`}>Setujui</ConfirmSubmitButton>
               </form>
               <form action="/api/izin/putuskan" method="POST">
                 <input type="hidden" name="pengajuanId" value={p.id} />
                 <input type="hidden" name="keputusan" value="DITOLAK" />
-                <Button type="submit" size="sm" variant="ghost">Tolak</Button>
+                <ConfirmSubmitButton size="sm" variant="ghost" confirmMessage={`Tolak izin ${p.siswa.nama} untuk tanggal ${formatTanggal(p.tanggal)}?`}>Tolak</ConfirmSubmitButton>
               </form>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { NAV_SUPERADMIN, ROLE_LABEL } from "@/lib/nav";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
@@ -59,7 +60,7 @@ export default async function SuperadminKurikulumPage({
           <MapelRows />
           <div className="border-b border-rule my-1" />
           <div className="flex gap-2">
-            <Button type="submit" size="sm">Tambah kurikulum</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage="Tambah kurikulum baru ini?">Tambah kurikulum</ConfirmSubmitButton>
             <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
           </div>
         </form>

@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getUjianDetail } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { SoalHtml } from "@/lib/sanitize-html";
 import { notFound } from "next/navigation";
@@ -67,7 +67,7 @@ export default async function NilaiEsaiPage({ params }: { params: Promise<{ id: 
             </div>
           );
         })}
-        {jawabanEsai.length > 0 && <Button type="submit" className="self-start">Simpan semua nilai</Button>}
+        {jawabanEsai.length > 0 && <ConfirmSubmitButton className="self-start" confirmMessage="Simpan semua nilai esai di halaman ini?">Simpan semua nilai</ConfirmSubmitButton>}
       </form>
     </AppShell>
   );

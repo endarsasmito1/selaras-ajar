@@ -7,6 +7,8 @@ import { getSession } from "@/lib/auth";
 import { getAccountBadge } from "@/lib/data";
 import { ROLE_LABEL } from "@/lib/nav";
 import { NotifBell } from "@/components/NotifBell";
+import { TanggalHariIni } from "@/components/ui/TanggalHariIni";
+import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import {
   getNotifikasi,
   getNotifikasiUnreadCount,
@@ -32,7 +34,6 @@ export async function AppShell({
   pageSubtitle,
   headerAction,
   showBack = true,
-  lebarPenuh = false,
   children,
 }: {
   groups: NavGroup[];
@@ -44,7 +45,12 @@ export async function AppShell({
   headerAction?: React.ReactNode;
   /** Sembunyikan tombol "Kembali" — cuma dipakai di halaman beranda/dashboard tiap peran (§5.5). */
   showBack?: boolean;
-  /** 1.15 — lepas batas max-w-[1100px] default, dipakai utk halaman tabel lebar (mis. daftar sekolah dgn banyak kolom) supaya benar-benar mengisi layar, bukan cuma di area sempit lalu sisa layar kosong. */
+  /** Feedback teknis (Sep 2026) — dulu default-nya SEMPIT (max-w-[1100px]) dan halaman harus opt-in
+   * satu-satu lewat prop ini buat isi layar penuh (cuma 8 halaman yg sempat di-opt-in, sisanya
+   * nyisain whitespace kosong lebar di kanan pada layar >1100px, makin lebar monitornya makin parah).
+   * Sekarang penuh layar jadi DEFAULT buat semua halaman (lihat `<main>` di bawah) — prop ini jadi
+   * no-op yang dipertahankan cuma supaya ~8 call site lama yang masih mengirim `lebarPenuh` gak perlu
+   * diubah satu-satu (tetap kompatibel, gak ada behavior yang berubah buat mereka). */
   lebarPenuh?: boolean;
   children: React.ReactNode;
 }) {
@@ -118,6 +124,11 @@ export async function AppShell({
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 md:gap-3 w-full md:w-auto md:shrink-0">
+            {/* Feedback teknis (Sep 2026) — sebelumnya gak ada info hari/tanggal sama sekali di
+                topbar; ditaruh di sini (bukan di blok judul kiri) supaya konsisten di SEMUA halaman
+                tanpa perlu tiap page nambahin sendiri. Disembunyikan di layar sempit (header mobile
+                sudah padat: hamburger + back + judul), muncul mulai md+. */}
+            <TanggalHariIni className="hidden md:block text-xs text-ink-soft shrink-0 whitespace-nowrap" />
             {headerAction}
             <NotifBell initial={notifItems} unreadCount={unreadCount} />
             <AccountMenu
@@ -129,7 +140,7 @@ export async function AppShell({
             />
           </div>
         </div>
-        <main className={"p-4 md:p-7 w-full " + (lebarPenuh ? "max-w-none" : "max-w-[1100px]")}>{children}</main>
+        <main className="p-4 md:p-7 w-full max-w-none">{children}</main>
       </div>
     </div>
   );
@@ -209,9 +220,9 @@ function AccountMenu({
             📷 Pilih dari galeri/berkas…
           </label>
           <input id="input-foto-akun" type="file" name="foto" accept="image/*" required className="hidden" />
-          <button type="submit" className="text-xs font-semibold text-primary-deep hover:underline self-start">
+          <ConfirmSubmitLink confirmMessage="Ganti foto profil dengan berkas yang dipilih?" className="text-xs font-semibold text-primary-deep hover:underline self-start">
             Unggah
-          </button>
+          </ConfirmSubmitLink>
         </form>
 
         <details className="mt-2.5 pt-2.5 border-t border-rule">

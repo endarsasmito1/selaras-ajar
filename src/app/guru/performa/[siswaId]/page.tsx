@@ -36,6 +36,9 @@ export default async function PerformaMuridGuruPage({
 
   const penugasan = await getKelasDiampu(session.userId);
   const mengajarMuridIni = penugasan.some((p) => p.kelasId === performa.siswa.kelasId);
+  const mapelUntukKelasIni = Array.from(
+    new Map(penugasan.filter((p) => p.kelasId === performa.siswa.kelasId).map((p) => [p.mapelId, p.mapel])).values()
+  );
   const isWaliKelas = performa.siswa.kelas.waliKelasId === session.userId;
 
   const [wali, catatan, prestasi, asesmen] = mengajarMuridIni
@@ -107,7 +110,7 @@ export default async function PerformaMuridGuruPage({
                 <textarea name="keterangan" rows={2} placeholder="Keterangan (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                 <div className="border-b border-rule my-1" />
                 <div className="flex gap-3">
-                  <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan</button>
+                  <ConfirmSubmitLink confirmMessage="Simpan prestasi ini?" className="text-xs font-semibold text-primary-deep self-start">Simpan</ConfirmSubmitLink>
                   <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
                 </div>
               </form>
@@ -125,6 +128,27 @@ export default async function PerformaMuridGuruPage({
                 </div>
               ))}
             </div>
+            {/* Feedback teknis (Sep 2026) — sebelumnya kartu ini cuma nampilin riwayat (read-only),
+                guru harus pindah ke /guru/nilai/asesmen buat nambah catatan baru murid ini. */}
+            <Drawer triggerLabel="+ Tambah asesmen" eyebrow="Performa Siswa" title="Tambah asesmen deskriptif">
+              <form action="/api/nilai/asesmen" method="POST" className="flex flex-col gap-2">
+                <input type="hidden" name="siswaId" value={siswaId} />
+                <input type="hidden" name="kelasId" value={performa.siswa.kelasId} />
+                <input type="hidden" name="kembaliKe" value={`/guru/performa/${siswaId}`} />
+                <input type="hidden" name="periode" value={new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" })} />
+                <select name="mapelId" required className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm">
+                  {mapelUntukKelasIni.map((m) => (
+                    <option key={m.id} value={m.id}>{m.nama}</option>
+                  ))}
+                </select>
+                <textarea name="isi" required rows={3} placeholder="mis. Sudah baik dalam operasi hitung, perlu latihan lebih pada soal cerita." className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
+                <div className="border-b border-rule my-1" />
+                <div className="flex gap-3">
+                  <ConfirmSubmitLink confirmMessage="Simpan asesmen deskriptif ini?" className="text-xs font-semibold text-primary-deep self-start">Simpan</ConfirmSubmitLink>
+                  <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
+                </div>
+              </form>
+            </Drawer>
           </Card>
 
           <Card className="mt-4">
@@ -157,7 +181,7 @@ export default async function PerformaMuridGuruPage({
                 <textarea name="isi" required rows={2} placeholder="Tulis observasi tentang murid ini…" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
                 <div className="border-b border-rule my-1" />
                 <div className="flex gap-3">
-                  <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan catatan</button>
+                  <ConfirmSubmitLink confirmMessage="Simpan catatan guru ini?" className="text-xs font-semibold text-primary-deep self-start">Simpan catatan</ConfirmSubmitLink>
                   <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
                 </div>
               </form>

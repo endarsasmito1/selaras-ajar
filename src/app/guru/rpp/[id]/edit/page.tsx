@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getRPPDetail, getCapaianBank } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { notFound } from "next/navigation";
@@ -70,7 +70,7 @@ export default async function RPPEditPage({
           </div>
         )}
 
-        <Button type="submit" className="self-start">Simpan perubahan</Button>
+        <ConfirmSubmitButton className="self-start" confirmMessage="Simpan perubahan RPP ini?">Simpan perubahan</ConfirmSubmitButton>
       </form>
     </AppShell>
   );

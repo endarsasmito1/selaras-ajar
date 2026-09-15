@@ -17,6 +17,29 @@ export function formatTanggal(d: Date | string) {
   });
 }
 
+/** Feedback teknis (Sep 2026) — "Senin, 8 September 2026", dipakai widget tanggal hari ini di topbar. */
+export function formatHariTanggal(d: Date | string) {
+  return new Date(d).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/**
+ * Feedback teknis (Sep 2026) — halaman daftar ujian per-kelas cuma punya 2 label (Draft/Terbit),
+ * padahal "Terbit" mencampur ujian yang lagi berjalan dgn yg jadwalnya sudah lewat. Sekarang 3
+ * status berdasarkan status publish + jadwal per-kelas (UjianKelas.jamMulai/jamSelesai) — dipanggil
+ * dari Server Component (bukan Client Component), jadi `Date.now()` di sini AMAN, gak ada hydration
+ * mismatch (RSC render sekali di server, gak ada pass render ulang di client yang perlu dicocokkan).
+ */
+export function statusUjianKelas(status: string, jamSelesai: Date | string | null): "Draft" | "Berlangsung" | "Selesai" {
+  if (status !== "PUBLISHED") return "Draft";
+  if (jamSelesai && new Date(jamSelesai).getTime() < Date.now()) return "Selesai";
+  return "Berlangsung";
+}
+
 /** 1.10 — "12 Agustus 2026 - 09.43" (tanggal panjang + jam pakai titik, bukan titik dua). */
 export function formatTanggalWaktu(d: Date | string) {
   const jam = new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(":", ".");

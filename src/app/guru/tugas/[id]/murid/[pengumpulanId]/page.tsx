@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getTugasDetail } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { renderMarkdownLite } from "@/lib/markdown-lite";
 import { notFound } from "next/navigation";
@@ -59,7 +59,7 @@ export default async function KoreksiPengumpulanPage({
           <label className="text-xs font-semibold">Catatan/feedback</label>
           <textarea name={`catatan_${p.id}`} defaultValue={p.catatanGuru ?? ""} rows={3} className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
         </div>
-        <Button type="submit" size="sm" className="self-start">Simpan nilai & catatan</Button>
+        <ConfirmSubmitButton size="sm" className="self-start" confirmMessage="Simpan nilai & catatan untuk pengumpulan tugas ini?">Simpan nilai & catatan</ConfirmSubmitButton>
       </form>
     </AppShell>
   );

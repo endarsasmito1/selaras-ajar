@@ -3,6 +3,7 @@ import { getDaftarSiswa, getSemuaKelas } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Card, CardHead } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
@@ -76,7 +77,7 @@ export default async function MutasiSiswaPage({
                 </select>
               </div>
             </div>
-            <Button type="submit" size="sm" className="self-start mt-1">Tambahkan sebagai siswa aktif</Button>
+            <ConfirmSubmitButton size="sm" className="self-start mt-1" confirmMessage="Tambahkan siswa mutasi ini sebagai siswa aktif kembali?">Tambahkan sebagai siswa aktif</ConfirmSubmitButton>
           </form>
         </Card>
 

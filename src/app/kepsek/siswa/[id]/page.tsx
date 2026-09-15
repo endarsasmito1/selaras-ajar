@@ -6,6 +6,7 @@ import { PerformaSiswaView } from "@/components/PerformaSiswaView";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { ConfirmSubmitButton, ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -101,7 +102,7 @@ export default async function ProfilSiswa360Page({
                 <p className="text-xs text-ink-soft">Akun baru dapat password sementara — tampil sekali setelah disimpan.</p>
                 <div className="border-b border-rule my-1" />
                 <div className="flex gap-2">
-                  <Button type="submit" size="sm">Simpan wali</Button>
+                  <ConfirmSubmitButton size="sm" confirmMessage="Simpan perubahan data wali siswa ini?">Simpan wali</ConfirmSubmitButton>
                   <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
                 </div>
               </form>
@@ -154,7 +155,7 @@ export default async function ProfilSiswa360Page({
             <textarea name="keterangan" rows={2} placeholder="Keterangan (opsional)" className="bg-paper-raised border border-rule rounded-lg px-3 py-2 text-sm" />
             <div className="border-b border-rule my-1" />
             <div className="flex gap-3">
-              <button type="submit" className="text-xs font-semibold text-primary-deep self-start">Simpan</button>
+              <ConfirmSubmitLink confirmMessage="Simpan prestasi ini?" className="text-xs font-semibold text-primary-deep self-start">Simpan</ConfirmSubmitLink>
               <button type="submit" formMethod="dialog" className="text-xs font-semibold text-ink-soft self-start">Batal</button>
             </div>
           </form>

@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { getUjianByGuruDanKelas } from "@/lib/data";
+import { statusUjianKelas } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
@@ -57,7 +58,11 @@ export default async function UjianKelasListPage({ params }: { params: Promise<{
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Pill tone={u.status === "PUBLISHED" ? "ok" : "neutral"}>{u.status === "PUBLISHED" ? "Terbit" : "Draft"}</Pill>
+                {(() => {
+                  const status3 = statusUjianKelas(u.status, u.jamSelesai);
+                  const tone = status3 === "Draft" ? "neutral" : status3 === "Berlangsung" ? "info" : "ok";
+                  return <Pill tone={tone}>{status3}</Pill>;
+                })()}
                 <a
                   href={u.status === "DRAFT" ? `/guru/ujian/${u.id}/edit` : `/guru/ujian/${u.id}`}
                   className="text-xs font-semibold text-primary-deep hover:underline"

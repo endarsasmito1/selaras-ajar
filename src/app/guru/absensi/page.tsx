@@ -3,7 +3,7 @@ import { getKelasDiampu, getSiswaKelas, getAbsensiUntukTanggal, getCatatanAbsens
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
-import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitButton, ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { Pill } from "@/components/ui/Pill";
@@ -177,8 +177,8 @@ async function IsiTab({
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      <button type="submit" form={`izin-setujui-${iz.id}`} className="text-[11px] font-semibold text-success hover:underline mr-3">Setujui</button>
-                      <button type="submit" form={`izin-tolak-${iz.id}`} className="text-[11px] font-semibold text-danger hover:underline">Tolak</button>
+                      <ConfirmSubmitLink form={`izin-setujui-${iz.id}`} confirmMessage={`Setujui izin ${iz.siswa.nama}?`} className="text-[11px] font-semibold text-success hover:underline mr-3">Setujui</ConfirmSubmitLink>
+                      <ConfirmSubmitLink form={`izin-tolak-${iz.id}`} confirmMessage={`Tolak izin ${iz.siswa.nama}?`} className="text-[11px] font-semibold text-danger hover:underline">Tolak</ConfirmSubmitLink>
                     </td>
                   </tr>
                 ))}

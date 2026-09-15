@@ -79,9 +79,9 @@ export function DiskusiPanel({
                 placeholder="Tulis balasan..."
                 className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm"
               />
-              <button type="submit" className="text-xs font-semibold text-primary-deep px-3">
+              <ConfirmSubmitLink confirmMessage="Kirim balasan ini?" className="text-xs font-semibold text-primary-deep px-3">
                 Kirim
-              </button>
+              </ConfirmSubmitLink>
             </form>
           </details>
         </div>
@@ -96,9 +96,9 @@ export function DiskusiPanel({
           placeholder="Tulis pertanyaan/komentar baru..."
           className="flex-1 bg-paper border border-rule rounded-lg px-3 py-2 text-sm"
         />
-        <button type="submit" className="text-xs font-semibold text-primary-deep px-3">
+        <ConfirmSubmitLink confirmMessage="Kirim pertanyaan/komentar ini?" className="text-xs font-semibold text-primary-deep px-3">
           Kirim
-        </button>
+        </ConfirmSubmitLink>
       </form>
     </div>
   );

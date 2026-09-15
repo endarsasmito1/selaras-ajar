@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getAnakDariOrtu, getPengajuanIzinOrtu } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_ORTU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Pill } from "@/components/ui/Pill";
 import { ToastFromQuery } from "@/components/ui/ToastFromQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -63,7 +63,7 @@ export default async function AjukanIzinPage() {
           <label className="text-xs font-semibold">Lampiran (opsional — mis. foto surat dokter)</label>
           <input type="file" name="lampiran" accept="image/*,.pdf" className="text-sm" />
         </div>
-        <Button type="submit" size="sm">Kirim pengajuan</Button>
+        <ConfirmSubmitButton size="sm" confirmMessage="Kirim pengajuan izin ini?">Kirim pengajuan</ConfirmSubmitButton>
       </form>
 
       <h3 className="text-sm font-semibold mb-2">Riwayat pengajuan</h3>

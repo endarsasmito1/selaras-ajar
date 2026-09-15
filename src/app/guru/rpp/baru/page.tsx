@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { getKelasDiampu, getCapaianBank } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
@@ -75,7 +75,7 @@ export default async function RPPBaruPage({
           </div>
         </div>
 
-        <Button type="submit" className="self-start">Simpan RPP</Button>
+        <ConfirmSubmitButton className="self-start" confirmMessage="Simpan RPP baru ini?">Simpan RPP</ConfirmSubmitButton>
       </form>
 
       <script

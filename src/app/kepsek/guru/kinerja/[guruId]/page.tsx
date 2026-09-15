@@ -6,6 +6,7 @@ import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
 import { Card, CardHead, StatCard } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Pill } from "@/components/ui/Pill";
 import { Pagination } from "@/components/ui/Pagination";
@@ -133,7 +134,7 @@ export default async function KinerjaGuruDetailPage({
         <form action="/api/supervisi" method="POST" className="flex flex-col gap-2">
           <input type="hidden" name="guruId" value={guruId} />
           <textarea name="catatan" required rows={2} placeholder="Tulis catatan observasi/supervisi…" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
-          <Button type="submit" size="sm" className="self-start">+ Tambah catatan supervisi</Button>
+          <ConfirmSubmitButton size="sm" className="self-start" confirmMessage="Simpan catatan supervisi ini?">+ Tambah catatan supervisi</ConfirmSubmitButton>
         </form>
       </Card>
 

@@ -5,6 +5,7 @@ import { NAV_SUPERADMIN, ROLE_LABEL } from "@/lib/nav";
 import { Card, StatCard } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Callout } from "@/components/ui/Callout";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -115,7 +116,7 @@ export default async function SuperadminSekolahDetailPage({
               <input name="latitude" type="number" step="any" defaultValue={sekolah.latitude ?? ""} placeholder="Latitude" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
               <input name="longitude" type="number" step="any" defaultValue={sekolah.longitude ?? ""} placeholder="Longitude" className="bg-paper border border-rule rounded-lg px-3 py-2 text-sm" />
             </div>
-            <Button type="submit" size="sm" className="self-start">Simpan lokasi</Button>
+            <ConfirmSubmitButton size="sm" className="self-start" confirmMessage="Simpan lokasi (koordinat) sekolah ini?">Simpan lokasi</ConfirmSubmitButton>
           </form>
         </Card>
       </div>
@@ -150,7 +151,7 @@ export default async function SuperadminSekolahDetailPage({
               </select>
               <div className="border-b border-rule my-1" />
               <div className="flex gap-2">
-                <Button type="submit" size="sm">Buat akun</Button>
+                <ConfirmSubmitButton size="sm" confirmMessage="Buat akun kepala sekolah baru ini?">Buat akun</ConfirmSubmitButton>
                 <Button type="submit" formMethod="dialog" variant="ghost" size="sm">Batal</Button>
               </div>
             </form>

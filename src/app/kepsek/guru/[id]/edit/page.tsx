@@ -3,9 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSemuaKelas, getSemuaMapel, getTahunAjaranAktif } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { groupsForPeran, ROLE_LABEL } from "@/lib/nav";
-import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
-import { ConfirmSubmitLink } from "@/components/ui/ConfirmSubmitButton";
+import { ConfirmSubmitLink, ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { Switch } from "@/components/ui/Switch";
 import { notFound } from "next/navigation";
 
@@ -97,7 +96,7 @@ export default async function EditGuruPage({
         <div className="mb-5">
           <Switch name="aktif" defaultChecked={guru.aktif} label="Akun aktif" />
         </div>
-        <Button type="submit">Simpan perubahan</Button>
+        <ConfirmSubmitButton confirmMessage={`Simpan perubahan data guru ${guru.nama}?`}>Simpan perubahan</ConfirmSubmitButton>
       </form>
 
       <div className="bg-paper-raised border border-rule rounded-xl p-6 max-w-md mt-5">
@@ -113,7 +112,7 @@ export default async function EditGuruPage({
                 <option key={k.id} value={k.id}>{k.nama}</option>
               ))}
           </select>
-          <Button type="submit" size="sm">Simpan</Button>
+          <ConfirmSubmitButton size="sm" confirmMessage={`Simpan perubahan wali kelas untuk ${guru.nama}?`}>Simpan</ConfirmSubmitButton>
         </form>
         <p className="text-[11px] text-ink-soft mt-2">Kelas yang sudah punya wali lain tak ditampilkan di sini (1.8) — satu kelas cuma boleh punya satu wali.</p>
       </div>
@@ -147,7 +146,7 @@ export default async function EditGuruPage({
               <option key={m.id} value={m.id}>{m.nama}</option>
             ))}
           </select>
-          <Button type="submit" size="sm">+ Tambah</Button>
+          <ConfirmSubmitButton size="sm" confirmMessage={`Tambah penugasan mengajar baru untuk ${guru.nama}?`}>+ Tambah</ConfirmSubmitButton>
         </form>
       </div>
 
@@ -175,7 +174,7 @@ export default async function EditGuruPage({
                 <option key={p} value={p}>{ROLE_LABEL[p]}</option>
               ))}
             </select>
-            <Button type="submit" size="sm">+ Tambah peran</Button>
+            <ConfirmSubmitButton size="sm" confirmMessage={`Tambah peran baru untuk ${guru.nama}?`}>+ Tambah peran</ConfirmSubmitButton>
           </form>
         ) : (
           <p className="text-[11px] text-ink-soft">Semua opsi peran tambahan sudah diberikan.</p>

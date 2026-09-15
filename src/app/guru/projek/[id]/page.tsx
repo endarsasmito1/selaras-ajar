@@ -3,6 +3,7 @@ import { getProjekDetail, getKelasDiampu, getSiswaKelas } from "@/lib/data";
 import { AppShell } from "@/components/AppShell";
 import { NAV_GURU, ROLE_LABEL } from "@/lib/nav";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import { notFound } from "next/navigation";
 
 const CAPAIAN_OPSI = ["BB", "MB", "BSH", "SB"] as const;
@@ -85,7 +86,7 @@ export default async function ProjekDetailPage({
             </tbody>
           </table>
         </div>
-        {siswaList.length > 0 && <Button type="submit" className="mt-4">Simpan penilaian</Button>}
+        {siswaList.length > 0 && <ConfirmSubmitButton className="mt-4" confirmMessage="Simpan penilaian projek untuk semua murid di daftar ini?">Simpan penilaian</ConfirmSubmitButton>}
       </form>
     </AppShell>
   );
