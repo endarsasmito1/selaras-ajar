@@ -1,6 +1,7 @@
 // Skema Selaras Ajar — turunan dari arsitektur-teknis-selaras-ajar.md
-// Prototype lokal pakai SQLite (zero-setup). Produksi: pindah ke PostgreSQL + Row-Level Security
-// per dokumen arsitektur (§4 Multi-tenancy) — struktur tabel di sini kompatibel untuk migrasi itu.
+// Migrasi ke PostgreSQL (Supabase) per Sep 2026 — lihat rencana-migrasi-postgresql-selaras-ajar.md.
+// Row-Level Security per §4 Multi-tenancy dokumen arsitektur BELUM diaktifkan di migrasi ini —
+// isolasi tenant tetap ditegakkan di application layer (src/lib/guard.ts, assertOwned()) untuk saat ini.
 
 generator client {
   provider = "prisma-client"
@@ -8,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // ================= TENANT & AKUN =================

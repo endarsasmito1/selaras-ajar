@@ -20,8 +20,8 @@ test.describe("Indikator kehadiran guru di Data Guru (13.19-13.20)", () => {
     // di sekolah demo ini, jadi skenario "guru spesialis blm py presensi" gak lagi kejadian
     // natural — dicek eksplisit dulu drpd asumsi, skip kalau memang gak ada (pola sama spt
     // test.skip lain di suite ini, mis. absensi-lanjutan.spec.ts).
-    const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
-    const guruTanpaJadwal = db.guruProfil.findFirstTanpaJadwal(sekolah!.id as string);
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const guruTanpaJadwal = await db.guruProfil.findFirstTanpaJadwal(sekolah!.id as string);
     test.skip(!guruTanpaJadwal, "Semua guru di data seed saat ini sudah punya jadwal — skenario 'Data belum memadai' tak terjadi natural");
     if (!guruTanpaJadwal) return;
 

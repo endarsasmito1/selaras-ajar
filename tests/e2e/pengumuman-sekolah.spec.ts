@@ -98,7 +98,7 @@ test.describe("Pengumuman Sekolah — RBAC & isolasi (21.4-21.5)", () => {
   });
 
   test("negatif: pengumuman sekolah lain tidak bocor ke dashboard sekolah ini", async ({ browser }) => {
-    const sekolahLain = db.sekolah.findFirst({ npsn: "10100295" }); // SD Negeri 1 Pagar Air (Fase 9)
+    const sekolahLain = await db.sekolah.findFirst({ npsn: "10100295" }); // SD Negeri 1 Pagar Air (Fase 9)
     const judulSekolahLain = `Pengumuman Khusus Sekolah Lain ${Date.now()}`;
     const kepsekLain = await browser.newContext();
     const pageLain = await kepsekLain.newPage();

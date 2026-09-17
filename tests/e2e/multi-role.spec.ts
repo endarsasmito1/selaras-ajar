@@ -43,7 +43,7 @@ test.describe("Multi-role — kepsek assign/cabut peran tambahan (13.22-13.25)",
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
   test("positif: kepsek beri peran tambahan Bendahara ke guru lain, muncul di daftar", async ({ page }) => {
-    const solihin = db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
+    const solihin = await db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
     await page.goto(`/kepsek/guru/${solihin!.id}/edit`);
     await page.selectOption('select[name="peran"]', "BENDAHARA");
     await page.getByRole("button", { name: "+ Tambah peran" }).click();
@@ -54,8 +54,8 @@ test.describe("Multi-role — kepsek assign/cabut peran tambahan (13.22-13.25)",
   });
 
   test("negatif: kirim peran tambahan yang sama dua kali tidak menduplikat baris", async ({ page }) => {
-    const solihin = db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
-    const before = db.penggunaPeran.findMany({ penggunaId: solihin!.id as string }).length;
+    const solihin = await db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
+    const before = (await db.penggunaPeran.findMany({ penggunaId: solihin!.id as string })).length;
     await page.goto(`/kepsek/guru/${solihin!.id}/edit`);
     // opsi BENDAHARA sudah tak ada di dropdown (sudah dipunya dari test sebelumnya) kalau dijalankan
     // berurutan — cek langsung ke DB via API idempotency alih-alih bergantung urutan test.
@@ -63,12 +63,12 @@ test.describe("Multi-role — kepsek assign/cabut peran tambahan (13.22-13.25)",
       form: { penggunaId: solihin!.id as string, peran: "BENDAHARA" },
     });
     expect(res.ok()).toBeTruthy();
-    const after = db.penggunaPeran.findMany({ penggunaId: solihin!.id as string }).length;
+    const after = (await db.penggunaPeran.findMany({ penggunaId: solihin!.id as string })).length;
     expect(after).toBe(before);
   });
 
   test("positif: kepsek cabut peran tambahan, hilang dari daftar", async ({ page }) => {
-    const solihin = db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
+    const solihin = await db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
     await page.goto(`/kepsek/guru/${solihin!.id}/edit`);
     const kartuPeran = page.locator("div.bg-paper-raised", { hasText: "Peran tambahan (multi-role)" });
     const row = kartuPeran.locator("form", { has: page.locator('input[name="penggunaPeranId"]') }).filter({ hasText: "Bendahara" });
@@ -89,7 +89,7 @@ test.describe("Multi-role — RBAC assign/cabut peran (13.25)", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
   test("negatif: guru (bukan kepsek) tidak bisa POST ke /api/guru/tambah-peran atau /api/guru/hapus-peran", async ({ page }) => {
-    const solihin = db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
+    const solihin = await db.pengguna.findFirst({ email: "solihin@selarasajar.demo" });
     const res1 = await page.request.post("/api/guru/tambah-peran", {
       form: { penggunaId: solihin!.id as string, peran: "TU" },
     });

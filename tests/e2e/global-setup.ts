@@ -1,3 +1,4 @@
+import "dotenv/config"; // node biasa gak auto-load .env spt Next.js/Prisma CLI — sama pola dgn prisma.config.ts
 import { execSync } from "child_process";
 import { request as playwrightRequest, type FullConfig } from "@playwright/test";
 import { ACCOUNTS } from "./helpers/accounts";

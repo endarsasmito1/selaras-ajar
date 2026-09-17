@@ -11,7 +11,7 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     const checkbox = page.locator('input[type="checkbox"][name="penugasan"]').first();
     await checkbox.check();
     const mapelId = (await checkbox.getAttribute("value"))!.split("|")[1];
-    const bab = db.bab.findFirst({ mapelId });
+    const bab = await db.bab.findFirst({ mapelId });
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
@@ -38,7 +38,7 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     const checkbox = page.locator('input[type="checkbox"][name="penugasan"]').first();
     await checkbox.check();
     const mapelId = (await checkbox.getAttribute("value"))!.split("|")[1];
-    const bab = db.bab.findFirst({ mapelId });
+    const bab = await db.bab.findFirst({ mapelId });
     await page.selectOption('select[name="babId"]', bab!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
@@ -92,22 +92,22 @@ test.describe("Ujian/CBT — guru menyusun & publish (U-1..U-7)", () => {
     if (idxSamaMapel.length < 2) return;
 
     for (const i of idxSamaMapel.slice(0, 3)) await checkboxes.nth(i).check();
-    const babFanOut = db.bab.findFirst({ mapelId: mapelPertama });
+    const babFanOut = await db.bab.findFirst({ mapelId: mapelPertama });
     await page.selectOption('select[name="babId"]', babFanOut!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
 
-    const soal = db.soal.findFirst({ mapelId: mapelPertama });
-    db.ujianSoal.create({ ujianId, soalId: soal!.id as string, urutan: 1, poin: 100 });
+    const soal = await db.soal.findFirst({ mapelId: mapelPertama });
+    await db.ujianSoal.create({ ujianId, soalId: soal!.id as string, urutan: 1, poin: 100 });
 
-    const sebelum = db.ujian.count();
+    const sebelum = await db.ujian.count();
     const res = await page.request.post("/api/ujian/publish", { form: { ujianId }, maxRedirects: 0 });
     expect(res.status()).toBe(303);
-    const sesudah = db.ujian.count();
+    const sesudah = await db.ujian.count();
     // Publish multi-kelas menghapus 1 record gabungan & membuat N record baru per kelas -> net bertambah.
     expect(sesudah).toBeGreaterThan(sebelum);
-    const originalMasihAda = db.ujian.findUnique({ id: ujianId });
+    const originalMasihAda = await db.ujian.findUnique({ id: ujianId });
     expect(originalMasihAda).toBeUndefined();
   });
 });
@@ -116,8 +116,8 @@ test.describe("Ujian — murid mengerjakan & submit (U-15..U-18)", () => {
   test.use({ storageState: "tests/e2e/.auth/murid.json" });
 
   test("positif: murid jawab soal lalu kumpulkan ujian", async ({ page }) => {
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" }); // Ahmad Fauzi, kelas 5B
-    const ujian = db.ujian.findUnstartedForSiswa(siswa!.kelasId as string, siswa!.id as string);
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" }); // Ahmad Fauzi, kelas 5B
+    const ujian = await db.ujian.findUnstartedForSiswa(siswa!.kelasId as string, siswa!.id as string);
     test.skip(!ujian, "Tidak ada ujian PUBLISHED yang belum dikerjakan Ahmad di data seed saat ini");
     if (!ujian) return;
 
@@ -141,8 +141,8 @@ test.describe("Ujian — murid mengerjakan & submit (U-15..U-18)", () => {
   });
 
   test("negatif: ujian berstatus draft tidak bisa dibuka murid", async ({ page }) => {
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" });
-    const ujianDraft = db.ujian.findByKelasAndStatus(siswa!.kelasId as string, "DRAFT");
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" });
+    const ujianDraft = await db.ujian.findByKelasAndStatus(siswa!.kelasId as string, "DRAFT");
     test.skip(!ujianDraft, "Tidak ada ujian draft di kelas 5B saat ini");
     if (!ujianDraft) return;
     await page.goto(`/murid/ujian/${ujianDraft.id}`);
@@ -150,8 +150,8 @@ test.describe("Ujian — murid mengerjakan & submit (U-15..U-18)", () => {
   });
 
   test("negatif: murid tidak bisa membuka ujian milik kelas lain", async ({ page }) => {
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" });
-    const ujianKelasLain = db.ujian.findPublishedNotInKelas(siswa!.kelasId as string);
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" });
+    const ujianKelasLain = await db.ujian.findPublishedNotInKelas(siswa!.kelasId as string);
     test.skip(!ujianKelasLain, "Tidak ada ujian kelas lain di data seed saat ini");
     if (!ujianKelasLain) return;
     await page.goto(`/murid/ujian/${ujianKelasLain.id}`);

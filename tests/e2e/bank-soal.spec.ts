@@ -69,7 +69,7 @@ test.describe("Bank Soal (BS-1..BS-8)", () => {
   });
 
   test("positif: edit soal yang sudah ada mengubah pertanyaannya", async ({ page }) => {
-    const soal = db.soal.findFirst({ jenis: "ESAI" });
+    const soal = await db.soal.findFirst({ jenis: "ESAI" });
     test.skip(!soal, "Belum ada soal esai di bank");
     if (!soal) return;
     await page.goto(`/guru/bank-soal/${soal.id}/edit`);

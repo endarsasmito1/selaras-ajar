@@ -26,7 +26,7 @@ test.describe("Bank Soal lanjutan — PG Kompleks (7.11-7.12)", () => {
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
     await expect(page.getByText(pertanyaan)).toBeVisible();
-    const soal = db.soal.findFirst({ jenis: "PILIHAN_GANDA_KOMPLEKS" });
+    const soal = await db.soal.findFirst({ jenis: "PILIHAN_GANDA_KOMPLEKS" });
     expect(JSON.parse(soal!.kunciJawaban as string)).toEqual([0, 2]);
   });
 
@@ -67,7 +67,10 @@ test.describe("Bank Soal lanjutan — filter poin & poin custom (7.8-7.9)", () =
   });
 
   test("positif: filter rentang poin menyaring daftar soal", async ({ page }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    // Sekolah di-scope eksplisit — seed sekarang bikin 30 sekolah lain yang jg py mapel
+    // "Matematika", findFirst tanpa sekolahId bisa balikin mapel sekolah SALAH.
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto(`/guru/bank-soal/mapel/${mapel!.id}?poinMin=34&poinMax=36`);
     await expect(page.getByText(/poin custom/)).toBeVisible();
     await page.goto(`/guru/bank-soal/mapel/${mapel!.id}?poinMin=1000&poinMax=2000`);

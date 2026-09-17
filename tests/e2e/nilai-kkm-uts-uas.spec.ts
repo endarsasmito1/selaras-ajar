@@ -6,7 +6,10 @@ test.describe("KKM per UTS/UAS (5.7)", () => {
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
   test("positif: set KKM UTS/UAS beda dari KKM dasar tersimpan", async ({ page }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    // Sekolah di-scope eksplisit — seed sekarang bikin 30 sekolah lain yang jg py mapel
+    // "Matematika", findFirst tanpa sekolahId bisa balikin mapel sekolah SALAH.
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto("/kepsek/master-data");
     const form = page.locator('form[action="/api/nilai-config/kkm"]', { has: page.locator(`input[value="${mapel!.id}"]`) });
     await form.locator('input[name="kkmUTS"]').fill("85");
@@ -15,7 +18,7 @@ test.describe("KKM per UTS/UAS (5.7)", () => {
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
-    const updated = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const updated = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     expect(updated?.kkmUTS).toBe(85);
     expect(updated?.kkmUAS).toBe(90);
   });
@@ -26,8 +29,9 @@ test.describe("KKM per UTS/UAS — resolusi di halaman Nilai (5.8-5.9)", () => {
 
   test("positif: nilai dari Ujian ber-jenisPenilaian UTS pakai kkmUTS, bukan KKM dasar", async ({ page }) => {
     const judul = `UTS Uji KKM ${Date.now()}`;
-    const mapelMatematika = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const babMatematika = db.bab.findFirst({ mapelId: mapelMatematika!.id as string });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapelMatematika = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const babMatematika = await db.bab.findFirst({ mapelId: mapelMatematika!.id as string });
     await page.goto("/guru/ujian/baru");
     await page.fill('input[name="judul"]', judul);
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
@@ -36,8 +40,8 @@ test.describe("KKM per UTS/UAS — resolusi di halaman Nilai (5.8-5.9)", () => {
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
 
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto(`/guru/nilai?kelas=${kelas5B!.id}&mapel=${mapel!.id}`);
     await page.selectOption('select[name="sumber"]', { label: judul });
     await page.getByRole("button", { name: "Tampilkan" }).click();
@@ -52,8 +56,9 @@ test.describe("KKM per UTS/UAS — resolusi di halaman Nilai (5.8-5.9)", () => {
   });
 
   test("negatif: nilai dari Tugas tetap pakai KKM dasar meski kkmUTS terisi", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto(`/guru/nilai?kelas=${kelas5B!.id}&mapel=${mapel!.id}`);
     const opsiTugas = page.locator('select[name="sumber"] optgroup[label="Tugas"] option').first();
     test.skip((await opsiTugas.count()) === 0, "Tidak ada Tugas di kelas/mapel ini utk diuji");
@@ -74,7 +79,8 @@ test.describe("KKM per UTS/UAS — fallback saat kosong (5.10)", () => {
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
   test("negatif: kkmUTS/kkmUAS dikosongkan otomatis fallback ke KKM dasar", async ({ page }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto("/kepsek/master-data");
     const form = page.locator('form[action="/api/nilai-config/kkm"]', { has: page.locator(`input[value="${mapel!.id}"]`) });
     await form.locator('input[name="kkmUTS"]').fill("");
@@ -83,7 +89,7 @@ test.describe("KKM per UTS/UAS — fallback saat kosong (5.10)", () => {
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
-    const updated = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const updated = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     expect(updated?.kkmUTS).toBeNull();
     expect(updated?.kkmUAS).toBeNull();
   });

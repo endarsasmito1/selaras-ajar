@@ -7,7 +7,7 @@ Aplikasi fungsional Selaras Ajar, dibangun dari `PRD-selaras-ajar.md` dan `use-c
 ## Tech stack
 
 - **Next.js 16 (App Router)** + TypeScript + Tailwind CSS v4
-- **Prisma ORM 7** (51 model) — database **SQLite lokal** (driver adapter `@prisma/adapter-better-sqlite3`) untuk kemudahan development; dokumen arsitektur merekomendasikan PostgreSQL untuk produksi — skema sudah kompatibel untuk migrasi itu
+- **Prisma ORM 7** (51 model) — database **PostgreSQL** (Supabase, driver adapter `@prisma/adapter-pg`), 2 project terpisah untuk staging & production. Migrasi dari SQLite Sep 2026 — lihat `rencana-migrasi-postgresql-selaras-ajar.md`
 - **Auth sendiri** — session JWT di httpOnly cookie (fail-fast kalau `SESSION_SECRET` kosong di produksi, lihat `src/lib/session-secret.ts`), password di-hash bcrypt, login/logout lewat Route Handler biasa (bukan Server Actions — lebih predictable untuk alur kritis), dengan rate-limit lockout bawaan (`src/lib/rate-limit.ts`)
 - **Proxy** (`src/proxy.ts`, penerus `middleware.ts` di Next 16) — menjaga akses per rute sesuai peran
 - **113 API route** (Route Handler) + **107 halaman** lintas 7 peran (Superadmin, Kepala Sekolah, Bendahara, TU, Guru, Orang Tua, Murid)
@@ -121,7 +121,7 @@ Diatur di `src/proxy.ts` (`ROLE_BY_PATH_PREFIX`). Peran salah → redirect otoma
 - **Rapor PDF** — data nilai & predikat sudah lengkap, tapi belum ada generator PDF (saat ini diekspor sebagai CSV)
 - **Staging impor CSV pakai file sementara di `os.tmpdir()`**, bukan tabel database — cukup untuk prototype single-server, produksi sebaiknya pakai tabel `ImportBatch` + job TTL cleanup
 - **PPDB single-tenant** — form publik `/ppdb` mengambil sekolah pertama di database; produk multi-sekolah nyata butuh identifikasi sekolah dari subdomain/slug
-- **SQLite tunggal** — arsitektur single-server (database + berkas upload di disk lokal), belum ada horizontal scaling; migrasi PostgreSQL + storage eksternal direncanakan terpisah
+- **Berkas upload masih di disk lokal server** — database sudah PostgreSQL terkelola (Supabase), tapi `public/uploads/` belum pindah ke object storage eksternal (S3-compatible); jadi horizontal scaling app (>1 instance) belum bisa sebelum ini beres
 - Hal yang memang sengaja di luar cakupan PRD (§7): RFID/kantin cashless, presensi biometrik, aplikasi native, AI grading, multi-sekolah penuh (sebagian sudah dibuktikan lewat 30 sekolah demo superadmin, tapi belum jadi produk multi-tenant publik)
 
 ## Struktur folder penting

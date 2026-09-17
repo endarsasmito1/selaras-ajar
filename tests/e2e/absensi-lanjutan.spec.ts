@@ -28,8 +28,8 @@ test.describe("Absensi lanjutan — catatan & tanggal/hari (3.5-3.6)", () => {
   });
 
   test("positif: riwayat absensi tampilkan status berbeda dgn Pill tone masing-masing (Hadir/Sakit/Izin/Alpa)", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const tanggal = db.absensi.findTanggalDenganStatusBeragam(kelas5B!.id as string);
+    const kelas5B = await db.kelas.findFirst({ nama: "5B" });
+    const tanggal = await db.absensi.findTanggalDenganStatusBeragam(kelas5B!.id as string);
     test.skip(!tanggal, "Tidak ada tanggal dgn status beragam di data seed kelas 5B saat ini");
     if (!tanggal) return;
     // `kelas=` wajib disertakan — tanpa itu halaman fallback ke kelas default guru (belum tentu
@@ -52,7 +52,7 @@ test.describe("Absensi lanjutan — datepicker & indikator izin pending (1.23)",
   });
 
   test("negatif: POST langsung ke /api/absensi dgn tanggal masa depan di-fallback ke hari ini (server-side guard)", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B" });
     const besok = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const res = await page.request.post("/api/absensi", {
       form: { kelasId: kelas5B!.id as string, tanggal: besok },
@@ -64,17 +64,17 @@ test.describe("Absensi lanjutan — datepicker & indikator izin pending (1.23)",
   });
 
   test("positif: pengajuan izin MENUNGGU muncul sbg badge di baris murid & bisa disetujui inline dari Isi Absensi", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B" });
     const kelas5BId = kelas5B!.id as string;
-    const siswaDb = db.siswa.findFirst({ kelasId: kelas5BId });
+    const siswaDb = await db.siswa.findFirst({ kelasId: kelas5BId });
     test.skip(!siswaDb, "Tidak ada siswa di kelas 5B pada data seed saat ini");
     if (!siswaDb) return;
-    const wali = db.waliSiswa.findFirst({ siswaId: siswaDb.id as string });
+    const wali = await db.waliSiswa.findFirst({ siswaId: siswaDb.id as string });
     test.skip(!wali, "Siswa ini belum punya wali di data seed saat ini");
     if (!wali) return;
 
     const todayIso = new Date().toISOString();
-    const pengajuanId = db.pengajuanIzin.createMenunggu({
+    const pengajuanId = await db.pengajuanIzin.createMenunggu({
       siswaId: siswaDb.id as string,
       diajukanOlehId: wali.penggunaId as string,
       tanggalIso: todayIso,
@@ -93,7 +93,7 @@ test.describe("Absensi lanjutan — datepicker & indikator izin pending (1.23)",
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/absensi/);
 
-    const updated = db.pengajuanIzin.findById(pengajuanId);
+    const updated = await db.pengajuanIzin.findById(pengajuanId);
     expect(updated?.status).toBe("DISETUJUI");
     // Baris SPESIFIK murid ini yg harus hilang — bukan asumsi seluruh kartu ikut lenyap, krn
     // kelas 5B (data seed asli) bisa aja punya pengajuan izin MENUNGGU murid lain yang gak

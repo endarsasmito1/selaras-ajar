@@ -28,12 +28,13 @@ test.describe("Keuangan lanjutan — tagihan custom & proyeksi (16.5-16.9)", () 
     // setelah toast muncul, jadi yang bisa dicek stabil cuma teks toast-nya, bukan query param.
     await expect(page.getByText(/tagihan baru dibuat/)).toBeVisible();
 
-    const tipe = db.tagihanTipe.findFirst({ sekolahId: db.sekolah.findFirst({ nama: "SD Harapan Bangsa" })!.id as string, nama: namaTipe });
-    expect(db.tagihan.count({ tipeId: tipe!.id as string })).toBeGreaterThan(0);
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const tipe = await db.tagihanTipe.findFirst({ sekolahId: sekolah!.id as string, nama: namaTipe });
+    expect(await db.tagihan.count({ tipeId: tipe!.id as string })).toBeGreaterThan(0);
   });
 
   test("positif: riwayat tagihan siswa menampilkan SPP + tagihan custom", async ({ page }) => {
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" });
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" });
     await page.goto(`/keuangan/siswa/${siswa!.id}`);
     await expect(page.getByText("SPP").first()).toBeVisible();
     await expect(page.getByText(/Study Tour/).first()).toBeVisible();
@@ -57,7 +58,7 @@ test.describe("Keuangan lanjutan — riwayat siswa dari kepsek juga tetap jalan"
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
   test("positif: kepsek juga bisa lihat riwayat tagihan siswa lewat profil 360", async ({ page }) => {
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" });
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" });
     await page.goto(`/kepsek/siswa/${siswa!.id}`);
     await expect(page.getByText("Riwayat pembayaran SPP")).toBeVisible();
   });

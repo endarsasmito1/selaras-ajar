@@ -4,9 +4,11 @@
  * (lihat src/app/api/ekspor/backup/route.ts, JSON per-sekolah, harus diklik kepsek/bendahara
  * satu-satu) — gak ada backup OTOMATIS terjadwal utk seluruh database + berkas upload.
  *
- * Snapshot database pakai `better-sqlite3` native `.backup()` (BUKAN `cp dev.db dev.db.bak`
- * mentah) — aman diambil selagi app tetap jalan/nulis (WAL-safe), gak berisiko dapet file
- * korup kalau nyambar di tengah write seperti copy file biasa.
+ * Migrasi PostgreSQL (Sep 2026) — snapshot database sekarang pakai `pg_dump` format custom (-Fc),
+ * bukan lagi `better-sqlite3` `.backup()`. Format custom bisa di-restore parsial/selektif lewat
+ * `pg_restore`, beda dari dump SQL polos. Supabase & provider Postgres terkelola lain biasanya
+ * SUDAH menyediakan automated backup + point-in-time recovery bawaan — script ini pelengkap
+ * (kepemilikan salinan sendiri di luar provider), bukan satu-satunya lapisan backup.
  *
  * CATATAN CRON — ini SENGAJA cuma script siap pakai, BELUM otomatis jalan sendiri. Tambahkan
  * baris ini ke crontab server produksi (`crontab -e`), jam 02:00 tiap hari:
@@ -22,7 +24,7 @@
  * keputusan infra/kredensial yang bukan wewenang kode ini).
  */
 import "dotenv/config"; // node biasa gak auto-load .env spt Next.js/Prisma CLI — sama pola dgn prisma.config.ts
-import Database from "better-sqlite3";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, readdirSync, statSync, existsSync, cpSync, rmSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,27 +33,28 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BACKUP_DIR = path.join(ROOT, "backups");
 const RETENSI_HARI = 14;
 
-function dbPathFromUrl(url) {
-  // DATABASE_URL format "file:./dev.db" (relatif ke root proyek) atau "file:/abs/path.db"
-  const raw = url.replace(/^file:/, "");
-  return path.isAbsolute(raw) ? raw : path.join(ROOT, raw);
-}
-
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL tidak di-set — cek .env / environment cron");
-  const dbPath = dbPathFromUrl(databaseUrl);
-  if (!existsSync(dbPath)) throw new Error(`File database tidak ditemukan: ${dbPath}`);
 
   mkdirSync(BACKUP_DIR, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-  console.log(`[backup] Snapshot database dari ${dbPath} ...`);
-  const src = new Database(dbPath, { readonly: true });
-  const dbBackupPath = path.join(BACKUP_DIR, `db-${stamp}.sqlite`);
-  await src.backup(dbBackupPath);
-  src.close();
+  console.log("[backup] Snapshot database via pg_dump ...");
+  const dbBackupPath = path.join(BACKUP_DIR, `db-${stamp}.dump`);
+  const result = spawnSync(
+    "pg_dump",
+    ["--format=custom", "--no-owner", "--no-privileges", `--file=${dbBackupPath}`, databaseUrl],
+    { stdio: "inherit" },
+  );
+  if (result.error) {
+    throw new Error(`pg_dump gagal dijalankan (terinstall di PATH?): ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(`pg_dump keluar dengan kode ${result.status}`);
+  }
   console.log(`[backup] Database tersimpan: ${dbBackupPath}`);
+  console.log(`[backup] Restore lewat: pg_restore --clean --if-exists --no-owner --dbname=<DATABASE_URL_TARGET> ${dbBackupPath}`);
 
   const uploadsDir = path.join(ROOT, "public", "uploads");
   if (existsSync(uploadsDir)) {

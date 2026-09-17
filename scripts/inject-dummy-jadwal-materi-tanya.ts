@@ -4,14 +4,18 @@
 //
 // Jalankan SETELAH scripts/inject-dummy-guru-multi-kelas.ts: npx tsx scripts/inject-dummy-jadwal-materi-tanya.ts
 
+import "dotenv/config"; // node/tsx biasa gak auto-load .env spt Next.js/Prisma CLI — sama pola dgn prisma.config.ts
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
 
 const PASSWORD = "selaras123";
 
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL tidak di-set — cek .env (connection string PostgreSQL/Supabase)");
+}
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 const KELAS_BARU_NAMA = ["4E", "4F", "4G", "4H", "5E", "5F", "5G", "6E", "6F", "6G"];

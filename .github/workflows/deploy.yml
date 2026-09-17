@@ -31,14 +31,26 @@ jobs:
     # (bukan hang, build/lint/tsc semua lolos duluan), diduga efek rollout ConfirmSubmitButton
     # yang nambah banyak dialog-klik ekstra per test; 35m kasih ruang lolos beneran kalau bukan hang.
     timeout-minutes: 35
+    # Migrasi PostgreSQL (Sep 2026) — CI sekarang lawan Postgres asli (container service bawaan
+    # GitHub Actions), bukan lagi file SQLite lokal, biar bug spesifik-provider ketauan di sini
+    # dulu sebelum nyentuh Supabase staging/prod. Container ini efemeral per run, gak numpuk ke
+    # connection limit Supabase — gak perlu project Supabase terpisah buat CI.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: selaras_ajar_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      # Feedback teknis (Sep 2026) — WAJIB absolut, bukan "file:./ci.db". Path relatif di-resolve
-      # BEDA antara `prisma migrate deploy` (CLI) dan runtime `@prisma/adapter-better-sqlite3`
-      # (dipakai app/seed.ts) tergantung proses/cwd yang manggil — di runner GH Actions ini
-      # nyata bikin migrate-deploy nulis migrasi ke satu file sementara seed.ts nulis/baca ke
-      # file LAIN yang kosong ("table ApiKey does not exist"), padahal lolos mulus di macOS lokal.
-      # `github.workspace` selalu absolut, gak ambigu siapa pun/dari cwd mana pun yang resolve-nya.
-      DATABASE_URL: "file:${{ github.workspace }}/ci.db"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/selaras_ajar_ci"
       SESSION_SECRET: "ci-secret-bukan-untuk-produksi"
     steps:
       - uses: actions/checkout@v4

@@ -8,7 +8,10 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
   test("positif: bab baru dibuat sekali, dipakai lagi (reuse, bukan duplikat) utk materi lain di mapel sama", async ({ page }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    // Sekolah di-scope eksplisit — seed sekarang bikin 30 sekolah lain yang jg py mapel
+    // "Matematika", findFirst tanpa sekolahId bisa balikin mapel sekolah SALAH.
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     const namaBab = `Bab Uji ${Date.now()}`;
 
     await page.goto("/guru/materi");
@@ -20,7 +23,7 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.getByRole("button", { name: "Tambah materi" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
-    expect(db.bab.countByNamaMapel({ mapelId: mapel!.id as string, nama: namaBab })).toBe(1);
+    expect(await db.bab.countByNamaMapel({ mapelId: mapel!.id as string, nama: namaBab })).toBe(1);
 
     // Materi kedua, pilih bab yang SAMA lewat dropdown (bukan ketik nama baru lagi) — harus reuse, bukan duplikat.
     await page.goto("/guru/materi");
@@ -32,7 +35,7 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.getByRole("button", { name: "Tambah materi" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
-    expect(db.bab.countByNamaMapel({ mapelId: mapel!.id as string, nama: namaBab })).toBe(1);
+    expect(await db.bab.countByNamaMapel({ mapelId: mapel!.id as string, nama: namaBab })).toBe(1);
   });
 
   test("positif: bab dgn nama sama di mapel BEDA jadi row terpisah (bukan reuse lintas mapel)", async ({ page }) => {
@@ -45,29 +48,31 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     // diampunya). Rina beneran gak py penugasan ke 5B+IPAS di seed, jadi POST kedua di bawah
     // bakal ditolak 403 kalau gak di-grant dulu — `ensure()` nambahin penugasan test-only supaya
     // yang diuji tetap murni logic scoping bab, bukan korban celah keamanan yg udah ditutup.
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const matematika = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const ipas = db.mataPelajaran.findFirst({ nama: "IPAS" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const matematika = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const ipas = await db.mataPelajaran.findFirst({ nama: "IPAS", sekolahId: sekolah!.id as string });
     const namaBab = `Bab Lintas ${Date.now()}`;
-    const guruRina = db.guruProfil.findByPenggunaEmail("rina@selarasajar.demo");
-    db.penugasanGuru.ensure({ guruId: guruRina!.id, kelasId: kelas5B!.id as string, mapelId: ipas!.id as string });
+    const guruRina = await db.guruProfil.findByPenggunaEmail("rina@selarasajar.demo");
+    await db.penugasanGuru.ensure({ guruId: guruRina!.id, kelasId: kelas5B!.id as string, mapelId: ipas!.id as string });
 
     await page.request.post("/api/materi", {
       form: { kelasId: kelas5B!.id as string, mapelId: matematika!.id as string, judul: "Materi Matematika", tipe: "catatan", isi: "x", babBaru: namaBab },
     });
-    const babMatematika = db.bab.findFirst({ mapelId: matematika!.id as string });
+    const babMatematika = await db.bab.findFirst({ mapelId: matematika!.id as string });
     expect(babMatematika?.nama).toBe(namaBab);
 
     await page.request.post("/api/materi", {
       form: { kelasId: kelas5B!.id as string, mapelId: ipas!.id as string, judul: "Materi IPAS", tipe: "catatan", isi: "y", babBaru: namaBab },
     });
-    const babIpas = db.bab.findFirst({ mapelId: ipas!.id as string });
+    const babIpas = await db.bab.findFirst({ mapelId: ipas!.id as string });
     expect(babIpas?.nama).toBe(namaBab);
     expect(babIpas?.id).not.toBe(babMatematika?.id);
   });
 
   test("positif: materi video via tautan YouTube tampil sbg embed (iframe), bukan cuma link", async ({ page }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     const judul = `Video Uji ${Date.now()}`;
     await page.goto("/guru/materi");
     await page.selectOption("#materi-mapel-select", mapel!.id as string);
@@ -83,7 +88,8 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
 
   test("positif: silabus mapel diupload sekali, muncul sbg 'tersimpan' di kunjungan berikutnya", async ({ page }) => {
     // Rina (guru.json) cuma mengajar Matematika di kelasnya (5B) — mapel lain gak muncul di dropdown-nya.
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto("/guru/materi");
     await page.selectOption("#materi-mapel-select", mapel!.id as string);
     await expect(page.locator("#silabus-belum-ada")).toBeVisible();
@@ -98,7 +104,7 @@ test.describe("Materi Belajar — Bab & Silabus (1.23)", () => {
     await page.getByRole("button", { name: "Tambah materi" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
-    const updated = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const updated = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     expect(updated?.silabusUrl).toBeTruthy();
 
     await page.goto("/guru/materi");
@@ -112,8 +118,9 @@ test.describe("Ujian — bab wajib (1.23)", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
   test("negatif: buat ujian tanpa bab (API langsung) ditolak", async ({ page }) => {
-    const kelas = db.kelas.findFirst({ nama: "5B" });
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     const res = await page.request.post("/api/ujian", {
       form: {
         judul: "Ujian Tanpa Bab API",

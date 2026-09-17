@@ -12,7 +12,10 @@ test.describe("Tanya Jawab Kelas — murid", () => {
   test("positif: murid kirim pertanyaan anonim, tampil sbg 'Anonim' (bukan nama asli) di panel murid", async ({ page }) => {
     // Rute /murid/tanya-jawab baru (1.23) — first-hit dev server (Turbopack) bisa kompilasi lama.
     test.slow();
-    const mapelMtk = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    // Sekolah di-scope eksplisit — seed sekarang bikin 30 sekolah lain yang jg py mapel
+    // "Matematika", findFirst tanpa sekolahId bisa balikin mapel sekolah SALAH.
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapelMtk = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     const teks = `Pertanyaan anonim uji ${Date.now()}`;
 
     await page.goto(`/murid/tanya-jawab?mapel=${mapelMtk!.id as string}`);
@@ -36,7 +39,8 @@ test.describe("Tanya Jawab Kelas — murid", () => {
   });
 
   test("negatif: halaman murid tidak punya tombol Hapus sama sekali (bukan moderator)", async ({ page }) => {
-    const mapelMtk = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapelMtk = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto(`/murid/tanya-jawab?mapel=${mapelMtk!.id as string}`);
     await expect(page.getByText("Hapus", { exact: true })).toHaveCount(0);
   });
@@ -54,8 +58,9 @@ test.describe("Tanya Jawab Kelas — guru", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
   test("positif: guru tetap lihat nama asli murid meski pertanyaannya ditandai anonim (buat moderasi)", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const mapelMtk = db.mataPelajaran.findFirst({ nama: "Matematika" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapelMtk = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
     await page.goto(`/guru/tanya-jawab?kelas=${kelas5B!.id as string}&mapel=${mapelMtk!.id as string}`);
     // .first() — data seed sendiri juga sudah punya 1 thread anonim demo di kelas+mapel yang sama,
     // jadi bisa ada >1 kecocokan; cukup pastikan minimal satu yang tampil, bukan yang mana.
@@ -63,41 +68,43 @@ test.describe("Tanya Jawab Kelas — guru", () => {
   });
 
   test("positif: guru hapus pertanyaan, balasannya ikut terhapus (cascade)", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const mapelMtk = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const rina = db.pengguna.findFirst({ email: "rina@selarasajar.demo" });
-    const ahmad = db.pengguna.findFirst({ email: "ahmad@selarasajar.demo" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapelMtk = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const rina = await db.pengguna.findFirst({ email: "rina@selarasajar.demo" });
+    const ahmad = await db.pengguna.findFirst({ email: "ahmad@selarasajar.demo" });
 
-    const parentId = db.tanyaJawabKelas.create({
+    const parentId = await db.tanyaJawabKelas.create({
       kelasId: kelas5B!.id as string,
       mapelId: mapelMtk!.id as string,
       penggunaId: ahmad!.id as string,
       isi: `Pertanyaan buat dihapus ${Date.now()}`,
     });
-    db.tanyaJawabKelas.create({
+    await db.tanyaJawabKelas.create({
       kelasId: kelas5B!.id as string,
       mapelId: mapelMtk!.id as string,
       penggunaId: rina!.id as string,
       isi: "Balasan yang harus ikut kehapus",
       parentId,
     });
-    expect(db.tanyaJawabKelas.countByParent(parentId)).toBe(1);
+    expect(await db.tanyaJawabKelas.countByParent(parentId)).toBe(1);
 
     await page.goto(`/guru/tanya-jawab?kelas=${kelas5B!.id as string}&mapel=${mapelMtk!.id as string}`);
     const kartu = page.locator(".bg-paper-raised.border-rule.rounded-lg.p-3", { hasText: "Pertanyaan buat dihapus" }).first();
     await kartu.getByText("Hapus", { exact: true }).first().click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
 
-    expect(db.tanyaJawabKelas.findById(parentId)).toBeUndefined();
-    expect(db.tanyaJawabKelas.countByParent(parentId)).toBe(0);
+    expect(await db.tanyaJawabKelas.findById(parentId)).toBeUndefined();
+    expect(await db.tanyaJawabKelas.countByParent(parentId)).toBe(0);
   });
 
   test("negatif: guru yang tak mengajar mapel itu di kelas itu tak bisa hapus (isolasi lintas guru/mapel)", async ({ browser }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const mapelMtk = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const ahmad = db.pengguna.findFirst({ email: "ahmad@selarasajar.demo" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapelMtk = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const ahmad = await db.pengguna.findFirst({ email: "ahmad@selarasajar.demo" });
 
-    const targetId = db.tanyaJawabKelas.create({
+    const targetId = await db.tanyaJawabKelas.create({
       kelasId: kelas5B!.id as string,
       mapelId: mapelMtk!.id as string,
       penggunaId: ahmad!.id as string,
@@ -112,7 +119,7 @@ test.describe("Tanya Jawab Kelas — guru", () => {
       maxRedirects: 0,
     });
     expect(res.status()).toBe(303);
-    expect(db.tanyaJawabKelas.findById(targetId)).toBeDefined();
+    expect(await db.tanyaJawabKelas.findById(targetId)).toBeDefined();
     await context.close();
   });
 });
@@ -121,13 +128,14 @@ test.describe("Tanya Jawab Kelas — isolasi lintas kelas/mapel", () => {
   test.use({ storageState: "tests/e2e/.auth/murid.json" });
 
   test("positif: pertanyaan di mapel Matematika tak muncul di tab mapel lain (Bahasa Indonesia)", async ({ page }) => {
-    const kelas5B = db.kelas.findFirst({ nama: "5B" });
-    const mapelMtk = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const mapelBindo = db.mataPelajaran.findFirst({ nama: "Bahasa Indonesia" });
-    const ahmad = db.pengguna.findFirst({ email: "ahmad@selarasajar.demo" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const kelas5B = await db.kelas.findFirst({ nama: "5B", sekolahId: sekolah!.id as string });
+    const mapelMtk = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const mapelBindo = await db.mataPelajaran.findFirst({ nama: "Bahasa Indonesia", sekolahId: sekolah!.id as string });
+    const ahmad = await db.pengguna.findFirst({ email: "ahmad@selarasajar.demo" });
 
     const teks = `Pertanyaan khusus Matematika ${Date.now()}`;
-    db.tanyaJawabKelas.create({
+    await db.tanyaJawabKelas.create({
       kelasId: kelas5B!.id as string,
       mapelId: mapelMtk!.id as string,
       penggunaId: ahmad!.id as string,

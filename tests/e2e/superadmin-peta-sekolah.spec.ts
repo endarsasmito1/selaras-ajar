@@ -14,7 +14,7 @@ test("positif: isi lat/long saat tambah sekolah baru tersimpan", async ({ page }
   await confirmDialogSubmit(page, "Ya, lanjutkan");
   await expect(page).toHaveURL(/\/superadmin\/sekolah/);
 
-  const sekolah = db.sekolah.findFirst({ nama });
+  const sekolah = await db.sekolah.findFirst({ nama });
   expect(sekolah?.latitude).toBeCloseTo(-6.914744, 4);
   expect(sekolah?.longitude).toBeCloseTo(107.60981, 4);
 });
@@ -32,7 +32,7 @@ test("positif: edit lat/long sekolah yang sudah ada dari halaman detail", async 
   await confirmDialogSubmit(page, "Ya, lanjutkan");
   await expect(page.getByText("Koordinat: -7.797, 110.37")).toBeVisible();
 
-  const sekolah = db.sekolah.findFirst({ nama });
+  const sekolah = await db.sekolah.findFirst({ nama });
   expect(sekolah?.latitude).toBeCloseTo(-7.797, 3);
 });
 
@@ -56,9 +56,9 @@ test("negatif: sekolah tanpa lat/long tidak muncul sbg marker tapi tetap muncul 
   await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
   // Tak ada cara langsung "cari marker milik sekolah X" tanpa lat/long — cukup pastikan navigasi
   // ke tampilan Peta tak error & hitungan marker konsisten dgn sekolah yang PUNYA koordinat saja.
-  const sekolahBerKoordinat = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+  const sekolahBerKoordinat = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
   expect(sekolahBerKoordinat?.latitude).not.toBeNull();
-  const sekolahBaru = db.sekolah.findFirst({ nama });
+  const sekolahBaru = await db.sekolah.findFirst({ nama });
   expect(sekolahBaru?.latitude).toBeNull();
 });
 

@@ -1,13 +1,50 @@
-import { PrismaClient, StatusAbsensi, StatusTagihan } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import "dotenv/config"; // node/tsx biasa gak auto-load .env spt Next.js/Prisma CLI — sama pola dgn prisma.config.ts
+import { randomUUID } from "node:crypto";
+import { PrismaClient, StatusAbsensi, StatusTagihan, JenisSoal, CapaianP5 } from "../src/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-// Feedback teknis (Sep 2026) — sebelumnya hardcode "file:./dev.db", SAMA SEKALI GAK BACA
-// process.env.DATABASE_URL — beda dari src/lib/prisma.ts yang benar. Gak ketauan lama krn di
-// lokal DATABASE_URL emang selalu "file:./dev.db" juga (kebetulan cocok), tapi di CI
-// (DATABASE_URL="file:.../ci.db") jadi nge-seed file "dev.db" yang BEDA & gak pernah dimigrasi
-// sama sekali, sementara migrate deploy jalan ke ci.db — "table X does not exist" pas seed jalan.
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL tidak di-set — cek .env (connection string PostgreSQL/Supabase)");
+}
+// Bugfix (Sep 2026) — seed pernah HANG total 40+ menit, 2x berturut-turut, persis di titik yang
+// sama (semua "[i/30] Membuat sekolah lain" sudah ke-print, lalu diam, tanpa error/crash).
+// `pg_stat_activity` saat hang menunjukkan NOL query aplikasi sedang jalan — jadi Node bukan
+// nunggu Postgres selesai eksekusi query, tapi macet di level `pg.Pool` SEBELUM query sempat
+// terkirim (paling mungkin: percobaan bikin koneksi baru ke Session Pooler yang tak pernah
+// resolve maupun reject). Akar masalahnya: `pg` (node-postgres) defaultnya TIDAK punya timeout
+// sama sekali utk hal ini — `connectionTimeoutMillis` default 0 (lihat node_modules/pg/lib/
+// client.js: `this._connectionTimeoutMillis = c.connectionTimeoutMillis || 0`, dan cuma dipasang
+// kalau > 0), begitu juga `statement_timeout`/`query_timeout`/`idle_in_transaction_session_timeout`
+// yang defaultnya `false` (lihat node_modules/pg/lib/defaults.js). Jadi kalau pooler pernah nge-
+// queue/nge-drop permintaan koneksi baru tanpa respons (mis. numpang mepet limit koneksi Session
+// Pooler bareng 6 sekolah paralel + koneksi manual lain), Node akan nunggu SELAMANYA tanpa
+// error — persis gejala yang kejadian. Timeout eksplisit di bawah bikin skenario itu GAGAL KERAS
+// dgn pesan jelas (bukan hang senyap) kalau kejadian lagi, dan `onPoolError`/`onConnectionError`
+// mencatat error level-pool yang sebelumnya tak ada listener-nya sama sekali.
+//
+// AKAR MASALAH DIKONFIRMASI (dicek langsung di dashboard Supabase) — Connection pool size project
+// ini cuma 15 (default compute Nano), DIBAGI bareng proses internal Supabase sendiri (PostgREST,
+// Realtime, dst), bukan eksklusif buat kita. `pg.Pool` default `max:10` kalau gak di-set eksplisit
+// — dan proses INI (seed, child process terpisah dari globalSetup) jalan BERSAMAAN dgn `next dev`
+// (py pool sendiri lagi, lihat src/lib/prisma.ts) pas E2E test. Sebelum fix ini: berpotensi sampai
+// 10+10=20 koneksi rebutan 15 slot → `ECHECKOUTTIMEOUT`/"Connection terminated due to connection
+// timeout" berulang. `max: 6` di sini (pas dgn concurrency 6 sekolah paralel di bawah, 1 koneksi/lane)
+// + `max: 4` di src/lib/prisma.ts = 10 total, sisa slot buat proses internal Supabase & tool manual.
+const adapter = new PrismaPg(
+  {
+    connectionString: process.env.DATABASE_URL,
+    max: 6,
+    connectionTimeoutMillis: 15_000, // gagal cepat kalau bikin koneksi baru ke pooler tak kunjung respons
+    statement_timeout: 120_000, // 2 menit/statement — jauh di atas createMany chunk terbesar (2000 baris) dlm kondisi normal
+    query_timeout: 120_000,
+    idle_in_transaction_session_timeout: 60_000, // jaring pengaman: koneksi tak boleh nyangkut idle-in-transaction lama
+  },
+  {
+    onPoolError: (err: Error) => console.error("⚠️  pg.Pool error (level-pool, bukan per-query):", err),
+    onConnectionError: (err: Error) => console.error("⚠️  pg connection error:", err),
+  },
+);
 const prisma = new PrismaClient({ adapter });
 
 const PASSWORD = "selaras123";
@@ -19,6 +56,92 @@ function acak<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// Perf (Sep 2026) — seed ini pindah dari SQLite lokal (nyaris tanpa latensi) ke Postgres/Supabase
+// asli lewat jaringan (Tokyo, kadang lewat VPN) — ratusan/ribuan `await prisma.X.create()`
+// sekuensial di dalam loop yang tadinya "gratis" jadi ribuan round-trip jaringan nyata (seed penuh
+// bisa >48 menit). Dua helper generik di bawah dipakai di SELURUH file utk mengganti pola itu jadi
+// `createMany` (batch): `newId()` pregenerate cuid-opaque id di JS (dibutuhkan kalau baris anak
+// butuh id induk SEBELUM insert-nya sendiri jalan, mis. UjianSoal butuh Ujian.id), dan
+// `createManyChunked()` supaya array besar (mis. ribuan baris Absensi/UjianJawaban) tetap dipecah
+// jadi beberapa statement INSERT yang aman dari batas parameter Postgres, bukan 1 round-trip per baris.
+function newId(): string {
+  return randomUUID();
+}
+const CHUNK_SIZE = 2000;
+
+// Bugfix (Sep 2026) — dites langsung: begitu `query_timeout` di adapter (lihat komentar di
+// deklarasinya) kepasang, verifikasi run PERTAMA malah membuktikan koneksi ke pooler MEMANG bisa
+// stall nyata di tengah jalan (bukan cuma teori) — satu `createMany` (chunk "wali siswa" sekolah
+// utama, jauh sebelum loop 30 sekolah) kena "Query read timeout" setelah >120 detik tanpa respons.
+// Dicek ke node_modules/pg/lib/client.js: kalau readTimeout kena SETELAH query terkirim (bukan
+// masih ngantri), `pg` men-DESTROY koneksi TCP-nya (`this.connection.stream.destroy()`) — artinya
+// query itu (dijalankan lewat "transaction" internal client-engine-runtime Prisma 7, lihat stack
+// trace `PgTransaction.performIO`) PASTI di-rollback server-side (koneksi putus = transaksi
+// gagal), BUKAN diam-diam sukses. Jadi retry chunk yg SAMA sesudah timeout/connection error aman
+// dari duplikat — tak perlu `skipDuplicates` tambahan. Retry dibatasi (bukan infinite) & tiap
+// percobaan dicatat ke console supaya tetap "berisik" (bukan diam-diam gagal jadi sukses tanpa
+// jejak) kalau ternyata linknya memang sedang bermasalah terus-menerus.
+async function withRetry<T>(fn: () => Promise<T>, label: string, attempts = 3): Promise<T> {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === attempts) throw err;
+      const delayMs = 1500 * attempt;
+      console.warn(`⚠️  ${label} gagal (percobaan ${attempt}/${attempts}): ${(err as Error)?.message ?? err} — retry dalam ${delayMs}ms...`);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error("unreachable");
+}
+
+async function createManyChunked<T>(fn: (data: T[]) => Promise<unknown>, rows: T[]): Promise<void> {
+  if (rows.length === 0) return;
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + CHUNK_SIZE);
+    await withRetry(() => fn(chunk), `createManyChunked (baris ${i}-${i + chunk.length})`);
+  }
+}
+
+// Perf — dalamnya sendiri tiap `buatSekolahLain()` (dipanggil 30×, satu per sekolah lain) sudah
+// batched (lihat helper di atas), tapi 30 pemanggilannya tadinya dijalankan SEKUENSIAL (`await` satu
+// per satu di dalam for-loop) — jadi latensi round-trip tiap sekolah tetap TERTUMPUK, bukan tumpang
+// tindih. Sekolah satu sama lain independen total (sekolahId/email/NISN masing² unik, tak ada
+// state bersama yang bisa race — satu-satunya counter bersama, `nisnCounter` di buatDataSiswa(),
+// disentuh lewat fungsi SINKRON tanpa `await` di tengahnya, jadi tetap aman diselang-seling event
+// loop JS yang single-threaded), jadi aman dijalankan dgn concurrency terbatas supaya beberapa
+// sekolah diproses "bersamaan" (di-interleave, numpang di connection pool `pg.Pool` bawaan adapter
+// yg defaultnya sampai 10 koneksi) — pool 5-6 dipilih supaya tak mepet limit koneksi Session Pooler.
+// Bugfix (Sep 2026) — jaring pengaman lapis kedua di atas timeout `pg.Pool` di deklarasi adapter
+// (lihat komentar di sana): kalau `worker(item, i)` untuk SATU item macet tanpa batas waktu (krn
+// sebab apapun, termasuk yang tak tercakup timeout level-koneksi), lane yang menanganinya bakal
+// nyangkut selamanya di `await worker(...)`, dan `Promise.all` di bawah ikut nyangkut nunggu SEMUA
+// lane — walau lane lain sudah kelar total. `timeoutMs` (opsional) bikin ini gagal keras dgn error
+// jelas (index + berapa lama nunggu) drpd hang senyap 40+ menit tanpa sinyal diagnostik apapun.
+async function runWithConcurrency<T>(items: T[], limit: number, worker: (item: T, index: number) => Promise<void>, timeoutMs?: number): Promise<void> {
+  let next = 0;
+  async function lane() {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      if (!timeoutMs) {
+        await worker(items[i], i);
+        continue;
+      }
+      let timer: ReturnType<typeof setTimeout>;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`runWithConcurrency: item index ${i} timeout setelah ${timeoutMs}ms tanpa selesai/error — kemungkinan macet nunggu koneksi/query tanpa timeout-nya sendiri.`)), timeoutMs);
+      });
+      try {
+        await Promise.race([worker(items[i], i), timeout]);
+      } finally {
+        clearTimeout(timer!);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
 }
 
 const KOMPONEN_DARI_JENIS_PENILAIAN: Record<string, string> = {
@@ -37,38 +160,33 @@ const KOMPONEN_DARI_JENIS_PENILAIAN: Record<string, string> = {
  * itu selesai dibuat, supaya semua sumbernya sudah ada.
  */
 async function generateNilaiDariHasilAsli(sekolahId: string) {
+  // Perf — sebelumnya 1 `prisma.nilai.upsert()` PER baris (bisa puluhan ribu, krn jumlahnya
+  // proporsional ke total UjianPengerjaan/PengumpulanTugas sekolah ybs, jauh lebih tinggi dari
+  // yang kelihatan dari 1 call-site ini). Diganti: kumpulkan ke Map dulu (key = kombinasi unique
+  // constraint-nya, entry BELAKANGAN menang — meniru semantik upsert sekuensial "yang terakhir
+  // menang"), lalu SATU `createMany` batch di akhir. `skipDuplicates: true` cuma jaring pengaman
+  // (harusnya tak pernah kepakai di seed bersih ini — Nilai sudah dikosongkan total di awal & tiap
+  // kombinasi kunci di sini terbukti unik) BUKAN pengganti update — tak ada UPDATE nilai lama di sini.
   const pengerjaanSelesai = await prisma.ujianPengerjaan.findMany({
     where: { status: { in: ["SELESAI", "AUTO_SUBMIT"] }, nilaiTotal: { not: null }, siswa: { sekolahId } },
     include: { ujian: true, siswa: true },
   });
-  for (const p of pengerjaanSelesai) {
-    const komponen = KOMPONEN_DARI_JENIS_PENILAIAN[p.ujian.jenisPenilaian] ?? "Ulangan Harian";
-    await prisma.nilai.upsert({
-      where: {
-        siswaId_kelasId_mapelId_komponen_judul: {
-          siswaId: p.siswaId, kelasId: p.siswa.kelasId, mapelId: p.ujian.mapelId, komponen, judul: p.ujian.judul,
-        },
-      },
-      update: { skor: p.nilaiTotal! },
-      create: { siswaId: p.siswaId, kelasId: p.siswa.kelasId, mapelId: p.ujian.mapelId, komponen, judul: p.ujian.judul, skor: p.nilaiTotal! },
-    });
-  }
-
   const tugasDinilai = await prisma.pengumpulanTugas.findMany({
     where: { nilai: { not: null }, siswa: { sekolahId } },
     include: { tugas: true, siswa: true },
   });
-  for (const t of tugasDinilai) {
-    await prisma.nilai.upsert({
-      where: {
-        siswaId_kelasId_mapelId_komponen_judul: {
-          siswaId: t.siswaId, kelasId: t.siswa.kelasId, mapelId: t.tugas.mapelId, komponen: "Tugas", judul: t.tugas.judul,
-        },
-      },
-      update: { skor: t.nilai! },
-      create: { siswaId: t.siswaId, kelasId: t.siswa.kelasId, mapelId: t.tugas.mapelId, komponen: "Tugas", judul: t.tugas.judul, skor: t.nilai! },
-    });
+
+  const nilaiByKey = new Map<string, { siswaId: string; kelasId: string; mapelId: string; komponen: string; judul: string; skor: number }>();
+  for (const p of pengerjaanSelesai) {
+    const komponen = KOMPONEN_DARI_JENIS_PENILAIAN[p.ujian.jenisPenilaian] ?? "Ulangan Harian";
+    const row = { siswaId: p.siswaId, kelasId: p.siswa.kelasId, mapelId: p.ujian.mapelId, komponen, judul: p.ujian.judul, skor: p.nilaiTotal! };
+    nilaiByKey.set(`${row.siswaId}|${row.kelasId}|${row.mapelId}|${row.komponen}|${row.judul}`, row);
   }
+  for (const t of tugasDinilai) {
+    const row = { siswaId: t.siswaId, kelasId: t.siswa.kelasId, mapelId: t.tugas.mapelId, komponen: "Tugas", judul: t.tugas.judul, skor: t.nilai! };
+    nilaiByKey.set(`${row.siswaId}|${row.kelasId}|${row.mapelId}|${row.komponen}|${row.judul}`, row);
+  }
+  await createManyChunked((data) => prisma.nilai.createMany({ data, skipDuplicates: true }), [...nilaiByKey.values()]);
 }
 
 // 1.20, diminta eksplisit — 30 sekolah SUNGGUHAN (npsn/alamat/kecamatan/kabupaten/provinsi/lat/long)
@@ -396,24 +514,32 @@ async function main() {
     return list;
   }
 
+  // Perf — dulu 1 `prisma.siswa.create()` per siswa (720 round-trip cuma utk sekolah utama, lebih
+  // lagi kalau dihitung sekolah lain & tahun ajaran historis yg reuse fungsi ini). Sekarang id
+  // di-generate di JS (`newId()`, dibutuhkan krn kode setelah ini langsung pakai `.id` baris² ini
+  // sebelum row-nya sendiri masuk DB — mis. utk FK Absensi/Tagihan/WaliSiswa) lalu SATU `createMany`.
   async function buatSiswa(list: { nisn: string; nama: string; jk: "L" | "P" }[], kelasId: string, tingkat: number) {
-    const hasil = [];
-    for (const s of list) {
+    const now = new Date();
+    const hasil = list.map((s) => {
       const usia = tingkat + 5; // perkiraan usia siswa SD
       const tanggalLahir = new Date(2026 - usia, Math.floor(Math.random() * 12), 1 + Math.floor(Math.random() * 27));
-      const siswa = await prisma.siswa.create({
-        data: {
-          sekolahId: sekolah.id,
-          kelasId,
-          nisn: s.nisn,
-          nama: s.nama,
-          jenisKelamin: s.jk,
-          tanggalLahir,
-          alamat: `Jl. Mawar No. ${1 + Math.floor(Math.random() * 90)}, Kota Harapan`,
-        },
-      });
-      hasil.push(siswa);
-    }
+      return {
+        id: newId(),
+        sekolahId: sekolah.id,
+        kelasId,
+        nisn: s.nisn,
+        nama: s.nama,
+        jenisKelamin: s.jk,
+        tanggalLahir,
+        alamat: `Jl. Mawar No. ${1 + Math.floor(Math.random() * 90)}, Kota Harapan`,
+        akunId: null as string | null,
+        aktif: true,
+        tanggalKeluar: null as Date | null,
+        keteranganKeluar: null as string | null,
+        createdAt: now,
+      };
+    });
+    await createManyChunked((data) => prisma.siswa.createMany({ data }), hasil);
     return hasil;
   }
 
@@ -490,25 +616,32 @@ async function main() {
   // tapi datanya sendiri jauh dari realistis. Sekarang SEMUA siswa dapat wali otomatis.
   console.log("👨‍👩‍👧 Melengkapi wali untuk semua siswa lain yang belum punya...");
   const siswaSudahAdaWali = new Set([ahmadFauzi.id, siswa5B[1].id, siswaKelas4A[0].id, siswaKelas6A[0].id, siswaKelas1A[0].id]);
+  // Perf — dulu 2 round-trip sekuensial (Pengguna.create + WaliSiswa.create) PER siswa (±715 siswa
+  // = ±1430 round-trip). Id akun wali di-generate di JS supaya WaliSiswa bisa langsung dibuat dari
+  // array yang sama tanpa nunggu insert Pengguna-nya, lalu masing² SATU createMany.
+  const waliAkunRowsMain: { id: string; sekolahId: string; nama: string; email: string; passwordHash: string; peran: "ORANG_TUA"; jenisKelamin: string; telepon: string }[] = [];
+  const waliSiswaRowsMain: { siswaId: string; penggunaId: string; hubungan: string }[] = [];
   for (const info of semuaKelasInfo) {
     for (let idx = 0; idx < info.siswa.length; idx++) {
       const s = info.siswa[idx];
       if (siswaSudahAdaWali.has(s.id)) continue;
       const jenisKelaminWali = idx % 2 === 0 ? "P" : "L";
-      const waliAkun = await prisma.pengguna.create({
-        data: {
-          sekolahId: sekolah.id,
-          nama: `${jenisKelaminWali === "P" ? "Ibu" : "Bpk."} ${s.nama.split(" ")[0]}`,
-          email: `wali.${s.nisn}@selarasajar.demo`,
-          passwordHash: hash,
-          peran: "ORANG_TUA",
-          jenisKelamin: jenisKelaminWali,
-          telepon: `0812345${s.nisn.slice(-5)}`,
-        },
+      const waliAkunId = newId();
+      waliAkunRowsMain.push({
+        id: waliAkunId,
+        sekolahId: sekolah.id,
+        nama: `${jenisKelaminWali === "P" ? "Ibu" : "Bpk."} ${s.nama.split(" ")[0]}`,
+        email: `wali.${s.nisn}@selarasajar.demo`,
+        passwordHash: hash,
+        peran: "ORANG_TUA",
+        jenisKelamin: jenisKelaminWali,
+        telepon: `0812345${s.nisn.slice(-5)}`,
       });
-      await prisma.waliSiswa.create({ data: { siswaId: s.id, penggunaId: waliAkun.id, hubungan: jenisKelaminWali === "P" ? "Ibu" : "Ayah" } });
+      waliSiswaRowsMain.push({ siswaId: s.id, penggunaId: waliAkunId, hubungan: jenisKelaminWali === "P" ? "Ibu" : "Ayah" });
     }
   }
+  await createManyChunked((data) => prisma.pengguna.createMany({ data }), waliAkunRowsMain);
+  await createManyChunked((data) => prisma.waliSiswa.createMany({ data }), waliSiswaRowsMain);
 
   console.log("✓ Membuat absensi (4 minggu terakhir, semua 24 kelas)...");
   const hariSekolah: Date[] = [];
@@ -522,6 +655,10 @@ async function main() {
   // 1.20, diminta eksplisit — guru bisa kasih catatan per murid saat absensi (mis. alasan sakit/izin).
   const CATATAN_SAKIT = ["Demam sejak semalam.", "Sakit perut, sudah izin ke UKS.", "Flu, istirahat di rumah."];
   const CATATAN_IZIN = ["Ada acara keluarga.", "Mengurus dokumen di kelurahan.", "Menjenguk kakek yang sakit."];
+  // Perf — dulu 1 create per (kelas × hari × siswa) = 24×20×30 = 14.400 round-trip sekuensial.
+  // Dikumpulkan ke 1 array lalu di-insert lewat createManyChunked (dipecah otomatis per CHUNK_SIZE
+  // baris supaya tak kena limit parameter statement Postgres).
+  const absensiRowsMain: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi; catatan: string | null }[] = [];
   for (const info of semuaKelasInfo) {
     for (const tgl of hariSekolah) {
       for (let i = 0; i < info.siswa.length; i++) {
@@ -531,12 +668,11 @@ async function main() {
         if (roll === 0) { status = "SAKIT"; catatan = CATATAN_SAKIT[i % CATATAN_SAKIT.length]; }
         else if (roll === 1) { status = "IZIN"; catatan = CATATAN_IZIN[i % CATATAN_IZIN.length]; }
         else if (roll === 2 && tgl.getDate() % 5 === 0) status = "ALPA";
-        await prisma.absensi.create({
-          data: { siswaId: info.siswa[i].id, kelasId: info.kelas.id, tanggal: tgl, status, catatan },
-        });
+        absensiRowsMain.push({ siswaId: info.siswa[i].id, kelasId: info.kelas.id, tanggal: tgl, status, catatan });
       }
     }
   }
+  await createManyChunked((data) => prisma.absensi.createMany({ data }), absensiRowsMain);
 
   // 1.21 — Nilai TIDAK lagi digenerate sintetis di sini; diderivasi dari UjianPengerjaan/PengumpulanTugas
   // asli lewat generateNilaiDariHasilAsli() SETELAH ujian & tugas sekolah ini selesai dibuat (lihat di bawah).
@@ -561,7 +697,9 @@ async function main() {
   }));
   const periodeIni = periodeDenganJatuhTempo[2].periode;
 
+  // Perf — dulu 1 create per (periode × kelas × siswa) = 3×24×30 = 2.160 round-trip sekuensial.
   let tagihanIdx = 0;
+  const tagihanSppRowsMain: { siswaId: string; tipeId: string; periode: string; nominal: number; status: StatusTagihan; jatuhTempo: Date; dibayarPada?: Date; metodeBayar?: string; tahunAjaranId: string }[] = [];
   for (const { periode, jatuhTempo } of periodeDenganJatuhTempo) {
     for (const info of semuaKelasInfo) {
       const nominal = nominalPerTingkat[info.kelas.tingkat];
@@ -582,48 +720,45 @@ async function main() {
           dibayarPada = null;
           metode = null;
         }
-        await prisma.tagihan.create({
-          data: {
-            siswaId: s.id,
-            tipeId: spp.id,
-            periode,
-            nominal,
-            status,
-            jatuhTempo,
-            dibayarPada: dibayarPada ?? undefined,
-            metodeBayar: metode ?? undefined,
-            tahunAjaranId: info.kelas.tahunAjaranId,
-          },
+        tagihanSppRowsMain.push({
+          siswaId: s.id,
+          tipeId: spp.id,
+          periode,
+          nominal,
+          status,
+          jatuhTempo,
+          dibayarPada: dibayarPada ?? undefined,
+          metodeBayar: metode ?? undefined,
+          tahunAjaranId: info.kelas.tahunAjaranId,
         });
         tagihanIdx++;
       }
     }
   }
+  await createManyChunked((data) => prisma.tagihan.createMany({ data }), tagihanSppRowsMain);
 
   // 1.20, diminta eksplisit — bendahara/kepsek bisa bikin tagihan LAIN selain SPP (buku/seragam/dst).
   console.log("₽ Membuat contoh tagihan non-SPP (Buku Paket & Seragam)...");
   const bukuPaket = await prisma.tagihanTipe.create({ data: { sekolahId: sekolah.id, nama: "Buku Paket" } });
   const seragam = await prisma.tagihanTipe.create({ data: { sekolahId: sekolah.id, nama: "Seragam" } });
+  const tagihanNonSppRowsMain: { siswaId: string; tipeId: string; periode: string; nominal: number; status: StatusTagihan; jatuhTempo: Date; dibayarPada: Date | null; tahunAjaranId: string }[] = [];
   for (const info of semuaKelasInfo.slice(0, 4)) {
     for (let i = 0; i < info.siswa.length; i++) {
       const lunasBuku = i % 3 !== 0;
-      await prisma.tagihan.create({
-        data: {
-          siswaId: info.siswa[i].id, tipeId: bukuPaket.id, periode: "Tahun Ajaran 2026/2027", nominal: 150000,
-          status: lunasBuku ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasBuku ? new Date() : null,
-          tahunAjaranId: info.kelas.tahunAjaranId,
-        },
+      tagihanNonSppRowsMain.push({
+        siswaId: info.siswa[i].id, tipeId: bukuPaket.id, periode: "Tahun Ajaran 2026/2027", nominal: 150000,
+        status: lunasBuku ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasBuku ? new Date() : null,
+        tahunAjaranId: info.kelas.tahunAjaranId,
       });
       const lunasSeragam = i % 4 !== 0;
-      await prisma.tagihan.create({
-        data: {
-          siswaId: info.siswa[i].id, tipeId: seragam.id, periode: "Tahun Ajaran 2026/2027", nominal: 250000,
-          status: lunasSeragam ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasSeragam ? new Date() : null,
-          tahunAjaranId: info.kelas.tahunAjaranId,
-        },
+      tagihanNonSppRowsMain.push({
+        siswaId: info.siswa[i].id, tipeId: seragam.id, periode: "Tahun Ajaran 2026/2027", nominal: 250000,
+        status: lunasSeragam ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasSeragam ? new Date() : null,
+        tahunAjaranId: info.kelas.tahunAjaranId,
       });
     }
   }
+  await createManyChunked((data) => prisma.tagihan.createMany({ data }), tagihanNonSppRowsMain);
 
   console.log("▢ Membuat materi belajar (semua kelas & mapel)...");
   // 1.23 — Bab (master data per-mapel) dibuat SEKALI per mapel, direuse lintas semua kelas —
@@ -634,25 +769,26 @@ async function main() {
     babSatuPerMapel[mapelNama] = bab.id;
   }
   const babPecahan = await prisma.bab.create({ data: { sekolahId: sekolah.id, mapelId: mapelMap["Matematika"], nama: "Bab 2 - Pecahan" } });
+  // Perf — dulu 1 create per (kelas × mapel) = 24×8 = 192 round-trip sekuensial.
+  const materiRowsMain: { kelasId: string; mapelId: string; penggunaId: string; judul: string; tipe: string; isi: string; babId: string }[] = [];
   for (const info of semuaKelasInfo) {
     for (const mapelNama of MAPEL_NAMA) {
-      await prisma.materiBelajar.create({
-        data: {
-          kelasId: info.kelas.id,
-          mapelId: mapelMap[mapelNama],
-          penggunaId: rina.akun.id,
-          judul: `Rangkuman ${mapelNama} — ${info.kelas.nama}`,
-          // Feedback teknis (Sep 2026) — ditemukan tak sengaja: sebelumnya tipe "dokumen" tapi
-          // `isi` diisi KALIMAT deskripsi (bukan path berkas beneran), jadi tombol "Unduh berkas"
-          // di UI hrefnya jadi kalimat itu sendiri, bukan berkas apa pun. "catatan" cocok krn isinya
-          // memang teks, bukan tautan/berkas.
-          tipe: "catatan",
-          isi: `Ringkasan materi ${mapelNama} untuk kelas ${info.kelas.nama}.`,
-          babId: babSatuPerMapel[mapelNama],
-        },
+      materiRowsMain.push({
+        kelasId: info.kelas.id,
+        mapelId: mapelMap[mapelNama],
+        penggunaId: rina.akun.id,
+        judul: `Rangkuman ${mapelNama} — ${info.kelas.nama}`,
+        // Feedback teknis (Sep 2026) — ditemukan tak sengaja: sebelumnya tipe "dokumen" tapi
+        // `isi` diisi KALIMAT deskripsi (bukan path berkas beneran), jadi tombol "Unduh berkas"
+        // di UI hrefnya jadi kalimat itu sendiri, bukan berkas apa pun. "catatan" cocok krn isinya
+        // memang teks, bukan tautan/berkas.
+        tipe: "catatan",
+        isi: `Ringkasan materi ${mapelNama} untuk kelas ${info.kelas.nama}.`,
+        babId: babSatuPerMapel[mapelNama],
       });
     }
   }
+  await createManyChunked((data) => prisma.materiBelajar.createMany({ data }), materiRowsMain);
   const materiPecahan = await prisma.materiBelajar.create({
     data: {
       kelasId: kelas5B.id,
@@ -739,7 +875,12 @@ async function main() {
 
   // 1.8, diminta eksplisit: 5-10 tugas per kelas (acak), pakai mapel+guru yang benar-benar
   // mengajar kelas itu (dari penugasanByKelas) — bukan satu mapel sembarang per kelas.
+  // Perf — dulu 1 create Tugas + rata-rata ~6-7 create PengumpulanTugas per tugas, sekuensial,
+  // ×24 kelas ×~7.5 tugas ≈ 180 Tugas + ±1200 PengumpulanTugas round-trip. Id Tugas di-generate di
+  // JS supaya PengumpulanTugas bisa langsung dibuat dari array yang sama, lalu masing² SATU createMany.
   const JUDUL_TUGAS = ["Latihan Soal", "Rangkuman Bab", "Kerja Kelompok", "Refleksi Pembelajaran", "Portofolio Mingguan", "Kuis Harian", "Proyek Mini", "Lembar Kerja Siswa"];
+  const tugasRowsMain: { id: string; kelasId: string; mapelId: string; penggunaId: string; judul: string; instruksi: string; tenggat: Date }[] = [];
+  const pengumpulanRowsMain: { tugasId: string; siswaId: string; isiJawaban: string; terlambat: boolean; nilai: number | null; catatanGuru: string | null; submitAt: Date }[] = [];
   for (const info of semuaKelasInfo) {
     const sudahAdaDiKelasIni = info.kelas.id === kelas5B.id ? 1 : 0; // tugasPecahan
     const targetJumlah = 5 + Math.floor(Math.random() * 6); // 5-10
@@ -751,15 +892,16 @@ async function main() {
       const mapelNama = Object.entries(mapelMap).find(([, id]) => id === pengajar.mapelId)?.[0] ?? "Umum";
       const judulTugas = JUDUL_TUGAS[n % JUDUL_TUGAS.length];
       const sudahLewatTenggat = n % 2 === 0;
-      const tugasBaru = await prisma.tugas.create({
-        data: {
-          kelasId: info.kelas.id,
-          mapelId: pengajar.mapelId,
-          penggunaId: pengajar.guruAkunId,
-          judul: `${judulTugas} ${mapelNama} — ${info.kelas.nama}`,
-          instruksi: `Kerjakan ${judulTugas.toLowerCase()} ${mapelNama} sesuai materi minggu ini.\n\n- Kerjakan di buku tulis\n- Foto & unggah hasilnya`,
-          tenggat: sudahLewatTenggat ? new Date(Date.now() - (1 + (n % 5)) * 86400000) : new Date(Date.now() + (1 + (n % 7)) * 86400000),
-        },
+      const tugasId = newId();
+      const tenggat = sudahLewatTenggat ? new Date(Date.now() - (1 + (n % 5)) * 86400000) : new Date(Date.now() + (1 + (n % 7)) * 86400000);
+      tugasRowsMain.push({
+        id: tugasId,
+        kelasId: info.kelas.id,
+        mapelId: pengajar.mapelId,
+        penggunaId: pengajar.guruAkunId,
+        judul: `${judulTugas} ${mapelNama} — ${info.kelas.nama}`,
+        instruksi: `Kerjakan ${judulTugas.toLowerCase()} ${mapelNama} sesuai materi minggu ini.\n\n- Kerjakan di buku tulis\n- Foto & unggah hasilnya`,
+        tenggat,
       });
       // Sebagian siswa di tiap kelas sudah mengumpulkan — sebagian sudah dinilai, sebagian belum.
       const jumlahKumpul = Math.min(info.siswa.length, 4 + (n % 5));
@@ -768,20 +910,20 @@ async function main() {
         // 1.11, diperbaiki (ditemukan saat testing) — `terlambat` dihitung dari submitAt vs tenggat
         // sungguhan (bukan flag acak lepas yang bisa nunjuk salah pas tenggatnya masih di masa depan).
         const submitAtI = new Date(Date.now() - (3 - (i % 3)) * 86400000);
-        await prisma.pengumpulanTugas.create({
-          data: {
-            tugasId: tugasBaru.id,
-            siswaId: info.siswa[i].id,
-            isiJawaban: `Jawaban ${mapelNama} dari ${info.siswa[i].nama}.`,
-            terlambat: submitAtI > tugasBaru.tenggat,
-            nilai: sudahDinilai ? 65 + ((i * 7) % 35) : null,
-            catatanGuru: sudahDinilai ? "Kerjakan lebih rapi lagi ya." : null,
-            submitAt: submitAtI,
-          },
+        pengumpulanRowsMain.push({
+          tugasId,
+          siswaId: info.siswa[i].id,
+          isiJawaban: `Jawaban ${mapelNama} dari ${info.siswa[i].nama}.`,
+          terlambat: submitAtI > tenggat,
+          nilai: sudahDinilai ? 65 + ((i * 7) % 35) : null,
+          catatanGuru: sudahDinilai ? "Kerjakan lebih rapi lagi ya." : null,
+          submitAt: submitAtI,
         });
       }
     }
   }
+  await createManyChunked((data) => prisma.tugas.createMany({ data }), tugasRowsMain);
+  await createManyChunked((data) => prisma.pengumpulanTugas.createMany({ data }), pengumpulanRowsMain);
 
   console.log("✉ Membuat pengumuman & pesan 2 arah...");
   await prisma.pesan.create({
@@ -912,24 +1054,27 @@ async function main() {
       { jenis: "ESAI", pertanyaan: "Write 3-4 sentences to introduce yourself in English.", topik: "Writing" },
     ],
   };
+  // Perf — dulu 1 create per soal template (~8 mapel × ~20 soal). ID soal² ini tak direferensi
+  // baris lain sesudahnya (beda dgn soalPecahan dkk di atas yg tetap individual create krn
+  // variabelnya dipakai luas di bawah), jadi aman langsung createMany tanpa pregenerate id.
+  const soalTemplateRowsMain: { sekolahId: string; mapelId: string; dibuatOlehId: string; jenis: JenisSoal; pertanyaan: string; opsi: string | null; kunciJawaban: string | null; topik: string; tingkatKesulitan: string; poinDefault: number }[] = [];
   for (const [mapelNama, list] of Object.entries(soalTemplatePerMapel)) {
     for (const t of list) {
-      await prisma.soal.create({
-        data: {
-          sekolahId: sekolah.id,
-          mapelId: mapelMap[mapelNama],
-          dibuatOlehId: rina.akun.id,
-          jenis: t.jenis,
-          pertanyaan: t.pertanyaan,
-          opsi: t.opsi ? JSON.stringify(t.opsi) : null,
-          kunciJawaban: t.kunci ?? null,
-          topik: t.topik,
-          tingkatKesulitan: "sedang",
-          poinDefault: 20,
-        },
+      soalTemplateRowsMain.push({
+        sekolahId: sekolah.id,
+        mapelId: mapelMap[mapelNama],
+        dibuatOlehId: rina.akun.id,
+        jenis: t.jenis,
+        pertanyaan: t.pertanyaan,
+        opsi: t.opsi ? JSON.stringify(t.opsi) : null,
+        kunciJawaban: t.kunci ?? null,
+        topik: t.topik,
+        tingkatKesulitan: "sedang",
+        poinDefault: 20,
       });
     }
   }
+  await createManyChunked((data) => prisma.soal.createMany({ data }), soalTemplateRowsMain);
 
   // 1.10, diminta eksplisit: tiap ujian butuh 20 soal, jadi bank per mapel perlu lebih dari itu —
   // pertahankan soal asli di atas (kualitas tertinggi), tambah soal latihan generik utk volume.
@@ -944,33 +1089,33 @@ async function main() {
     "Seni Budaya": ["Seni Musik", "Seni Rupa", "Seni Tari", "Seni Teater", "Kerajinan"],
     "Bahasa Inggris": ["Vocabulary", "Grammar", "Reading", "Writing", "Speaking"],
   };
+  const soalPelengkapRowsMain: { sekolahId: string; mapelId: string; dibuatOlehId: string; jenis: "PILIHAN_GANDA"; pertanyaan: string; opsi: string; kunciJawaban: string; topik: string; tingkatKesulitan: string; poinDefault: number }[] = [];
   for (const [mapelNama, mapelId] of Object.entries(mapelMap)) {
     const jumlahAda = await prisma.soal.count({ where: { mapelId } });
     const topikList = topikPerMapel[mapelNama] ?? ["Materi Umum"];
     const target = 24;
     for (let i = jumlahAda; i < target; i++) {
       const topik = topikList[i % topikList.length];
-      await prisma.soal.create({
-        data: {
-          sekolahId: sekolah.id,
-          mapelId,
-          dibuatOlehId: rina.akun.id,
-          jenis: "PILIHAN_GANDA",
-          pertanyaan: `Latihan ${topik} — soal variasi ${i + 1}`,
-          opsi: JSON.stringify([
-            `Berkaitan langsung dengan ${topik}`,
-            "Tidak relevan dengan topik ini",
-            "Hanya berlaku pada topik lain",
-            "Bukan bagian dari pelajaran ini",
-          ]),
-          kunciJawaban: "0",
-          topik,
-          tingkatKesulitan: "sedang",
-          poinDefault: 5,
-        },
+      soalPelengkapRowsMain.push({
+        sekolahId: sekolah.id,
+        mapelId,
+        dibuatOlehId: rina.akun.id,
+        jenis: "PILIHAN_GANDA",
+        pertanyaan: `Latihan ${topik} — soal variasi ${i + 1}`,
+        opsi: JSON.stringify([
+          `Berkaitan langsung dengan ${topik}`,
+          "Tidak relevan dengan topik ini",
+          "Hanya berlaku pada topik lain",
+          "Bukan bagian dari pelajaran ini",
+        ]),
+        kunciJawaban: "0",
+        topik,
+        tingkatKesulitan: "sedang",
+        poinDefault: 5,
       });
     }
   }
+  await createManyChunked((data) => prisma.soal.createMany({ data }), soalPelengkapRowsMain);
 
   console.log("▤ Membuat ujian (variasi status, termasuk demo penggandaan multi-kelas 1.8)...");
   // U-1 (1.8, diminta eksplisit): "guru bikin 1 ujian untuk 5 kelas → 5 ujian tersimpan sendiri-
@@ -1148,8 +1293,25 @@ async function main() {
   }
   const JUDUL_UJIAN = ["Ulangan Harian", "Kuis", "Penilaian Tengah Bab", "Latihan Soal", "Penilaian Akhir Bab", "Tes Formatif"];
   const JENIS_PENILAIAN_URUT = ["HARIAN", "HARIAN", "HARIAN", "HARIAN", "UTS", "HARIAN", "HARIAN", "UAS"] as const;
+  // Perf — INI hot loop terbesar di seluruh seed. Sebelumnya per ujian: 1 create Ujian (+ nested
+  // create UjianKelas) + 1 createMany UjianSoal, DAN kalau variasi==2 (±1 dari tiap 4 ujian) masih
+  // ditambah, PER SISWA DI KELAS ITU (±30): 1 create UjianPengerjaan + 1 createMany UjianJawaban
+  // kecil (per siswa) + 1 update UjianPengerjaan. Totalnya ±24 kelas × ~8 mapel × ~7.5 ujian/mapel
+  // = ±1440 ujian, dan ±336 di antaranya "variasi 2" × 30 siswa = ±10.000 round-trip cuma di sini.
+  // Sekarang id Ujian & UjianPengerjaan di-generate di JS (`newId()`) supaya SEMUA baris anak
+  // (UjianKelas/UjianSoal/UjianJawaban) bisa dirakit dulu sbg array biasa, nilaiTotal dihitung
+  // langsung di JS (bukan dari row yg baru di-insert) jadi UjianPengerjaan.update di atas jadi tak
+  // perlu lagi — nilainya langsung ikut dipasang saat createMany. Batch di-flush per KELAS (bukan
+  // ditumpuk utk 24 kelas sekaligus) supaya ukuran tiap createMany tetap wajar; createManyChunked
+  // tetap jaga-jaga kalau 1 kelas kebetulan menghasilkan ribuan baris jawaban.
   for (const info of semuaKelasInfo) {
     const daftarPengajar = penugasanByKelas.get(info.kelas.id) ?? [];
+
+    const ujianRowsKelas: { id: string; mapelId: string; dibuatOlehId: string; judul: string; jenis: "UJIAN" | "LATIHAN"; status: "DRAFT" | "PUBLISHED"; jenisPenilaian: (typeof JENIS_PENILAIAN_URUT)[number]; durasiMenit: number | null; acakSoal: boolean; acakJawaban: boolean; sekaliAkses: boolean }[] = [];
+    const ujianKelasRowsKelas: { ujianId: string; kelasId: string; jamMulai: Date | null; jamSelesai: Date | null }[] = [];
+    const ujianSoalRowsKelas: { ujianId: string; soalId: string; urutan: number; poin: number }[] = [];
+    const pengerjaanRowsKelas: { id: string; ujianId: string; siswaId: string; status: "SELESAI"; soalUrutan: string; waktuMulai: Date; waktuSelesai: Date; nilaiTotal: number; koreksiDikonfirmasi: boolean; dikonfirmasiPada: Date }[] = [];
+    const jawabanRowsKelas: { pengerjaanId: string; soalId: string; opsiUrutan?: string; jawabanPG?: number; jawabanPGMulti?: string; jawabanTeks?: string; benar?: boolean; skor: number; dinilaiOlehId?: string }[] = [];
 
     for (const pengajar of daftarPengajar) {
       const soalMapelIni = soalByMapel.get(pengajar.mapelId) ?? [];
@@ -1168,36 +1330,30 @@ async function main() {
         const soalDipakai = acak(soalMapelIni).slice(0, Math.min(20, soalMapelIni.length));
         if (soalDipakai.length === 0) continue;
 
-        const ujianBaru = await prisma.ujian.create({
-          data: {
-            mapelId: pengajar.mapelId,
-            dibuatOlehId: pengajar.guruAkunId,
-            judul: `${judulUjian} ${mapelNama}`,
-            jenis,
-            status,
-            jenisPenilaian,
-            durasiMenit: jenis === "UJIAN" ? 30 + (n % 3) * 15 : null,
-            acakSoal: true,
-            acakJawaban: true,
-            sekaliAkses: jenis === "UJIAN",
-            kelas:
-              status === "PUBLISHED"
-                ? {
-                    create: [
-                      {
-                        kelasId: info.kelas.id,
-                        jamMulai: variasi === 2 ? new Date(Date.now() - (2 + n) * 86400000) : new Date(Date.now() - 60 * 60 * 1000),
-                        jamSelesai: variasi === 2 ? new Date(Date.now() - (1 + n) * 86400000) : new Date(Date.now() + (2 + n) * 60 * 60 * 1000),
-                      },
-                    ],
-                  }
-                : { create: [{ kelasId: info.kelas.id }] },
-          },
+        const ujianId = newId();
+        ujianRowsKelas.push({
+          id: ujianId,
+          mapelId: pengajar.mapelId,
+          dibuatOlehId: pengajar.guruAkunId,
+          judul: `${judulUjian} ${mapelNama}`,
+          jenis,
+          status,
+          jenisPenilaian,
+          durasiMenit: jenis === "UJIAN" ? 30 + (n % 3) * 15 : null,
+          acakSoal: true,
+          acakJawaban: true,
+          sekaliAkses: jenis === "UJIAN",
+        });
+        ujianKelasRowsKelas.push({
+          ujianId,
+          kelasId: info.kelas.id,
+          jamMulai: status === "PUBLISHED" ? (variasi === 2 ? new Date(Date.now() - (2 + n) * 86400000) : new Date(Date.now() - 60 * 60 * 1000)) : null,
+          jamSelesai: status === "PUBLISHED" ? (variasi === 2 ? new Date(Date.now() - (1 + n) * 86400000) : new Date(Date.now() + (2 + n) * 60 * 60 * 1000)) : null,
         });
         const poinPerSoal = Math.floor(100 / soalDipakai.length);
-        await prisma.ujianSoal.createMany({
-          data: soalDipakai.map((s, i) => ({ ujianId: ujianBaru.id, soalId: s.id, urutan: i + 1, poin: poinPerSoal })),
-        });
+        for (const [i, s] of soalDipakai.entries()) {
+          ujianSoalRowsKelas.push({ ujianId, soalId: s.id, urutan: i + 1, poin: poinPerSoal });
+        }
 
         // Untuk yang statusnya "selesai" (variasi 2), tambahkan beberapa pengerjaan LENGKAP dengan
         // jawaban per soal (1.10, diminta eksplisit) — bukan cuma baris ringkasan nilaiTotal, supaya
@@ -1210,22 +1366,9 @@ async function main() {
           for (let i = 0; i < jumlahKerja; i++) {
             const mulai = new Date(Date.now() - (3 + n) * 86400000);
             const selesai = new Date(mulai.getTime() + 35 * 60 * 1000);
-            const pengerjaanSelesai = await prisma.ujianPengerjaan.create({
-              data: {
-                ujianId: ujianBaru.id,
-                siswaId: info.siswa[i].id,
-                status: "SELESAI",
-                soalUrutan: JSON.stringify(acak(soalDipakai.map((s) => s.id))),
-                waktuMulai: mulai,
-                waktuSelesai: selesai,
-              },
-            });
+            const pengerjaanId = newId();
 
             let totalNilai = 0;
-            const jawabanRows: {
-              pengerjaanId: string; soalId: string; opsiUrutan?: string; jawabanPG?: number; jawabanPGMulti?: string;
-              jawabanTeks?: string; benar?: boolean; skor: number; dinilaiOlehId?: string;
-            }[] = [];
             for (const s of soalDipakai) {
               const benar = (i + n + s.pertanyaan.length) % 3 !== 0; // ~2/3 benar, deterministik
               if (s.jenis === "PILIHAN_GANDA" && s.opsi) {
@@ -1234,37 +1377,46 @@ async function main() {
                 const jawabanPG = benar ? kunciIdx : (kunciIdx + 1) % opsiArr.length;
                 const skor = benar ? poinPerSoal : 0;
                 totalNilai += skor;
-                jawabanRows.push({ pengerjaanId: pengerjaanSelesai.id, soalId: s.id, opsiUrutan: JSON.stringify(acak(opsiArr.map((_, idx) => idx))), jawabanPG, benar, skor });
+                jawabanRowsKelas.push({ pengerjaanId, soalId: s.id, opsiUrutan: JSON.stringify(acak(opsiArr.map((_, idx) => idx))), jawabanPG, benar, skor });
               } else if (s.jenis === "PILIHAN_GANDA_KOMPLEKS" && s.kunciJawaban) {
                 const kunci: number[] = JSON.parse(s.kunciJawaban);
                 const skor = benar ? poinPerSoal : 0;
                 totalNilai += skor;
-                jawabanRows.push({ pengerjaanId: pengerjaanSelesai.id, soalId: s.id, jawabanPGMulti: JSON.stringify(benar ? kunci : kunci.slice(0, 1)), benar, skor });
+                jawabanRowsKelas.push({ pengerjaanId, soalId: s.id, jawabanPGMulti: JSON.stringify(benar ? kunci : kunci.slice(0, 1)), benar, skor });
               } else if (s.jenis === "JAWABAN_SINGKAT") {
                 const skor = benar ? poinPerSoal : 0;
                 totalNilai += skor;
-                jawabanRows.push({ pengerjaanId: pengerjaanSelesai.id, soalId: s.id, jawabanTeks: benar ? (s.kunciJawaban ?? "") : "jawaban keliru", benar, skor });
+                jawabanRowsKelas.push({ pengerjaanId, soalId: s.id, jawabanTeks: benar ? (s.kunciJawaban ?? "") : "jawaban keliru", benar, skor });
               } else {
                 // ESAI — sudah dikoreksi manual, skor selalu terisi biar konsisten dgn koreksiDikonfirmasi=true di bawah.
                 const skor = Math.round(poinPerSoal * (0.6 + ((i + n) % 4) * 0.1));
                 totalNilai += skor;
-                jawabanRows.push({ pengerjaanId: pengerjaanSelesai.id, soalId: s.id, jawabanTeks: `Jawaban esai murid untuk "${s.pertanyaan.slice(0, 40)}..."`, skor, dinilaiOlehId: pengajar.guruAkunId });
+                jawabanRowsKelas.push({ pengerjaanId, soalId: s.id, jawabanTeks: `Jawaban esai murid untuk "${s.pertanyaan.slice(0, 40)}..."`, skor, dinilaiOlehId: pengajar.guruAkunId });
               }
             }
-            await prisma.ujianJawaban.createMany({ data: jawabanRows });
 
-            await prisma.ujianPengerjaan.update({
-              where: { id: pengerjaanSelesai.id },
-              data: {
-                nilaiTotal: totalNilai,
-                koreksiDikonfirmasi: true,
-                dikonfirmasiPada: selesai,
-              },
+            pengerjaanRowsKelas.push({
+              id: pengerjaanId,
+              ujianId,
+              siswaId: info.siswa[i].id,
+              status: "SELESAI",
+              soalUrutan: JSON.stringify(acak(soalDipakai.map((s) => s.id))),
+              waktuMulai: mulai,
+              waktuSelesai: selesai,
+              nilaiTotal: totalNilai,
+              koreksiDikonfirmasi: true,
+              dikonfirmasiPada: selesai,
             });
           }
         }
       }
     }
+
+    await createManyChunked((data) => prisma.ujian.createMany({ data }), ujianRowsKelas);
+    await createManyChunked((data) => prisma.ujianKelas.createMany({ data }), ujianKelasRowsKelas);
+    await createManyChunked((data) => prisma.ujianSoal.createMany({ data }), ujianSoalRowsKelas);
+    await createManyChunked((data) => prisma.ujianPengerjaan.createMany({ data }), pengerjaanRowsKelas);
+    await createManyChunked((data) => prisma.ujianJawaban.createMany({ data }), jawabanRowsKelas);
   }
 
   console.log("✎ Membuat nilai (diderivasi dari hasil ujian & tugas asli)...");
@@ -1332,8 +1484,13 @@ async function main() {
     { mulai: "10:00", selesai: "10:40" },
   ];
 
+  // Perf — dulu 1 create per JadwalEntry (±24 kelas × ~8 slot = ±192 round-trip). Id di-generate di
+  // JS supaya `jadwalEntryByKelasGuruHari` (dipakai presensi demo di bawah) bisa langsung diisi
+  // tanpa nunggu insert-nya; logika booking/urutan slot PERSIS sama, cuma eksekusi create-nya
+  // ditunda jadi 1 createMany di akhir.
   const guruBooked = new Set<string>(); // `${guruId}-${hari}-${mulai}`
   const jadwalEntryByKelasGuruHari = new Map<string, string>(); // utk presensi demo nanti: `${kelasId}-${guruId}` -> jadwalEntryId pertama
+  const jadwalEntryRowsMain: { id: string; kelasId: string; mapelId: string; guruId: string; hari: number; jamMulai: string; jamSelesai: string; tahunAjaranId: string }[] = [];
   for (const info of semuaKelasInfo) {
     const daftar = penugasanByKelas.get(info.kelas.id) ?? [];
     let idx = 0;
@@ -1343,17 +1500,17 @@ async function main() {
         const { mapelId, guruId } = daftar[idx];
         const key = `${guruId}-${hari}-${sesi.mulai}`;
         if (guruBooked.has(key)) continue;
-        const entry = await prisma.jadwalEntry.create({
-          data: { kelasId: info.kelas.id, mapelId, guruId, hari, jamMulai: sesi.mulai, jamSelesai: sesi.selesai, tahunAjaranId: tahunAjaran.id },
-        });
+        const entryId = newId();
+        jadwalEntryRowsMain.push({ id: entryId, kelasId: info.kelas.id, mapelId, guruId, hari, jamMulai: sesi.mulai, jamSelesai: sesi.selesai, tahunAjaranId: tahunAjaran.id });
         guruBooked.add(key);
         if (!jadwalEntryByKelasGuruHari.has(`${info.kelas.id}-${guruId}`)) {
-          jadwalEntryByKelasGuruHari.set(`${info.kelas.id}-${guruId}`, entry.id);
+          jadwalEntryByKelasGuruHari.set(`${info.kelas.id}-${guruId}`, entryId);
         }
         idx++;
       }
     }
   }
+  await createManyChunked((data) => prisma.jadwalEntry.createMany({ data }), jadwalEntryRowsMain);
 
   console.log("✓ Membuat presensi guru contoh (AG)...");
   const entryRinaDi5B = jadwalEntryByKelasGuruHari.get(`${kelas5B.id}-${rina.profil.id}`);
@@ -1544,6 +1701,8 @@ async function main() {
       data: { sekolahId: sekolah.id, label, semester: "Genap", aktif: false, mulai: new Date(mulai), selesai: new Date(selesai) },
     });
     const kelasHistorisByTingkat = new Map<number, Awaited<ReturnType<typeof prisma.kelas.create>>>();
+    const absensiRowsHistoris: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi }[] = [];
+    const nilaiRowsHistoris: { siswaId: string; kelasId: string; mapelId: string; komponen: string; judul: string; skor: number }[] = [];
     for (let tingkat = 1; tingkat <= 6; tingkat++) {
       const kelasHistoris = await prisma.kelas.create({
         data: { sekolahId: sekolah.id, tahunAjaranId: ta.id, nama: `${tingkat}A`, tingkat },
@@ -1568,17 +1727,18 @@ async function main() {
         const tgl = new Date(mulai);
         tgl.setDate(tgl.getDate() + i * 7);
         for (const s of siswaHistoris) {
-          await prisma.absensi.create({ data: { siswaId: s.id, kelasId: kelasHistoris.id, tanggal: tgl, status: i % 6 === 0 ? "IZIN" : "HADIR" } });
+          absensiRowsHistoris.push({ siswaId: s.id, kelasId: kelasHistoris.id, tanggal: tgl, status: i % 6 === 0 ? "IZIN" : "HADIR" });
         }
       }
       for (const s of siswaHistoris) {
-        await prisma.nilai.upsert({
-          where: { siswaId_kelasId_mapelId_komponen_judul: { siswaId: s.id, kelasId: kelasHistoris.id, mapelId: mapelMap["Matematika"], komponen: "Ulangan Harian", judul: `UH 1 - Matematika (${label})` } },
-          update: {},
-          create: { siswaId: s.id, kelasId: kelasHistoris.id, mapelId: mapelMap["Matematika"], komponen: "Ulangan Harian", judul: `UH 1 - Matematika (${label})`, skor: 65 + Math.floor(Math.random() * 30) },
-        });
+        nilaiRowsHistoris.push({ siswaId: s.id, kelasId: kelasHistoris.id, mapelId: mapelMap["Matematika"], komponen: "Ulangan Harian", judul: `UH 1 - Matematika (${label})`, skor: 65 + Math.floor(Math.random() * 30) });
       }
     }
+    // Perf — kedua loop di atas dulu 1 create/upsert per baris (±10 siswa × (5 hari absensi + 1
+    // nilai) × 6 tingkat = ±360 round-trip PER pemanggilan, fungsi ini dipanggil 2×). skipDuplicates
+    // dipakai di Nilai krn sumber aslinya upsert (aman krn kombinasi kuncinya terbukti unik per label).
+    await createManyChunked((data) => prisma.absensi.createMany({ data }), absensiRowsHistoris);
+    await createManyChunked((data) => prisma.nilai.createMany({ data, skipDuplicates: true }), nilaiRowsHistoris);
     return { ta, kelasHistorisByTingkat };
   }
   await buatTahunHistoris("2024/2025", "2025-01-13", "2025-06-20");
@@ -1637,26 +1797,31 @@ async function main() {
 
   type SoalTemplate = { jenis: "PILIHAN_GANDA" | "JAWABAN_SINGKAT" | "ESAI"; pertanyaan: string; opsi?: string[]; kunci?: string; topik: string };
 
+  // Perf — 3 seksi bank soal global di bawah (SD, SMP/SMA/SMK, pelengkap volume) dulu 1 create per
+  // soal (ratusan). Loop pelengkap di bawah butuh HASIL count() dari 2 seksi pertama (nentuin berapa
+  // lagi yg perlu ditambah per jenjang+mapel), jadi urutan insert-nya tetap dipertahankan sekuensial
+  // (SD → SMP/SMA/SMK → pelengkap) — cuma tiap seksi sendiri dikumpulkan ke array dulu lalu 1 createMany.
+  type SoalGlobalRow = { sekolahId: null; mapelNama: string; jenjang: string; dibuatOlehId: string; jenis: JenisSoal; pertanyaan: string; opsi: string | null; kunciJawaban: string | null; topik: string; tingkatKesulitan: string; poinDefault: number };
+  const soalSdGlobalRows: SoalGlobalRow[] = [];
   // Soal inti SD — dipindah dari sebelumnya (dulu tanpa jenjang eksplisit).
   for (const [mapelNamaGlobal, list] of Object.entries(soalTemplatePerMapel)) {
     for (const t of list) {
-      await prisma.soal.create({
-        data: {
-          sekolahId: null,
-          mapelNama: mapelNamaGlobal,
-          jenjang: "SD",
-          dibuatOlehId: superadmin.id,
-          jenis: t.jenis,
-          pertanyaan: t.pertanyaan,
-          opsi: t.opsi ? JSON.stringify(t.opsi) : null,
-          kunciJawaban: t.kunci ?? null,
-          topik: t.topik,
-          tingkatKesulitan: "sedang",
-          poinDefault: 20,
-        },
+      soalSdGlobalRows.push({
+        sekolahId: null,
+        mapelNama: mapelNamaGlobal,
+        jenjang: "SD",
+        dibuatOlehId: superadmin.id,
+        jenis: t.jenis,
+        pertanyaan: t.pertanyaan,
+        opsi: t.opsi ? JSON.stringify(t.opsi) : null,
+        kunciJawaban: t.kunci ?? null,
+        topik: t.topik,
+        tingkatKesulitan: "sedang",
+        poinDefault: 20,
       });
     }
   }
+  await createManyChunked((data) => prisma.soal.createMany({ data }), soalSdGlobalRows);
 
   // Soal inti SMP/SMA/SMK — konten baru per tingkat, bukan alias soal SD.
   const soalGlobalTambahan: Record<string, Record<string, SoalTemplate[]>> = {
@@ -1727,27 +1892,27 @@ async function main() {
       ],
     },
   };
+  const soalTambahanGlobalRows: SoalGlobalRow[] = [];
   for (const [jenjangBaru, perMapel] of Object.entries(soalGlobalTambahan)) {
     for (const [mapelNamaGlobal, list] of Object.entries(perMapel)) {
       for (const t of list) {
-        await prisma.soal.create({
-          data: {
-            sekolahId: null,
-            mapelNama: mapelNamaGlobal,
-            jenjang: jenjangBaru,
-            dibuatOlehId: superadmin.id,
-            jenis: t.jenis,
-            pertanyaan: t.pertanyaan,
-            opsi: t.opsi ? JSON.stringify(t.opsi) : null,
-            kunciJawaban: t.kunci ?? null,
-            topik: t.topik,
-            tingkatKesulitan: "sedang",
-            poinDefault: 20,
-          },
+        soalTambahanGlobalRows.push({
+          sekolahId: null,
+          mapelNama: mapelNamaGlobal,
+          jenjang: jenjangBaru,
+          dibuatOlehId: superadmin.id,
+          jenis: t.jenis,
+          pertanyaan: t.pertanyaan,
+          opsi: t.opsi ? JSON.stringify(t.opsi) : null,
+          kunciJawaban: t.kunci ?? null,
+          topik: t.topik,
+          tingkatKesulitan: "sedang",
+          poinDefault: 20,
         });
       }
     }
   }
+  await createManyChunked((data) => prisma.soal.createMany({ data }), soalTambahanGlobalRows);
 
   // Volume tambahan per kelompok (jenjang+mapel) — stem & distraktor DIROTASI (bukan template
   // kaku berulang kayak sebelumnya), posisi kunci jawaban juga divariasikan (dulu selalu index 0).
@@ -1808,30 +1973,30 @@ async function main() {
     },
   };
   const TARGET_PER_KELOMPOK_GLOBAL = 12;
+  const soalPelengkapGlobalRows: SoalGlobalRow[] = [];
   for (const [jenjangX, perMapelTopik] of Object.entries(topikPerMapelJenjang)) {
     for (const [mapelNamaGlobal, topikList] of Object.entries(perMapelTopik)) {
       const jumlahAda = await prisma.soal.count({ where: { sekolahId: null, jenjang: jenjangX, mapelNama: mapelNamaGlobal } });
       for (let i = jumlahAda; i < TARGET_PER_KELOMPOK_GLOBAL; i++) {
         const topik = topikList[i % topikList.length];
         const v = buatSoalVariasiGlobal(topik, i);
-        await prisma.soal.create({
-          data: {
-            sekolahId: null,
-            mapelNama: mapelNamaGlobal,
-            jenjang: jenjangX,
-            dibuatOlehId: superadmin.id,
-            jenis: "PILIHAN_GANDA",
-            pertanyaan: v.pertanyaan,
-            opsi: JSON.stringify(v.opsi),
-            kunciJawaban: v.kunci,
-            topik,
-            tingkatKesulitan: v.tingkatKesulitan,
-            poinDefault: 10,
-          },
+        soalPelengkapGlobalRows.push({
+          sekolahId: null,
+          mapelNama: mapelNamaGlobal,
+          jenjang: jenjangX,
+          dibuatOlehId: superadmin.id,
+          jenis: "PILIHAN_GANDA",
+          pertanyaan: v.pertanyaan,
+          opsi: JSON.stringify(v.opsi),
+          kunciJawaban: v.kunci,
+          topik,
+          tingkatKesulitan: v.tingkatKesulitan,
+          poinDefault: 10,
         });
       }
     }
   }
+  await createManyChunked((data) => prisma.soal.createMany({ data }), soalPelengkapGlobalRows);
 
   // 1.19, diminta eksplisit — sekolah lain tak lagi cuma "kerangka" (kelas+siswa doang, tanpa
   // nilai/absensi/ujian/dst). Tiap sekolah lain sekarang dapat ekosistem LENGKAP (semua fitur ada
@@ -1917,8 +2082,11 @@ async function main() {
       babLainMap[m] = bab.id;
     }
 
-    type SiswaLain = Awaited<ReturnType<typeof prisma.siswa.create>>;
+    // Perf — id Siswa di-generate di JS (`newId()`) supaya insert-nya sendiri bisa ditunda jadi 1
+    // createMany SETELAH loop kelas ini selesai (bukan 1 create per siswa × ±2-3 kelas × 30 siswa).
+    type SiswaLain = { id: string; sekolahId: string; kelasId: string; nisn: string; nama: string; jenisKelamin: "L" | "P"; aktif: boolean };
     const kelasList: { kelas: Awaited<ReturnType<typeof prisma.kelas.create>>; siswa: SiswaLain[]; waliAkunId: string; waliProfilId: string }[] = [];
+    const siswaRowsLain: SiswaLain[] = [];
 
     for (let ki = 0; ki < opts.namaKelas.length; ki++) {
       const namaKelas = opts.namaKelas[ki];
@@ -1938,15 +2106,13 @@ async function main() {
       }));
       await prisma.penugasanGuru.createMany({ data: penugasanRowsLain });
 
-      const siswaBaru: SiswaLain[] = [];
-      for (const s of buatDataSiswa(30)) {
-        const siswa = await prisma.siswa.create({
-          data: { sekolahId: sekolahLain.id, kelasId: kelasLain.id, nisn: s.nisn, nama: s.nama, jenisKelamin: s.jk, aktif: true },
-        });
-        siswaBaru.push(siswa);
-      }
+      const siswaBaru: SiswaLain[] = buatDataSiswa(30).map((s) => ({
+        id: newId(), sekolahId: sekolahLain.id, kelasId: kelasLain.id, nisn: s.nisn, nama: s.nama, jenisKelamin: s.jk, aktif: true,
+      }));
+      siswaRowsLain.push(...siswaBaru);
       kelasList.push({ kelas: kelasLain, siswa: siswaBaru, waliAkunId: waliAkun.id, waliProfilId: waliProfil.id });
     }
+    await createManyChunked((data) => prisma.siswa.createMany({ data }), siswaRowsLain);
 
     // Akun ortu+murid contoh, cuma utk siswa pertama kelas pertama (biar bisa login & didemokan).
     const siswaContoh = kelasList[0].siswa[0];
@@ -1961,25 +2127,30 @@ async function main() {
     await prisma.consentPDP.create({ data: { penggunaId: ortuAkun.id, disetujui: true, waktuPersetujuan: new Date("2026-07-25") } });
 
     // 1.21 — lengkapi wali utk semua siswa lain di sekolah ini (siswaContoh di atas sudah dpt wali).
+    // Perf — dulu 2 create sekuensial (Pengguna + WaliSiswa) PER siswa.
+    const waliAkunRowsLain: { id: string; sekolahId: string; nama: string; email: string; passwordHash: string; peran: "ORANG_TUA"; jenisKelamin: string; telepon: string }[] = [];
+    const waliSiswaRowsLain: { siswaId: string; penggunaId: string; hubungan: string }[] = [];
     for (const { siswa: siswaKelasIni } of kelasList) {
       for (let idx = 0; idx < siswaKelasIni.length; idx++) {
         const s = siswaKelasIni[idx];
         if (s.id === siswaContoh.id) continue;
         const jenisKelaminWali = idx % 2 === 0 ? "P" : "L";
-        const waliLain = await prisma.pengguna.create({
-          data: {
-            sekolahId: sekolahLain.id,
-            nama: `${jenisKelaminWali === "P" ? "Ibu" : "Bpk."} ${s.nama.split(" ")[0]}`,
-            email: `wali.${s.nisn}@${opts.emailDomain}`,
-            passwordHash: hash,
-            peran: "ORANG_TUA",
-            jenisKelamin: jenisKelaminWali,
-            telepon: `0812399${s.nisn.slice(-5)}`,
-          },
+        const waliLainId = newId();
+        waliAkunRowsLain.push({
+          id: waliLainId,
+          sekolahId: sekolahLain.id,
+          nama: `${jenisKelaminWali === "P" ? "Ibu" : "Bpk."} ${s.nama.split(" ")[0]}`,
+          email: `wali.${s.nisn}@${opts.emailDomain}`,
+          passwordHash: hash,
+          peran: "ORANG_TUA",
+          jenisKelamin: jenisKelaminWali,
+          telepon: `0812399${s.nisn.slice(-5)}`,
         });
-        await prisma.waliSiswa.create({ data: { siswaId: s.id, penggunaId: waliLain.id, hubungan: jenisKelaminWali === "P" ? "Ibu" : "Ayah" } });
+        waliSiswaRowsLain.push({ siswaId: s.id, penggunaId: waliLainId, hubungan: jenisKelaminWali === "P" ? "Ibu" : "Ayah" });
       }
     }
+    await createManyChunked((data) => prisma.pengguna.createMany({ data }), waliAkunRowsLain);
+    await createManyChunked((data) => prisma.waliSiswa.createMany({ data }), waliSiswaRowsLain);
 
     // ---- Absensi (2 minggu terakhir) ----
     const hariSekolahLain: Date[] = [];
@@ -1990,57 +2161,71 @@ async function main() {
       if (day !== 0 && day !== 6) hariSekolahLain.push(new Date(cursorLain));
     }
     const CATATAN_ABSENSI_LAIN = ["Demam, sudah izin ke UKS.", "Ada keperluan keluarga."];
+    const absensiRowsLain: { siswaId: string; kelasId: string; tanggal: Date; status: StatusAbsensi; catatan: string | null }[] = [];
     for (const { kelas, siswa } of kelasList) {
       for (const tgl of hariSekolahLain) {
         for (let i = 0; i < siswa.length; i++) {
           const roll = (i + tgl.getDate()) % 13;
           const status: StatusAbsensi = roll === 0 ? "SAKIT" : roll === 1 ? "IZIN" : roll === 2 ? "ALPA" : "HADIR";
           const catatan = status === "SAKIT" ? CATATAN_ABSENSI_LAIN[0] : status === "IZIN" ? CATATAN_ABSENSI_LAIN[1] : null;
-          await prisma.absensi.create({ data: { siswaId: siswa[i].id, kelasId: kelas.id, tanggal: tgl, status, catatan } });
+          absensiRowsLain.push({ siswaId: siswa[i].id, kelasId: kelas.id, tanggal: tgl, status, catatan });
         }
       }
     }
+    await createManyChunked((data) => prisma.absensi.createMany({ data }), absensiRowsLain);
 
     // ---- Bank soal (5 mapel x 8 soal) ----
-    const soalLainByMapel = new Map<string, Awaited<ReturnType<typeof prisma.soal.create>>[]>();
+    // Perf — id di-generate di JS supaya soal² ini bisa langsung dipakai (`soalLainByMapel`, dibaca
+    // exam-generation loop di bawah utk `.id`/`.jenis`/`.opsi`/`.kunciJawaban`/`.pertanyaan`) SEBELUM
+    // insert-nya sendiri jalan — insert-nya sendiri ditunda jadi 1 createMany di akhir seksi ini.
+    type SoalLainRow = { id: string; sekolahId: string; mapelId: string; dibuatOlehId: string; jenis: JenisSoal; pertanyaan: string; opsi: string | null; kunciJawaban: string | null; topik: string; tingkatKesulitan: string; poinDefault: number };
+    const soalLainByMapel = new Map<string, SoalLainRow[]>();
+    const soalLainRowsAll: SoalLainRow[] = [];
     for (const m of MAPEL_LAIN) {
-      const daftarSoal: Awaited<ReturnType<typeof prisma.soal.create>>[] = [];
+      const daftarSoal: SoalLainRow[] = [];
       for (let i = 0; i < 8; i++) {
         const jenis = i < 6 ? "PILIHAN_GANDA" : "JAWABAN_SINGKAT";
-        const s = await prisma.soal.create({
-          data: {
-            sekolahId: sekolahLain.id, mapelId: mapelLainMap[m], dibuatOlehId: agamaLainAkun.id,
-            jenis, pertanyaan: `Soal latihan ${m} nomor ${i + 1}`,
-            opsi: jenis === "PILIHAN_GANDA" ? JSON.stringify([`Jawaban benar ${m}`, "Pilihan lain 1", "Pilihan lain 2", "Pilihan lain 3"]) : null,
-            kunciJawaban: jenis === "PILIHAN_GANDA" ? "0" : "benar",
-            topik: `Bab ${Math.ceil((i + 1) / 2)}`, tingkatKesulitan: "sedang", poinDefault: 100 / 8,
-          },
+        daftarSoal.push({
+          id: newId(),
+          sekolahId: sekolahLain.id, mapelId: mapelLainMap[m], dibuatOlehId: agamaLainAkun.id,
+          jenis, pertanyaan: `Soal latihan ${m} nomor ${i + 1}`,
+          opsi: jenis === "PILIHAN_GANDA" ? JSON.stringify([`Jawaban benar ${m}`, "Pilihan lain 1", "Pilihan lain 2", "Pilihan lain 3"]) : null,
+          kunciJawaban: jenis === "PILIHAN_GANDA" ? "0" : "benar",
+          topik: `Bab ${Math.ceil((i + 1) / 2)}`, tingkatKesulitan: "sedang", poinDefault: 100 / 8,
         });
-        daftarSoal.push(s);
       }
       if (m === "Matematika") {
         // 1.20, diminta eksplisit — contoh soal pilihan ganda kompleks (skor all-or-nothing).
-        const pgKompleks = await prisma.soal.create({
-          data: {
-            sekolahId: sekolahLain.id, mapelId: mapelLainMap[m], dibuatOlehId: agamaLainAkun.id, jenis: "PILIHAN_GANDA_KOMPLEKS",
-            pertanyaan: "Manakah bilangan genap di bawah ini? (pilih semua yang benar)",
-            opsi: JSON.stringify(["8", "13", "20", "27"]), kunciJawaban: JSON.stringify([0, 2]),
-            topik: "Bilangan", tingkatKesulitan: "sedang", poinDefault: 100 / 8,
-          },
+        daftarSoal.push({
+          id: newId(),
+          sekolahId: sekolahLain.id, mapelId: mapelLainMap[m], dibuatOlehId: agamaLainAkun.id, jenis: "PILIHAN_GANDA_KOMPLEKS",
+          pertanyaan: "Manakah bilangan genap di bawah ini? (pilih semua yang benar)",
+          opsi: JSON.stringify(["8", "13", "20", "27"]), kunciJawaban: JSON.stringify([0, 2]),
+          topik: "Bilangan", tingkatKesulitan: "sedang", poinDefault: 100 / 8,
         });
-        daftarSoal.push(pgKompleks);
       }
       soalLainByMapel.set(m, daftarSoal);
+      soalLainRowsAll.push(...daftarSoal);
     }
+    await createManyChunked((data) => prisma.soal.createMany({ data }), soalLainRowsAll);
 
     // ---- Materi + Tugas + Ujian per kelas (Nilai diderivasi belakangan dari hasil asli, bukan sintetis di sini) ----
+    // Perf — seksi materi/tugas/ujian di bawah ini dulu 1 create per baris di dalam loop kelas ×
+    // mapel × ujian × siswa (pola sama persis dgn hot loop sekolah utama). Materi & Tugas/Pengumpulan
+    // dikumpul lintas SEMUA kelas sekolah ini lalu 1 createMany masing²; Ujian dkk di-flush per KELAS
+    // (sama alasannya dgn sekolah utama — lihat komentar di loop ujian sekolah utama di atas).
     const JUDUL_TUGAS_LAIN = ["Latihan Soal", "Rangkuman Bab", "Refleksi Pembelajaran", "Lembar Kerja Siswa"];
+    const materiRowsLain: { kelasId: string; mapelId: string; penggunaId: string; judul: string; tipe: string; isi: string; babId: string }[] = [];
+    const tugasRowsLain: { id: string; kelasId: string; mapelId: string; penggunaId: string; judul: string; instruksi: string; tenggat: Date }[] = [];
+    const pengumpulanRowsLain: { tugasId: string; siswaId: string; isiJawaban: string; submitAt: Date; terlambat: boolean; nilai: number | null }[] = [];
+    const JUDUL_UJIAN_LAIN = ["Ulangan Harian", "Kuis", "Penilaian Tengah Bab", "Latihan Soal", "Penilaian Akhir Bab", "Tes Formatif"];
+    const JENIS_PENILAIAN_LAIN = ["HARIAN", "HARIAN", "HARIAN", "HARIAN", "UTS", "HARIAN", "HARIAN", "UAS"] as const;
     for (const { kelas, siswa, waliAkunId } of kelasList) {
       for (const m of MAPEL_LAIN) {
-        await prisma.materiBelajar.create({
+        materiRowsLain.push({
           // Feedback teknis (Sep 2026) — "catatan" (bukan "dokumen"), sama seperti fix di materi
           // sekolah utama: `isi` di sini kalimat deskripsi, bukan path berkas beneran.
-          data: { kelasId: kelas.id, mapelId: mapelLainMap[m], penggunaId: waliAkunId, judul: `Rangkuman ${m} — ${kelas.nama}`, tipe: "catatan", isi: `Ringkasan materi ${m} untuk kelas ${kelas.nama}.`, babId: babLainMap[m] },
+          kelasId: kelas.id, mapelId: mapelLainMap[m], penggunaId: waliAkunId, judul: `Rangkuman ${m} — ${kelas.nama}`, tipe: "catatan", isi: `Ringkasan materi ${m} untuk kelas ${kelas.nama}.`, babId: babLainMap[m],
         });
       }
 
@@ -2048,24 +2233,27 @@ async function main() {
       for (let t = 0; t < 2; t++) {
         const mapelTugas = MAPEL_LAIN[t % MAPEL_LAIN.length];
         const tenggat = new Date(Date.now() - (2 - t) * 86400000 * 2);
-        const tugasLain = await prisma.tugas.create({
-          data: { kelasId: kelas.id, mapelId: mapelLainMap[mapelTugas], penggunaId: waliAkunId, judul: `${JUDUL_TUGAS_LAIN[t % JUDUL_TUGAS_LAIN.length]} ${mapelTugas}`, instruksi: `Kerjakan latihan ${mapelTugas} sesuai materi minggu ini.`, tenggat },
+        const tugasId = newId();
+        tugasRowsLain.push({
+          id: tugasId, kelasId: kelas.id, mapelId: mapelLainMap[mapelTugas], penggunaId: waliAkunId, judul: `${JUDUL_TUGAS_LAIN[t % JUDUL_TUGAS_LAIN.length]} ${mapelTugas}`, instruksi: `Kerjakan latihan ${mapelTugas} sesuai materi minggu ini.`, tenggat,
         });
         for (let i = 0; i < Math.min(siswa.length, 8); i++) {
           const submitAt = new Date(tenggat.getTime() - (2 - i % 3) * 3600000);
-          await prisma.pengumpulanTugas.create({
-            data: {
-              tugasId: tugasLain.id, siswaId: siswa[i].id, isiJawaban: `Jawaban ${mapelTugas} dari ${siswa[i].nama}.`,
-              submitAt, terlambat: submitAt > tenggat, nilai: i % 3 !== 0 ? 65 + ((i * 7) % 35) : null,
-            },
+          pengumpulanRowsLain.push({
+            tugasId, siswaId: siswa[i].id, isiJawaban: `Jawaban ${mapelTugas} dari ${siswa[i].nama}.`,
+            submitAt, terlambat: submitAt > tenggat, nilai: i % 3 !== 0 ? 65 + ((i * 7) % 35) : null,
           });
         }
       }
 
       // 1.20, diminta eksplisit — 6-9 ujian PER MAPEL (bukan cuma 2/kelas total), pakai createMany
       // utk soal/jawaban krn volumenya jauh lebih besar dari sebelumnya.
-      const JUDUL_UJIAN_LAIN = ["Ulangan Harian", "Kuis", "Penilaian Tengah Bab", "Latihan Soal", "Penilaian Akhir Bab", "Tes Formatif"];
-      const JENIS_PENILAIAN_LAIN = ["HARIAN", "HARIAN", "HARIAN", "HARIAN", "UTS", "HARIAN", "HARIAN", "UAS"] as const;
+      const ujianRowsKelasLain: { id: string; mapelId: string; dibuatOlehId: string; judul: string; jenis: "UJIAN" | "LATIHAN"; status: "DRAFT" | "PUBLISHED"; jenisPenilaian: (typeof JENIS_PENILAIAN_LAIN)[number]; durasiMenit: number | null; acakSoal: boolean; acakJawaban: boolean; sekaliAkses: boolean }[] = [];
+      const ujianKelasRowsKelasLain: { ujianId: string; kelasId: string; jamMulai: Date | null; jamSelesai: Date | null }[] = [];
+      const ujianSoalRowsKelasLain: { ujianId: string; soalId: string; urutan: number; poin: number }[] = [];
+      const pengerjaanRowsKelasLain: { id: string; ujianId: string; siswaId: string; status: "SELESAI"; soalUrutan: string; waktuMulai: Date; waktuSelesai: Date; nilaiTotal: number; koreksiDikonfirmasi: boolean; dikonfirmasiPada: Date }[] = [];
+      const jawabanRowsKelasLain: { pengerjaanId: string; soalId: string; opsiUrutan?: string; jawabanPG?: number; jawabanPGMulti?: string; jawabanTeks?: string; benar?: boolean; skor: number }[] = [];
+
       for (const mapelUjian of MAPEL_LAIN) {
         const soalTersedia = soalLainByMapel.get(mapelUjian) ?? [];
         if (soalTersedia.length === 0) continue;
@@ -2080,17 +2268,21 @@ async function main() {
           const jenisPenilaian = JENIS_PENILAIAN_LAIN[n % JENIS_PENILAIAN_LAIN.length];
           const jamMulai = variasi === 2 ? new Date(Date.now() - (3 + n) * 86400000) : new Date(Date.now() - 60 * 60 * 1000);
           const jamSelesai = variasi === 2 ? new Date(Date.now() - (2 + n) * 86400000) : new Date(Date.now() + (2 + n) * 60 * 60 * 1000);
-          const ujianLain = await prisma.ujian.create({
-            data: {
-              mapelId: mapelLainMap[mapelUjian], dibuatOlehId: waliAkunId, judul: `${JUDUL_UJIAN_LAIN[n % JUDUL_UJIAN_LAIN.length]} ${mapelUjian}`,
-              jenis, status, jenisPenilaian, durasiMenit: jenis === "UJIAN" ? 45 : null, acakSoal: true, acakJawaban: true, sekaliAkses: jenis === "UJIAN",
-              kelas: status === "PUBLISHED" ? { create: [{ kelasId: kelas.id, jamMulai, jamSelesai }] } : { create: [{ kelasId: kelas.id }] },
-            },
+          const ujianId = newId();
+          ujianRowsKelasLain.push({
+            id: ujianId,
+            mapelId: mapelLainMap[mapelUjian], dibuatOlehId: waliAkunId, judul: `${JUDUL_UJIAN_LAIN[n % JUDUL_UJIAN_LAIN.length]} ${mapelUjian}`,
+            jenis, status, jenisPenilaian, durasiMenit: jenis === "UJIAN" ? 45 : null, acakSoal: true, acakJawaban: true, sekaliAkses: jenis === "UJIAN",
+          });
+          ujianKelasRowsKelasLain.push({
+            ujianId, kelasId: kelas.id,
+            jamMulai: status === "PUBLISHED" ? jamMulai : null,
+            jamSelesai: status === "PUBLISHED" ? jamSelesai : null,
           });
           const poinPerSoal = Math.floor(100 / soalUjian.length);
-          await prisma.ujianSoal.createMany({
-            data: soalUjian.map((s, i) => ({ ujianId: ujianLain.id, soalId: s.id, urutan: i + 1, poin: poinPerSoal })),
-          });
+          for (const [i, s] of soalUjian.entries()) {
+            ujianSoalRowsKelasLain.push({ ujianId, soalId: s.id, urutan: i + 1, poin: poinPerSoal });
+          }
 
           if (variasi === 2) {
             // 1.20, diperbaiki — semua murid kebagian riwayat pengerjaan ujian (bukan cuma 5-8/30).
@@ -2098,11 +2290,8 @@ async function main() {
             for (let i = 0; i < jumlahKerja; i++) {
               const mulai = new Date(jamMulai.getTime() + 5 * 60 * 1000);
               const selesai = new Date(mulai.getTime() + 30 * 60 * 1000);
-              const pengerjaanLain = await prisma.ujianPengerjaan.create({
-                data: { ujianId: ujianLain.id, siswaId: siswa[i].id, status: "SELESAI", soalUrutan: JSON.stringify(acak(soalUjian.map((s) => s.id))), waktuMulai: mulai, waktuSelesai: selesai },
-              });
+              const pengerjaanId = newId();
               let total = 0;
-              const jawabanRowsLain: { pengerjaanId: string; soalId: string; opsiUrutan?: string; jawabanPG?: number; jawabanPGMulti?: string; jawabanTeks?: string; benar?: boolean; skor: number }[] = [];
               for (const s of soalUjian) {
                 const benar = (i + n + s.pertanyaan.length) % 3 !== 0;
                 if (s.jenis === "PILIHAN_GANDA" && s.opsi) {
@@ -2111,25 +2300,37 @@ async function main() {
                   const jawabanPG = benar ? kunciIdx : (kunciIdx + 1) % opsiArr.length;
                   const skor = benar ? poinPerSoal : 0;
                   total += skor;
-                  jawabanRowsLain.push({ pengerjaanId: pengerjaanLain.id, soalId: s.id, opsiUrutan: JSON.stringify(acak(opsiArr.map((_, idx) => idx))), jawabanPG, benar, skor });
+                  jawabanRowsKelasLain.push({ pengerjaanId, soalId: s.id, opsiUrutan: JSON.stringify(acak(opsiArr.map((_, idx) => idx))), jawabanPG, benar, skor });
                 } else if (s.jenis === "PILIHAN_GANDA_KOMPLEKS" && s.kunciJawaban) {
                   const kunci: number[] = JSON.parse(s.kunciJawaban);
                   const skor = benar ? poinPerSoal : 0;
                   total += skor;
-                  jawabanRowsLain.push({ pengerjaanId: pengerjaanLain.id, soalId: s.id, jawabanPGMulti: JSON.stringify(benar ? kunci : kunci.slice(0, 1)), benar, skor });
+                  jawabanRowsKelasLain.push({ pengerjaanId, soalId: s.id, jawabanPGMulti: JSON.stringify(benar ? kunci : kunci.slice(0, 1)), benar, skor });
                 } else {
                   const skor = benar ? poinPerSoal : 0;
                   total += skor;
-                  jawabanRowsLain.push({ pengerjaanId: pengerjaanLain.id, soalId: s.id, jawabanTeks: benar ? (s.kunciJawaban ?? "") : "jawaban keliru", benar, skor });
+                  jawabanRowsKelasLain.push({ pengerjaanId, soalId: s.id, jawabanTeks: benar ? (s.kunciJawaban ?? "") : "jawaban keliru", benar, skor });
                 }
               }
-              await prisma.ujianJawaban.createMany({ data: jawabanRowsLain });
-              await prisma.ujianPengerjaan.update({ where: { id: pengerjaanLain.id }, data: { nilaiTotal: total, koreksiDikonfirmasi: true, dikonfirmasiPada: selesai } });
+              pengerjaanRowsKelasLain.push({
+                id: pengerjaanId, ujianId, siswaId: siswa[i].id, status: "SELESAI",
+                soalUrutan: JSON.stringify(acak(soalUjian.map((s) => s.id))), waktuMulai: mulai, waktuSelesai: selesai,
+                nilaiTotal: total, koreksiDikonfirmasi: true, dikonfirmasiPada: selesai,
+              });
             }
           }
         }
       }
+
+      await createManyChunked((data) => prisma.ujian.createMany({ data }), ujianRowsKelasLain);
+      await createManyChunked((data) => prisma.ujianKelas.createMany({ data }), ujianKelasRowsKelasLain);
+      await createManyChunked((data) => prisma.ujianSoal.createMany({ data }), ujianSoalRowsKelasLain);
+      await createManyChunked((data) => prisma.ujianPengerjaan.createMany({ data }), pengerjaanRowsKelasLain);
+      await createManyChunked((data) => prisma.ujianJawaban.createMany({ data }), jawabanRowsKelasLain);
     }
+    await createManyChunked((data) => prisma.materiBelajar.createMany({ data }), materiRowsLain);
+    await createManyChunked((data) => prisma.tugas.createMany({ data }), tugasRowsLain);
+    await createManyChunked((data) => prisma.pengumpulanTugas.createMany({ data }), pengumpulanRowsLain);
 
     await generateNilaiDariHasilAsli(sekolahLain.id);
 
@@ -2146,33 +2347,31 @@ async function main() {
       periode: jatuhTempoLain(bulanKe).toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
       jatuhTempo: jatuhTempoLain(bulanKe),
     }));
+    const tagihanSppRowsLain: { siswaId: string; tipeId: string; periode: string; nominal: number; status: StatusTagihan; jatuhTempo: Date; dibayarPada: Date | null; tahunAjaranId: string }[] = [];
     for (const { kelas, siswa } of kelasList) {
       for (let i = 0; i < siswa.length; i++) {
         for (let p = 0; p < periodeLain.length; p++) {
           const lunas = (i + p) % 3 !== 0;
           const status: StatusTagihan = lunas ? "LUNAS" : "BELUM_BAYAR";
-          await prisma.tagihan.create({
-            data: { siswaId: siswa[i].id, tipeId: spplain.id, periode: periodeLain[p].periode, nominal: 300000, status, jatuhTempo: periodeLain[p].jatuhTempo, dibayarPada: lunas ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId },
-          });
+          tagihanSppRowsLain.push({ siswaId: siswa[i].id, tipeId: spplain.id, periode: periodeLain[p].periode, nominal: 300000, status, jatuhTempo: periodeLain[p].jatuhTempo, dibayarPada: lunas ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId });
         }
       }
     }
+    await createManyChunked((data) => prisma.tagihan.createMany({ data }), tagihanSppRowsLain);
 
     // 1.20, diminta eksplisit — tagihan LAIN selain SPP (buku/seragam/dst).
     const bukuPaketLain = await prisma.tagihanTipe.create({ data: { sekolahId: sekolahLain.id, nama: "Buku Paket" } });
     const seragamLain = await prisma.tagihanTipe.create({ data: { sekolahId: sekolahLain.id, nama: "Seragam" } });
+    const tagihanNonSppRowsLain: { siswaId: string; tipeId: string; periode: string; nominal: number; status: StatusTagihan; jatuhTempo: Date; dibayarPada: Date | null; tahunAjaranId: string }[] = [];
     for (const { kelas, siswa } of kelasList) {
       for (let i = 0; i < siswa.length; i++) {
         const lunasBuku = i % 3 !== 0;
-        await prisma.tagihan.create({
-          data: { siswaId: siswa[i].id, tipeId: bukuPaketLain.id, periode: "Tahun Ajaran 2026/2027", nominal: 150000, status: lunasBuku ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasBuku ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId },
-        });
+        tagihanNonSppRowsLain.push({ siswaId: siswa[i].id, tipeId: bukuPaketLain.id, periode: "Tahun Ajaran 2026/2027", nominal: 150000, status: lunasBuku ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasBuku ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId });
         const lunasSeragam = i % 4 !== 0;
-        await prisma.tagihan.create({
-          data: { siswaId: siswa[i].id, tipeId: seragamLain.id, periode: "Tahun Ajaran 2026/2027", nominal: 250000, status: lunasSeragam ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasSeragam ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId },
-        });
+        tagihanNonSppRowsLain.push({ siswaId: siswa[i].id, tipeId: seragamLain.id, periode: "Tahun Ajaran 2026/2027", nominal: 250000, status: lunasSeragam ? "LUNAS" : "BELUM_BAYAR", jatuhTempo: new Date("2026-07-31"), dibayarPada: lunasSeragam ? new Date() : null, tahunAjaranId: kelas.tahunAjaranId });
       }
     }
+    await createManyChunked((data) => prisma.tagihan.createMany({ data }), tagihanNonSppRowsLain);
 
     // ---- Jadwal pelajaran (Senin-Jumat, 5 mapel/kelas) ----
     const JAM_SESI_LAIN = [
@@ -2180,6 +2379,7 @@ async function main() {
       { mulai: "08:40", selesai: "09:20" }, { mulai: "09:20", selesai: "10:00" }, { mulai: "10:00", selesai: "10:40" },
     ];
     const jadwalEntryPertamaWali = new Map<string, string>();
+    const jadwalEntryRowsLain: { id: string; kelasId: string; mapelId: string; guruId: string; hari: number; jamMulai: string; jamSelesai: string; tahunAjaranId: string }[] = [];
     for (const { kelas, waliAkunId, waliProfilId } of kelasList) {
       const daftarPengajarLain = MAPEL_LAIN.map((m) => ({
         mapelId: mapelLainMap[m],
@@ -2188,12 +2388,12 @@ async function main() {
       for (let hari = 1; hari <= 5; hari++) {
         const sesi = JAM_SESI_LAIN[hari - 1];
         const { mapelId, guruId } = daftarPengajarLain[(hari - 1) % daftarPengajarLain.length];
-        const entry = await prisma.jadwalEntry.create({
-          data: { kelasId: kelas.id, mapelId, guruId, hari, jamMulai: sesi.mulai, jamSelesai: sesi.selesai, tahunAjaranId: taLain.id },
-        });
-        if (!jadwalEntryPertamaWali.has(waliAkunId)) jadwalEntryPertamaWali.set(waliAkunId, entry.id);
+        const entryId = newId();
+        jadwalEntryRowsLain.push({ id: entryId, kelasId: kelas.id, mapelId, guruId, hari, jamMulai: sesi.mulai, jamSelesai: sesi.selesai, tahunAjaranId: taLain.id });
+        if (!jadwalEntryPertamaWali.has(waliAkunId)) jadwalEntryPertamaWali.set(waliAkunId, entryId);
       }
     }
+    await createManyChunked((data) => prisma.jadwalEntry.createMany({ data }), jadwalEntryRowsLain);
     const kemarinLain = new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - 1));
     for (const entryId of jadwalEntryPertamaWali.values()) {
       await prisma.presensiGuru.create({ data: { jadwalEntryId: entryId, tanggal: kemarinLain, hadir: true, sumber: "OTOMATIS_ABSENSI" } });
@@ -2225,22 +2425,25 @@ async function main() {
       "Sangat aktif bertanya, rasa ingin tahu tinggi.",
       "Ketelitian dalam mengerjakan soal masih perlu ditingkatkan.",
     ];
+    // Perf — dulu 1 create per siswa (semua siswa sekolah ini, bukan cuma contoh) × 30 sekolah.
+    const catatanAsesmenRowsLain: { siswaId: string; mapelId: string; penggunaId: string; periode: string; isi: string }[] = [];
     for (const { siswa, waliAkunId } of kelasList) {
       for (let i = 0; i < siswa.length; i++) {
-        await prisma.catatanAsesmen.create({
-          data: { siswaId: siswa[i].id, mapelId: mapelLainMap["Matematika"], penggunaId: waliAkunId, periode: "Semester Ganjil 2026/2027", isi: CATATAN_ASESMEN_LAIN[i % CATATAN_ASESMEN_LAIN.length] },
-        });
+        catatanAsesmenRowsLain.push({ siswaId: siswa[i].id, mapelId: mapelLainMap["Matematika"], penggunaId: waliAkunId, periode: "Semester Ganjil 2026/2027", isi: CATATAN_ASESMEN_LAIN[i % CATATAN_ASESMEN_LAIN.length] });
       }
     }
+    await createManyChunked((data) => prisma.catatanAsesmen.createMany({ data }), catatanAsesmenRowsLain);
 
     // ---- Projek P5 ----
     const projekLain = await prisma.projek.create({
       data: { sekolahId: sekolahLain.id, tahunAjaranId: taLain.id, tema: "Gaya Hidup Berkelanjutan", dimensiP5: JSON.stringify(["Bergotong Royong", "Bernalar Kritis"]), dibuatOlehId: kepsekAkun.id },
     });
+    const projekPenilaianRowsLain: { projekId: string; siswaId: string; dimensi: string; capaian: CapaianP5 }[] = [];
     for (let i = 0; i < Math.min(6, kelasList[0].siswa.length); i++) {
-      await prisma.projekPenilaian.create({ data: { projekId: projekLain.id, siswaId: kelasList[0].siswa[i].id, dimensi: "Bergotong Royong", capaian: i % 4 === 0 ? "SB" : "BSH" } });
-      await prisma.projekPenilaian.create({ data: { projekId: projekLain.id, siswaId: kelasList[0].siswa[i].id, dimensi: "Bernalar Kritis", capaian: i % 3 === 0 ? "BSH" : "MB" } });
+      projekPenilaianRowsLain.push({ projekId: projekLain.id, siswaId: kelasList[0].siswa[i].id, dimensi: "Bergotong Royong", capaian: i % 4 === 0 ? "SB" : "BSH" });
+      projekPenilaianRowsLain.push({ projekId: projekLain.id, siswaId: kelasList[0].siswa[i].id, dimensi: "Bernalar Kritis", capaian: i % 3 === 0 ? "BSH" : "MB" });
     }
+    await createManyChunked((data) => prisma.projekPenilaian.createMany({ data }), projekPenilaianRowsLain);
 
     // ---- Catatan Guru & Prestasi (untuk siswa contoh yg py akun) ----
     await prisma.catatanSiswa.create({
@@ -2281,8 +2484,7 @@ async function main() {
   // 1.20, diminta eksplisit — 30 sekolah SUNGGUHAN (bukan cuma 3), loop data-driven atas
   // DATA_SEKOLAH_NYATA (didefinisikan di atas main(), diambil dari api.co.id). Sekolah terakhir
   // sengaja dinonaktifkan (aktif: false) sbg demo "sekolah nonaktif" di dashboard superadmin.
-  for (let i = 0; i < DATA_SEKOLAH_NYATA.length; i++) {
-    const s = DATA_SEKOLAH_NYATA[i];
+  await runWithConcurrency(DATA_SEKOLAH_NYATA, 6, async (s, i) => {
     const emailDomain = `sekolah${s.npsn}.demo`;
     console.log(`🏫 [${i + 1}/${DATA_SEKOLAH_NYATA.length}] Membuat sekolah lain: ${s.nama}...`);
     await buatSekolahLain({
@@ -2293,7 +2495,7 @@ async function main() {
       namaKelas: NAMA_KELAS_PER_JENJANG[s.jenjang] ?? ["A"],
       latitude: s.latitude, longitude: s.longitude,
     });
-  }
+  }, 4 * 60 * 1000); // 4 menit/sekolah — jauh di atas rata² observasi (~1-1.5 menit/sekolah @ concurrency 6)
 
   console.log("₽ Membuat data langganan platform (revenue superadmin, 1.21)...");
   const NAMA_BULAN_INDO = [
@@ -2302,14 +2504,18 @@ async function main() {
   ];
   const PAKET_HARGA: Record<string, number> = { BASIC: 500000, PRO: 1250000, ENTERPRISE: 3000000 };
   const PAKET_URUT = ["BASIC", "PRO", "ENTERPRISE"] as const;
+  // Perf — dulu 1 create Langganan + ~6-12 create PembayaranLangganan sekuensial PER sekolah (±31
+  // sekolah). Id Langganan di-generate di JS supaya PembayaranLangganan bisa dirakit dari array yg
+  // sama, lalu masing² SATU createMany.
   const semuaSekolahUntukLangganan = await prisma.sekolah.findMany({ select: { id: true } });
+  const langgananRows: { id: string; sekolahId: string; paket: (typeof PAKET_URUT)[number]; hargaPerBulan: number; mulai: Date; status: "AKTIF" }[] = [];
+  const pembayaranRows: { langgananId: string; periode: string; nominal: number; dibayarPada: Date | null; status: "LUNAS" | "BELUM_BAYAR" | "TELAT" }[] = [];
   for (let i = 0; i < semuaSekolahUntukLangganan.length; i++) {
     const sId = semuaSekolahUntukLangganan[i].id;
     const paket = PAKET_URUT[i % 3];
     const mulai = new Date(Date.now() - (200 + i * 5) * 86400000);
-    const langgananBaru = await prisma.langganan.create({
-      data: { sekolahId: sId, paket, hargaPerBulan: PAKET_HARGA[paket], mulai, status: "AKTIF" },
-    });
+    const langgananId = newId();
+    langgananRows.push({ id: langgananId, sekolahId: sId, paket, hargaPerBulan: PAKET_HARGA[paket], mulai, status: "AKTIF" });
     // 6-12 bulan riwayat, mayoritas lunas — sebagian kecil (~1/8) sengaja nunggak bulan berjalan
     // supaya kartu "Sekolah yang nunggak" di dashboard revenue ada isinya, bukan selalu kosong.
     const jumlahBulan = 6 + (i % 7);
@@ -2319,17 +2525,17 @@ async function main() {
       d.setMonth(d.getMonth() - b);
       const label = `${NAMA_BULAN_INDO[d.getMonth()]} ${d.getFullYear()}`;
       const nunggak = b === 0 && i % 8 === 0;
-      await prisma.pembayaranLangganan.create({
-        data: {
-          langgananId: langgananBaru.id,
-          periode: label,
-          nominal: PAKET_HARGA[paket],
-          dibayarPada: nunggak ? null : new Date(d.getFullYear(), d.getMonth(), 5 + (i % 10)),
-          status: nunggak ? (i % 16 === 0 ? "TELAT" : "BELUM_BAYAR") : "LUNAS",
-        },
+      pembayaranRows.push({
+        langgananId,
+        periode: label,
+        nominal: PAKET_HARGA[paket],
+        dibayarPada: nunggak ? null : new Date(d.getFullYear(), d.getMonth(), 5 + (i % 10)),
+        status: nunggak ? (i % 16 === 0 ? "TELAT" : "BELUM_BAYAR") : "LUNAS",
       });
     }
   }
+  await createManyChunked((data) => prisma.langganan.createMany({ data }), langgananRows);
+  await createManyChunked((data) => prisma.pembayaranLangganan.createMany({ data }), pembayaranRows);
 
   console.log("\n✅ Seed selesai! Ringkasan data:\n");
   const ringkasan = [
@@ -2388,10 +2594,19 @@ async function main() {
   console.log(`     Sekolah terakhir (${DATA_SEKOLAH_NYATA[DATA_SEKOLAH_NYATA.length - 1].nama}) sengaja dinonaktifkan sbg demo.`);
 }
 
+// Bugfix (Sep 2026) — ditemukan sambil verifikasi fix timeout di atas: `process.exit(1)` di
+// `.catch()` mengakhiri proses SAAT ITU JUGA, sebelum `.finally()` di bawahnya (yang isinya
+// `prisma.$disconnect()`) sempat jalan — jadi tiap kali seed gagal (termasuk gagal krn timeout
+// baru yg ditambahkan di atas), koneksi `pg.Pool` ditinggal begitu saja tanpa ditutup rapi,
+// bukannya di-disconnect bersih. Ini bisa bikin sesi lama nyangkut agak lama di sisi Session
+// Pooler Supabase sebelum ke-reap, yang plausibel jadi salah satu penyebab run BERIKUTNYA (jalan
+// tak lama sesudah run yg gagal) sempat gagal connect lebih cepat dari biasanya. Fix: pakai
+// `process.exitCode` (bukan `process.exit()`) supaya proses keluar ALAMI setelah `.finally()`
+// (dan `$disconnect()`-nya) betul-betul selesai, baru exit code 1 diterapkan.
 main()
   .catch((e) => {
     console.error(e);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

@@ -7,8 +7,11 @@ async function buatUjianKelas5BMatematika(page: import("@playwright/test").Page,
   await page.fill('input[name="judul"]', judul);
   await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
   // 1.23 — bab sekarang wajib dipilih; seed selalu punya minimal "Bab 1" per mapel.
-  const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
-  const bab = db.bab.findFirst({ mapelId: mapel!.id as string });
+  // Sekolah di-scope eksplisit ke "SD Harapan Bangsa" — sejak seed bikin 30 sekolah lain yang
+  // juga py mapel "Matematika", findFirst tanpa sekolahId bisa balikin mapel sekolah SALAH.
+  const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+  const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+  const bab = await db.bab.findFirst({ mapelId: mapel!.id as string });
   await page.selectOption('select[name="babId"]', bab!.id as string);
   return { judul };
 }
@@ -24,7 +27,7 @@ test.describe("Ujian lanjutan — jenisPenilaian & popup sukses (8.11, 8.13-8.14
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/ujian\/.+\/edit/);
     await expect(page.getByText("Ujian dibuat. Tersimpan otomatis sebagai draft")).toBeVisible();
-    const ujian = db.ujian.findByJudul(judul);
+    const ujian = await db.ujian.findByJudul(judul);
     expect(ujian?.jenisPenilaian).toBe("UTS");
   });
 
@@ -67,7 +70,7 @@ test.describe("Ujian lanjutan — rename judul (8.21-8.23)", () => {
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/konfirmasi/);
-    const ujian = db.ujian.findByJudul(judulBaru);
+    const ujian = await db.ujian.findByJudul(judulBaru);
     expect(ujian).toBeTruthy();
   });
 
@@ -85,8 +88,8 @@ test.describe("Ujian lanjutan — rename judul (8.21-8.23)", () => {
   });
 
   test("negatif: POST /api/ujian/pengaturan dgn ujianId sekolah lain ditolak 404", async ({ page }) => {
-    const sekolahLain = db.sekolah.findFirst({ npsn: "10100295" });
-    const ujianLain = db.mataPelajaran.findFirst({ sekolahId: sekolahLain!.id as string });
+    const sekolahLain = await db.sekolah.findFirst({ npsn: "10100295" });
+    const ujianLain = await db.mataPelajaran.findFirst({ sekolahId: sekolahLain!.id as string });
     test.skip(!ujianLain, "Tak ada mapel di sekolah lain utk cari ujian");
     const res = await page.request.post("/api/ujian/pengaturan", {
       form: { ujianId: "id-tidak-ada-sama-sekali", judul: "coba", jenis: "UJIAN" },
@@ -97,8 +100,8 @@ test.describe("Ujian lanjutan — rename judul (8.21-8.23)", () => {
 
 test.describe("Ujian lanjutan — duplikat (8.19-8.20)", () => {
   test("positif: duplikat ujian ke kelas lain yang diampu jadi draft baru dgn soal sama", async ({ browser }) => {
-    const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
-    const info = db.penugasanGuru.findGuruMultiKelasSamaMapel(sekolah!.id as string);
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const info = await db.penugasanGuru.findGuruMultiKelasSamaMapel(sekolah!.id as string);
     test.skip(!info, "Tidak ada guru yg mengajar mapel sama di >=2 kelas pada data seed saat ini");
     if (!info) return;
 
@@ -109,13 +112,13 @@ test.describe("Ujian lanjutan — duplikat (8.19-8.20)", () => {
     await page.fill("#password", "selaras123");
     await page.click('button[type="submit"]');
 
-    const kelasAsal = db.kelas.findUnique({ id: info.kelasIds[0] });
-    const kelasTarget = db.kelas.findUnique({ id: info.kelasIds[1] });
+    const kelasAsal = await db.kelas.findUnique({ id: info.kelasIds[0] });
+    const kelasTarget = await db.kelas.findUnique({ id: info.kelasIds[1] });
     const judul = `Ujian Duplikat Uji ${Date.now()}`;
     await page.goto("/guru/ujian/baru");
     await page.fill('input[name="judul"]', judul);
     await page.locator(`input[type="checkbox"][value="${info.kelasIds[0]}|${info.mapelId}"]`).check();
-    const babDuplikat = db.bab.findFirst({ mapelId: info.mapelId as string });
+    const babDuplikat = await db.bab.findFirst({ mapelId: info.mapelId as string });
     await page.selectOption('select[name="babId"]', babDuplikat!.id as string);
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
@@ -145,7 +148,7 @@ test.describe("Ujian lanjutan — duplikat (8.19-8.20)", () => {
     // gak akan pernah muncul lagi), jadi cukup pastikan mendarat di halaman edit yang benar.
     await page.waitForURL(/\/guru\/ujian\/.+\/edit/);
 
-    const salinan = db.ujian.findByJudul(`${judul} (salinan)`);
+    const salinan = await db.ujian.findByJudul(`${judul} (salinan)`);
     expect(salinan?.status).toBe("DRAFT");
     void kelasAsal;
     await ctx.close();
@@ -157,7 +160,7 @@ test.describe("Ujian lanjutan — duplikat, RBAC target invalid (8.20)", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
   test("negatif: duplikat ke kelasTargetId yang bukan diampu guru (API langsung) ditolak", async ({ page }) => {
-    const ujianApaSaja = db.ujian.findFirst();
+    const ujianApaSaja = await db.ujian.findFirst();
     test.skip(!ujianApaSaja, "Tidak ada data Ujian sama sekali");
     if (!ujianApaSaja) return;
     const res = await page.request.post("/api/ujian/duplikat", {
@@ -169,8 +172,9 @@ test.describe("Ujian lanjutan — duplikat, RBAC target invalid (8.20)", () => {
 
 test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () => {
   test("positif & negatif: skor PG Kompleks full kalau kunci persis, 0 kalau sebagian", async ({ browser }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const soalPGK = db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "PILIHAN_GANDA_KOMPLEKS" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const soalPGK = await db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "PILIHAN_GANDA_KOMPLEKS" });
     test.skip(!soalPGK, "Tak ada soal PG Kompleks Matematika di data seed sekolah primer");
     if (!soalPGK) return;
     const soalPGKId = soalPGK.id as string;
@@ -181,7 +185,7 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
     const guruCtx = await browser.newContext({ storageState: "tests/e2e/.auth/guru.json" });
     const guruPage = await guruCtx.newPage();
 
-    const babMatematika = db.bab.findFirst({ mapelId: mapel!.id as string });
+    const babMatematika = await db.bab.findFirst({ mapelId: mapel!.id as string });
 
     async function buatDanPublish(judul: string) {
       await guruPage.goto("/guru/ujian/baru");
@@ -191,7 +195,7 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
       await guruPage.getByRole("button", { name: "Lanjut susun soal →" }).click();
       await confirmDialogSubmit(guruPage, "Ya, lanjutkan");
       const ujianId = guruPage.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
-      db.ujianSoal.create({ ujianId, soalId: soalPGKId, urutan: 1, poin: 100 });
+      await db.ujianSoal.create({ ujianId, soalId: soalPGKId, urutan: 1, poin: 100 });
       await guruPage.goto(`/guru/ujian/${ujianId}/pengaturan`);
       await guruPage.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
       await confirmDialogSubmit(guruPage, "Ya, lanjutkan");
@@ -205,7 +209,7 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
     const ujianSebagianId = await buatDanPublish(`PGK Sebagian ${Date.now()}`);
     await guruCtx.close();
 
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" }); // Ahmad Fauzi
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" }); // Ahmad Fauzi
 
     const muridCtx1 = await browser.newContext({ storageState: "tests/e2e/.auth/murid.json" });
     const muridPage1 = await muridCtx1.newPage();
@@ -221,7 +225,7 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
     await muridPage1.waitForURL(/\/murid\/ujian$/);
     await muridCtx1.close();
 
-    const pengerjaanBenar = db.ujianPengerjaan.findByUjianAndSiswa(ujianBenarId, siswa!.id as string);
+    const pengerjaanBenar = await db.ujianPengerjaan.findByUjianAndSiswa(ujianBenarId, siswa!.id as string);
     expect(pengerjaanBenar?.nilaiTotal).toBe(100);
 
     const muridCtx2 = await browser.newContext({ storageState: "tests/e2e/.auth/murid.json" });
@@ -234,7 +238,7 @@ test.describe("Ujian lanjutan — PG Kompleks all-or-nothing (8.15-8.17)", () =>
     await muridPage2.waitForURL(/\/murid\/ujian$/);
     await muridCtx2.close();
 
-    const pengerjaanSebagian = db.ujianPengerjaan.findByUjianAndSiswa(ujianSebagianId, siswa!.id as string);
+    const pengerjaanSebagian = await db.ujianPengerjaan.findByUjianAndSiswa(ujianSebagianId, siswa!.id as string);
     expect(pengerjaanSebagian?.nilaiTotal).toBe(0);
   });
 });
@@ -261,13 +265,14 @@ test.describe("Ujian lanjutan — Pilihan Ganda Nilai Minus (1.23)", () => {
     await page.fill('input[name="penguranganNilai"]', String(nilai));
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
-    const soal = db.soal.findFirst({ jenis: "PILIHAN_GANDA_MINUS" });
+    const soal = await db.soal.findFirst({ jenis: "PILIHAN_GANDA_MINUS" });
     return soal!.id as string;
   }
 
   async function publishDenganSoal(page: import("@playwright/test").Page, soalId: string, judul: string, poin: number) {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const bab = db.bab.findFirst({ mapelId: mapel!.id as string });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const bab = await db.bab.findFirst({ mapelId: mapel!.id as string });
     await page.goto("/guru/ujian/baru");
     await page.fill('input[name="judul"]', judul);
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
@@ -275,7 +280,7 @@ test.describe("Ujian lanjutan — Pilihan Ganda Nilai Minus (1.23)", () => {
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
-    db.ujianSoal.create({ ujianId, soalId, urutan: 1, poin });
+    await db.ujianSoal.create({ ujianId, soalId, urutan: 1, poin });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
@@ -304,34 +309,34 @@ test.describe("Ujian lanjutan — Pilihan Ganda Nilai Minus (1.23)", () => {
     const ujianBenarId = await publishDenganSoal(page, soalId, `Minus Persen Benar ${Date.now()}`, 100);
     const ujianSalahId = await publishDenganSoal(page, soalId, `Minus Persen Salah ${Date.now()}`, 100);
 
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" }); // Ahmad Fauzi
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" }); // Ahmad Fauzi
 
     await kerjakanDanKumpul(browser, ujianBenarId, "Benar");
-    const pengerjaanBenar = db.ujianPengerjaan.findByUjianAndSiswa(ujianBenarId, siswa!.id as string);
+    const pengerjaanBenar = await db.ujianPengerjaan.findByUjianAndSiswa(ujianBenarId, siswa!.id as string);
     expect(pengerjaanBenar?.nilaiTotal).toBe(100);
 
     await kerjakanDanKumpul(browser, ujianSalahId, "Salah 1");
-    const pengerjaanSalah = db.ujianPengerjaan.findByUjianAndSiswa(ujianSalahId, siswa!.id as string);
+    const pengerjaanSalah = await db.ujianPengerjaan.findByUjianAndSiswa(ujianSalahId, siswa!.id as string);
     expect(pengerjaanSalah?.nilaiTotal).toBe(50); // 100 - 50% dari 100
   });
 
   test("positif: mode poin tetap, potongan lebih besar dari poin soal di-floor ke 0 (tak minus)", async ({ page, browser }) => {
     const soalId = await buatSoalMinus(page, "POIN", 150); // sengaja > poin soal (100)
     const ujianId = await publishDenganSoal(page, soalId, `Minus Poin Floor ${Date.now()}`, 100);
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" });
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" });
 
     await kerjakanDanKumpul(browser, ujianId, "Salah 1");
-    const pengerjaan = db.ujianPengerjaan.findByUjianAndSiswa(ujianId, siswa!.id as string);
+    const pengerjaan = await db.ujianPengerjaan.findByUjianAndSiswa(ujianId, siswa!.id as string);
     expect(pengerjaan?.nilaiTotal).toBe(0);
   });
 
   test("positif: soal tak dijawab tetap skor 0 tanpa kena potongan (bukan negatif)", async ({ page, browser }) => {
     const soalId = await buatSoalMinus(page, "PERSEN", 50);
     const ujianId = await publishDenganSoal(page, soalId, `Minus Kosong ${Date.now()}`, 100);
-    const siswa = db.siswa.findFirst({ nisn: "0098234571" });
+    const siswa = await db.siswa.findFirst({ nisn: "0098234571" });
 
     await kerjakanDanKumpul(browser, ujianId, null);
-    const pengerjaan = db.ujianPengerjaan.findByUjianAndSiswa(ujianId, siswa!.id as string);
+    const pengerjaan = await db.ujianPengerjaan.findByUjianAndSiswa(ujianId, siswa!.id as string);
     expect(pengerjaan?.nilaiTotal).toBe(0);
   });
 });
@@ -344,10 +349,11 @@ test.describe("Ujian lanjutan — edit poin soal & filter tingkat kesulitan (1.2
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
-    const soalMatematika = db.soal.findFirst({ mapelId: db.ujian.findUnique({ id: ujianId })?.mapelId as string, jenis: "PILIHAN_GANDA" });
+    const ujianUntukSoal = await db.ujian.findUnique({ id: ujianId });
+    const soalMatematika = await db.soal.findFirst({ mapelId: ujianUntukSoal?.mapelId as string, jenis: "PILIHAN_GANDA" });
     test.skip(!soalMatematika, "Tak ada soal PG Matematika di bank soal seed");
     if (!soalMatematika) return;
-    db.ujianSoal.create({ ujianId, soalId: soalMatematika.id as string, urutan: 1, poin: 20 });
+    await db.ujianSoal.create({ ujianId, soalId: soalMatematika.id as string, urutan: 1, poin: 20 });
     await page.goto(`/guru/ujian/${ujianId}/edit`);
     await expect(page.locator('input[name="poin"]')).toHaveValue("20");
     await page.fill('input[name="poin"]', "35");
@@ -375,9 +381,10 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
   test.use({ storageState: "tests/e2e/.auth/guru.json" });
 
   async function publishUjianPG(page: import("@playwright/test").Page, judul: string) {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const bab = db.bab.findFirst({ mapelId: mapel!.id as string });
-    const soalPG = db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "PILIHAN_GANDA" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const bab = await db.bab.findFirst({ mapelId: mapel!.id as string });
+    const soalPG = await db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "PILIHAN_GANDA" });
     await page.goto("/guru/ujian/baru");
     await page.fill('input[name="judul"]', judul);
     await page.locator("label", { hasText: "5B — Matematika" }).locator('input[type="checkbox"]').check();
@@ -385,7 +392,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
-    db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 1, poin: 100 });
+    await db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 1, poin: 100 });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     await page.getByRole("button", { name: "Lanjut ke preview & konfirmasi →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
@@ -397,7 +404,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
 
   test("positif: mode Otomatis — murid langsung lihat hasil begitu submit ujian all-PG", async ({ page, browser }) => {
     const ujianId = await publishUjianPG(page, `Ujian Reveal Otomatis ${Date.now()}`);
-    db.ujian.setModeHasil(ujianId, "OTOMATIS_SUBMIT", null);
+    await db.ujian.setModeHasil(ujianId, "OTOMATIS_SUBMIT", null);
 
     const muridCtx = await browser.newContext({ storageState: "tests/e2e/.auth/murid.json" });
     const muridPage = await muridCtx.newPage();
@@ -414,7 +421,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
   test("positif: mode Jadwal Manual — hasil disembunyikan sebelum jadwalnya, tampil setelahnya", async ({ page, browser }) => {
     const ujianId = await publishUjianPG(page, `Ujian Reveal Manual ${Date.now()}`);
     const besok = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    db.ujian.setModeHasil(ujianId, "JADWAL_MANUAL", besok);
+    await db.ujian.setModeHasil(ujianId, "JADWAL_MANUAL", besok);
 
     const muridCtx = await browser.newContext({ storageState: "tests/e2e/.auth/murid.json" });
     const muridPage = await muridCtx.newPage();
@@ -428,7 +435,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await expect(muridPage.getByText(/jawaban benar/)).not.toBeVisible();
 
     const kemarin = new Date(Date.now() - 60 * 1000).toISOString();
-    db.ujian.setModeHasil(ujianId, "JADWAL_MANUAL", kemarin);
+    await db.ujian.setModeHasil(ujianId, "JADWAL_MANUAL", kemarin);
     await muridPage.goto(`/murid/ujian/${ujianId}`);
     await expect(muridPage.getByText(/jawaban benar/)).toBeVisible();
     await muridCtx.close();
@@ -444,8 +451,9 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
   });
 
   test("positif: durasi per soal esai — habis waktu otomatis pindah ke soal berikutnya", async ({ page, browser }) => {
-    const mapel = db.mataPelajaran.findFirst({ nama: "Matematika" });
-    const bab = db.bab.findFirst({ mapelId: mapel!.id as string });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const mapel = await db.mataPelajaran.findFirst({ nama: "Matematika", sekolahId: sekolah!.id as string });
+    const bab = await db.bab.findFirst({ mapelId: mapel!.id as string });
 
     // Bikin soal esai dgn durasi 2 detik lewat form bank soal (exercise form-nya sekaligus).
     await page.goto("/guru/bank-soal");
@@ -456,10 +464,10 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.fill('input[name="durasiDetik"]', "2");
     await page.getByRole("button", { name: "Simpan ke bank soal" }).click();
     await Promise.all([page.waitForNavigation(), confirmDialogSubmit(page, "Ya, lanjutkan")]);
-    const soalEsai = db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "ESAI" });
+    const soalEsai = await db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "ESAI" });
     expect(soalEsai?.durasiDetik).toBe(2);
 
-    const soalPG = db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "PILIHAN_GANDA" });
+    const soalPG = await db.soal.findFirst({ mapelId: mapel!.id as string, jenis: "PILIHAN_GANDA" });
 
     const judul = `Ujian Durasi Soal ${Date.now()}`;
     await page.goto("/guru/ujian/baru");
@@ -469,8 +477,8 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await page.getByRole("button", { name: "Lanjut susun soal →" }).click();
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     const ujianId = page.url().match(/\/guru\/ujian\/([^/]+)\/edit/)![1];
-    db.ujianSoal.create({ ujianId, soalId: soalEsai!.id as string, urutan: 1, poin: 50 });
-    db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 2, poin: 50 });
+    await db.ujianSoal.create({ ujianId, soalId: soalEsai!.id as string, urutan: 1, poin: 50 });
+    await db.ujianSoal.create({ ujianId, soalId: soalPG!.id as string, urutan: 2, poin: 50 });
     await page.goto(`/guru/ujian/${ujianId}/pengaturan`);
     // Matikan acak urutan soal — tes ini butuh soal esai (yg ada durasi) pasti muncul duluan.
     await page.locator('input[name="acakSoal"]').uncheck();
@@ -514,7 +522,7 @@ test.describe("Ujian lanjutan — mode hasil & bagikan link (1.23)", () => {
     await expect(page.getByText("sudah diterbitkan")).toBeVisible();
     await expect(page.getByRole("button", { name: "✓ Terbitkan ujian ini" })).toHaveCount(0);
 
-    const updated = db.ujian.findUnique({ id: ujianId });
+    const updated = await db.ujian.findUnique({ id: ujianId });
     expect(updated?.modeHasil).toBe("JADWAL_MANUAL");
   });
 });

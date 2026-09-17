@@ -6,8 +6,8 @@ test.describe("Siswa tanpa wali (12.15-12.16)", () => {
   test.use({ storageState: "tests/e2e/.auth/kepsek.json" });
 
   test("positif: siswa tanpa wali tampilkan Callout eksplisit + form tambah wali berhasil", async ({ page }) => {
-    const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
-    const siswa = db.siswa.findFirstTanpaWali({ sekolahId: sekolah!.id as string });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const siswa = await db.siswa.findFirstTanpaWali({ sekolahId: sekolah!.id as string });
     test.skip(!siswa, "Semua siswa sekolah primer sudah punya wali di data seed saat ini");
     if (!siswa) return;
 
@@ -36,7 +36,7 @@ test.describe("Master Data — Kurikulum picker (14.9-14.11)", () => {
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
-    const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
     expect(sekolah?.kurikulumId).toBeTruthy();
 
     await page.goto("/kepsek/master-data");
@@ -54,7 +54,7 @@ test.describe("Master Data — Kurikulum picker (14.9-14.11)", () => {
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).not.toHaveURL(/error=/);
 
-    const sekolah = db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
+    const sekolah = await db.sekolah.findFirst({ nama: "SD Harapan Bangsa" });
     expect(sekolah?.kurikulumId).toBeNull();
     await expect(page.getByText(/Isi sesuai Kurikulum Merdeka \(SD\)/)).toBeVisible();
   });

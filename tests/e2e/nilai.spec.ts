@@ -56,11 +56,11 @@ test.describe("Input Nilai — sumber dari Tugas/Ujian, editable/upsert & sinkro
   });
 
   test("positif: mengedit skor dari sumber Ujian juga mengubah nilaiTotal UjianPengerjaan aslinya", async ({ page }) => {
-    const pengerjaan = db.ujianPengerjaan.findSelesaiDenganGuru();
+    const pengerjaan = await db.ujianPengerjaan.findSelesaiDenganGuru();
     test.skip(!pengerjaan, "Belum ada UjianPengerjaan SELESAI milik guru demo (Rina) di seed");
     if (!pengerjaan) return;
 
-    const kelasId = db.ujianKelas.findKelasIdByUjian(pengerjaan.ujianId as string);
+    const kelasId = await db.ujianKelas.findKelasIdByUjian(pengerjaan.ujianId as string);
     test.skip(!kelasId, "Tidak menemukan kelas utk ujian ini");
     if (!kelasId) return;
     await page.goto(`/guru/nilai?kelas=${kelasId}&mapel=${pengerjaan.mapelId}&sumber=ujian:${pengerjaan.ujianId}`);
@@ -75,7 +75,7 @@ test.describe("Input Nilai — sumber dari Tugas/Ujian, editable/upsert & sinkro
     await confirmDialogSubmit(page, "Ya, lanjutkan");
     await expect(page).toHaveURL(/\/guru\/nilai/);
 
-    const setelah = db.ujianPengerjaan.findById(pengerjaan.pengerjaanId as string);
+    const setelah = await db.ujianPengerjaan.findById(pengerjaan.pengerjaanId as string);
     expect(Number(setelah?.nilaiTotal)).toBe(skorBaru);
   });
 
